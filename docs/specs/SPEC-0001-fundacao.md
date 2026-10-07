@@ -120,4 +120,4 @@ Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com e
 ## 12. Emendas
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
-| v2 | 2026-10-07 | Nova filha SPEC-0011 (animação da cena da Pipa) e ADR-0021 (direção de animação); 2 critérios de aceite novos | Pedido do usuário por animação bonita; lacunas encontradas na SPEC-0010 (movimento reduzido, medição de fps, efeitos do design) | SPEC-0011 (nova); SPEC-0010 inalterada | pendente (H1) |
+| v2 | 2026-10-07 | Nova filha SPEC-0011 (animação da cena da Pipa) e ADR-0021 (direção de animação); 2 critérios de aceite novos | Pedido do usuário por animação bonita; lacunas encontradas na SPEC-0010 (movimento reduzido, medição de fps, efeitos do design) | SPEC-0011 (nova); SPEC-0010 inalterada | thomas (2026-10-07) |

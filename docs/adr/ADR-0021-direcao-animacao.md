@@ -1,7 +1,7 @@
 ---
 id: ADR-0021
 title: Direção de animação das cenas dos jogos
-status: proposed
+status: accepted
 origin: decision
 date: 2026-10-07
 pillars: []
