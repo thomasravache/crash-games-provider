@@ -4,7 +4,7 @@ title: "Animação da cena da Pipa"
 tier: full
 type: feature
 user_facing: true
-status: proposed
+status: approved
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0010]
@@ -14,8 +14,8 @@ touches: ["src/frontend/packages/scene-kit/**", "src/frontend/apps/game-pipa/src
 adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-07
 ---
 
 # SPEC-0011 — Animação da cena da Pipa
