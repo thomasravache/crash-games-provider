@@ -1,0 +1,143 @@
+# Índice de Specs
+
+> Gerado por `spec_graph.py index` em 2026-10-07 — não edite manualmente.
+
+## Saúde
+
+- Validação (G0): **0 erro(s), 10 aviso(s)** — rode `spec_graph.py validate`
+- Specs: approved 9
+- Impedimentos: **0 aberto(s)**, 0 resolvido(s)
+
+## Cobertura de Pilares
+
+Perfil: **rigoroso**
+
+| Pilar | Situação | Detalhe |
+|---|---|---|
+| Arquitetura e fronteiras | coberto | ADR-0001, ADR-0004 |
+| Estratégia de testes | coberto | ADR-0009 |
+| Qualidade de código | coberto | ADR-0012 |
+| Entrega contínua e ambientes | coberto | ADR-0013 |
+| Fluxo de mudança | coberto | ADR-0011 |
+| Segredos e dados sensíveis | coberto | ADR-0014 |
+| Identidade e acesso | coberto | ADR-0015 |
+| Dependências e ciclo de vida da stack | coberto | ADR-0016 |
+| Observabilidade | coberto | ADR-0017 |
+| Resiliência e recuperação | coberto | ADR-0018 |
+| Dados e migrações | coberto | ADR-0010 |
+| Custo | dispensado | Fase pessoal só com validação local, sem hospedagem nem serviços pagos (decisão do usuário, 2026-10-07). Reabrir na spec 'Hospedagem e deploy' com estimativa atual/2x/10x. |
+| Desempenho e escala | coberto | ADR-0019 |
+| Acessibilidade e conformidade | coberto | ADR-0020 |
+
+## Jornadas Críticas
+
+| Jornada | Situação | Specs |
+|---|---|---|
+| Jogador abre o jogo pelo operador, aposta e faz cash-out antes do crash, com saldo atualizado na carteira | descoberta | — |
+| Jogador aposta, a rodada crasha antes do cash-out e a aposta é liquidada como perdida | descoberta | — |
+| Jogador verifica uma rodada encerrada pelo hash/semente e obtém o mesmo ponto de crash | planejada | SPEC-0010 |
+
+## Plano de Execução
+
+**Em andamento:** —  
+**Paradas por impedimento:** —  
+**Próximo lote:** SPEC-0002
+
+| Onda | Spec | Título | Tier/Tam. | Status | Prontidão | Observação |
+|---|---|---|---|---|---|---|
+| 1 | SPEC-0002 | Estrutura do repositório e qualidade de código | full/M | approved | ✅ pronta |  |
+| 2 | SPEC-0003 | Harness de testes e testes de arquitetura | full/M | approved | ⛔ aguarda implementação de SPEC-0002 |  |
+| 2 | SPEC-0005 | Ambiente local com Aspire e observabilidade base | full/M | approved | ⛔ aguarda implementação de SPEC-0002 |  |
+| 2 | SPEC-0006 | Contratos gerados do backend para o front-end | full/M | approved | ⛔ aguarda implementação de SPEC-0002 |  |
+| 3 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | approved | ⛔ aguarda implementação de SPEC-0002; aguarda implementação de SPEC-0003 |  |
+| 3 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | approved | ⛔ aguarda implementação de SPEC-0003 |  |
+| 3 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | approved | ⛔ aguarda implementação de SPEC-0003; aguarda implementação de SPEC-0005 |  |
+| 4 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ⛔ aguarda implementação de SPEC-0003; aguarda implementação de SPEC-0005 | saiu da onda 3: max_parallel=3 |
+| 4 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0005; aguarda implementação de SPEC-0006 | saiu da onda 3: max_parallel=3 |
+
+## Épicos
+
+| Épico | Título | Status | Progresso |
+|---|---|---|---|
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 0/9 implementadas |
+
+## Grafo de Dependências
+
+Seta contínua: depende da implementação. Seta tracejada: consome contrato.
+
+```mermaid
+flowchart LR
+  subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
+    S0002["SPEC-0002<br/>Estrutura do repositório e qualidade de…"]:::approved
+    S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::approved
+    S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::approved
+    S0005["SPEC-0005<br/>Ambiente local com Aspire e observabili…"]:::approved
+    S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::approved
+    S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::approved
+    S0008["SPEC-0008<br/>Motor de rodada e salas em tempo real"]:::approved
+    S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::approved
+    S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::approved
+  end
+  S0002 --> S0003
+  S0002 --> S0004
+  S0003 --> S0004
+  S0006 -. contrato v1 .-> S0004
+  S0002 --> S0005
+  S0002 --> S0006
+  S0003 --> S0007
+  S0003 --> S0008
+  S0005 --> S0008
+  S0007 -. contrato v1 .-> S0008
+  S0003 --> S0009
+  S0005 --> S0009
+  S0005 --> S0010
+  S0006 --> S0010
+  S0007 -. contrato v1 .-> S0010
+  S0008 -. contrato v1 .-> S0010
+  S0009 -. contrato v1 .-> S0010
+  classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
+  classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
+  classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
+  classDef implemented fill:#dcfce7,stroke:#16a34a,color:#111
+  classDef deprecated fill:#f3f4f6,stroke:#9ca3af,color:#6b7280
+```
+
+## Todas as Specs
+
+| ID | Título | Tier | Tipo | Status | Criada | Épico | Depende de | Consome contrato |
+|---|---|---|---|---|---|---|---|---|
+| [SPEC-0001](SPEC-0001-fundacao.md) | Fundação da plataforma Apogeu Games | epic | foundation | approved | 2026-10-07 | — | — | — |
+| [SPEC-0002](SPEC-0002-estrutura-repositorio.md) | Estrutura do repositório e qualidade de código | full | foundation | approved | 2026-10-07 | SPEC-0001 | — | — |
+| [SPEC-0003](SPEC-0003-harness-testes.md) | Harness de testes e testes de arquitetura | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
+| [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
+| [SPEC-0005](SPEC-0005-ambiente-aspire.md) | Ambiente local com Aspire e observabilidade base | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
+| [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
+| [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
+| [SPEC-0008](SPEC-0008-motor-rodada.md) | Motor de rodada e salas em tempo real | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | SPEC-0007@1 |
+| [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
+| [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@1, SPEC-0008@1, SPEC-0009@1 |
+
+## ADRs
+
+| ID | Título | Status | Garantido por (G3) |
+|---|---|---|---|
+| [ADR-0001](../adr/ADR-0001-backend-monolito-modular.md) | Backend em monólito modular com vertical slices | accepted | Testes de arquitetura (ArchUnitNET) em tests/Architecture.Tests, categoria Architecture, no CI (G3) |
+| [ADR-0002](../adr/ADR-0002-runtime-dotnet10-wolverine.md) | Runtime do backend: .NET 10 LTS, ASP.NET Core e Wolverine | accepted | Teste de arquitetura proíbe referências a MediatR, AutoMapper e MassTransit; global.json fixa o SDK 10 |
+| [ADR-0003](../adr/ADR-0003-aspire.md) | Orquestração local e padrões de serviço com Aspire | accepted | Teste de integração do AppHost (Aspire.Hosting.Testing) sobe o ambiente e verifica health checks |
+| [ADR-0004](../adr/ADR-0004-monorepo-frontend.md) | Repositório único e arquitetura do front-end dos jogos | accepted | dependency-cruiser (src/frontend/.dependency-cruiser.cjs) no CI, categoria arquitetura |
+| [ADR-0005](../adr/ADR-0005-tempo-real-salas.md) | Tempo real e salas de rodada | accepted | Testes de integração (Testcontainers Redis) para liderança e cash-out com horário do servidor; teste de arquitetura: o hub não contém regra de negócio |
+| [ADR-0006](../adr/ADR-0006-provably-fair.md) | Justiça do resultado: provably fair sobre gerador criptográfico | accepted | Testes unitários com vetores conhecidos (Fairness.Tests) + simulação de RTP no CI noturno; teste de arquitetura: Fairness.Domain sem I/O |
+| [ADR-0007](../adr/ADR-0007-carteira-livro-razao.md) | Carteira do operador e livro-razão | accepted | Testes de integração (Testcontainers PostgreSQL + servidor de carteira falso) para idempotência, estorno e reprocessamento; teste de arquitetura: só Wallet escreve no livro-razão |
+| [ADR-0008](../adr/ADR-0008-contratos-gerados.md) | Contratos gerados do backend para o front-end | accepted | Job de CI regenera os contratos e falha se houver diferença (git diff --exit-code); testes de contrato (CT) por spec |
+| [ADR-0009](../adr/ADR-0009-testes.md) | Estratégia e ferramentas de teste | accepted | Comandos test, test_integration, test_e2e e coverage do sdd-config, executados pelo gate --run e pelo CI |
+| [ADR-0010](../adr/ADR-0010-dados-postgres-redis.md) | PostgreSQL e Redis, schema por módulo e migrações | accepted | Teste de integração aplica todas as migrações num PostgreSQL real (Testcontainers) e roda a versão anterior contra o schema novo; teste de arquitetura: cada DbContext só mapeia o próprio schema |
+| [ADR-0011](../adr/ADR-0011-fluxo-pr.md) | Fluxo de mudança por pull request no GitHub | accepted | Proteção de branch no GitHub; change_flow: pr no sdd-config; job sdd (pr-check) obrigatório; hooks commit-msg/pre-commit |
+| [ADR-0012](../adr/ADR-0012-qualidade-codigo.md) | Qualidade de código: formatadores, linters, analisadores e SAST | accepted | Job lint do CI: dotnet format --verify-no-changes, build com TreatWarningsAsErrors, pnpm lint, pnpm typecheck, prettier --check, Semgrep e gitleaks |
+| [ADR-0013](../adr/ADR-0013-entrega.md) | Entrega: CI no GitHub Actions, validação local e hospedagem adiada | accepted | Workflows do GitHub Actions obrigatórios na proteção de branch; deploy_staging/deploy_production do sdd-config vazios e G6 = N/A apontando a spec de hospedagem até ela existir |
+| [ADR-0014](../adr/ADR-0014-segredos-dados.md) | Segredos, sementes e dados pessoais | accepted | gitleaks no CI; teste de integração de mascaramento de logs; teste de arquitetura: sementes só acessadas pelo módulo Fairness |
+| [ADR-0015](../adr/ADR-0015-identidade-acesso.md) | Identidade e acesso: Keycloak (OIDC), lançamento de jogo e API de operadores | accepted | Testes de integração de acesso negado por endpoint; teste de arquitetura: endpoints sem [Authorize]/política explícita falham; nenhuma referência a SDK de fornecedor de identidade |
+| [ADR-0016](../adr/ADR-0016-dependencias.md) | Dependências, licenças e ciclo de vida da stack | accepted | security_scan no CI (dotnet list package --vulnerable, pnpm audit, gitleaks); Dependabot; verificação de licenças no CI |
+| [ADR-0017](../adr/ADR-0017-observabilidade.md) | Observabilidade com OpenTelemetry e SLOs das jornadas críticas | accepted | ServiceDefaults em todo serviço (teste de arquitetura); teste de integração do health check; teste de mascaramento de dados em logs |
+| [ADR-0018](../adr/ADR-0018-resiliencia.md) | Resiliência: rodada sempre termina, idempotência e recuperação | accepted | Testes de integração: queda do líder no meio do voo, timeout e duplicata da carteira, reinício do processo com outbox pendente |
+| [ADR-0019](../adr/ADR-0019-desempenho-escala.md) | Metas de desempenho e escala | accepted | Teste de carga k6 com limiares (thresholds) que reprovam a execução; Lighthouse CI com orçamento de bundle no build do jogo |
+| [ADR-0020](../adr/ADR-0020-acessibilidade-conformidade.md) | Acessibilidade e conformidade regulatória | accepted | @axe-core/playwright no CI para HUD e backoffice; checklist de conformidade no G4; spec de conformidade obrigatória antes de dinheiro real |
