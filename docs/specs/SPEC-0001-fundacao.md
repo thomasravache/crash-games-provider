@@ -6,7 +6,7 @@ type: foundation
 status: approved
 created: 2026-10-07
 depends_on: []
-adrs: [ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0018, ADR-0019, ADR-0020]
+adrs: [ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0009, ADR-0010, ADR-0011, ADR-0012, ADR-0013, ADR-0014, ADR-0015, ADR-0016, ADR-0017, ADR-0018, ADR-0019, ADR-0020, ADR-0021]
 external: []
 approved_by: thomas
 approved_at: 2026-10-07
@@ -28,13 +28,14 @@ Ao final, a Apogeu Games tem um repositório único com qualidade e testes bloqu
 - Motor de rodada e salas em tempo real (SPEC-0008).
 - Segurança base: lançamento demo, sessão do jogador, backoffice com Keycloak (SPEC-0009).
 - Cliente Pipa demo de ponta a ponta (SPEC-0010).
+- Animação bonita da cena da Pipa, com regressão visual aprovada pelo usuário (SPEC-0011, emenda v2).
 
 **Não-objetivos (fora do escopo):**
 - Apostas, cash-out, carteira e livro-razão (próximo épico: "Apostas e cash-out em demo", que provará as jornadas aposta-cashout e aposta-perdida).
 - Telas do backoffice e site demo (só o esqueleto dos apps).
 - Hospedagem, staging e produção (spec futura "Hospedagem e deploy", ADR-0013).
 - Conformidade regulatória para dinheiro real (spec obrigatória antes do dinheiro real, ADR-0020).
-- Arte final, Spine, chat, apostas ao vivo de outros jogadores, outros jogos.
+- Arte final ilustrada, Spine, som, chat, apostas ao vivo de outros jogadores, outros jogos.
 
 ## 3. Arquitetura Alvo
 **Contexto:** projeto novo; stack e arquitetura definidas nos ADRs de fundação ADR-0001 a ADR-0020 (todos propostos junto com este épico).
@@ -54,7 +55,7 @@ flowchart LR
   BO[backoffice] -- OIDC --> KC[Keycloak]
 ```
 
-**Decisões (ADRs):** ADR-0001 monólito modular; ADR-0002 .NET 10 + Wolverine; ADR-0003 Aspire; ADR-0004 monorepo e front; ADR-0005 tempo real e salas; ADR-0006 provably fair; ADR-0007 carteira e livro-razão (aplicada no próximo épico); ADR-0008 contratos gerados; ADR-0009 testes; ADR-0010 dados; ADR-0011 fluxo por PR; ADR-0012 qualidade de código; ADR-0013 entrega; ADR-0014 segredos; ADR-0015 identidade; ADR-0016 dependências; ADR-0017 observabilidade; ADR-0018 resiliência; ADR-0019 desempenho; ADR-0020 acessibilidade e conformidade.
+**Decisões (ADRs):** ADR-0001 monólito modular; ADR-0002 .NET 10 + Wolverine; ADR-0003 Aspire; ADR-0004 monorepo e front; ADR-0005 tempo real e salas; ADR-0006 provably fair; ADR-0007 carteira e livro-razão (aplicada no próximo épico); ADR-0008 contratos gerados; ADR-0009 testes; ADR-0010 dados; ADR-0011 fluxo por PR; ADR-0012 qualidade de código; ADR-0013 entrega; ADR-0014 segredos; ADR-0015 identidade; ADR-0016 dependências; ADR-0017 observabilidade; ADR-0018 resiliência; ADR-0019 desempenho; ADR-0020 acessibilidade e conformidade; ADR-0021 direção de animação (emenda v2).
 
 **Regras de arquitetura a garantir (G3):** módulos só se comunicam por `Contracts` (ArchUnitNET); `Fairness.Domain` sem I/O e sem `System.Random`; pacotes proibidos (MediatR, AutoMapper, MassTransit); dinheiro nunca em `double`/`float`; cena do front não importa rede, e `packages/contracts` só gerado (dependency-cruiser); todo Host com ServiceDefaults; todo endpoint com política explícita.
 
@@ -70,6 +71,7 @@ flowchart LR
 | SPEC-0008 | Motor de rodada e salas em tempo real | full | foundation | M | SPEC-0003, SPEC-0005 | SPEC-0007@1 |
 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | M | SPEC-0003, SPEC-0005 | — |
 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full | foundation | M | SPEC-0005, SPEC-0006 | SPEC-0007@1, SPEC-0008@1, SPEC-0009@1 |
+| SPEC-0011 | Animação da cena da Pipa | full | feature | M | SPEC-0010 | SPEC-0010@1 |
 
 ## 5. Estratégia de Entrega
 - **Ambientes:** apenas local (Aspire) e CI; sem staging/produção nesta fase (ADR-0013).
@@ -96,6 +98,8 @@ flowchart LR
 - [ ] Lançamento com assinatura inválida ou em dinheiro real é recusado — SPEC-0009:IT-02
 - [ ] Jogador entra na Pipa demo e acompanha uma rodada completa — SPEC-0010:E2E-02
 - [ ] Jogador verifica uma rodada no navegador — SPEC-0010:E2E-03
+- [ ] Quadros-chave da animação iguais às referências aprovadas pelo usuário — SPEC-0011:E2E-01
+- [ ] Animação fluida (p95 ≤ 16,7 ms) e respeitando movimento reduzido — SPEC-0011:E2E-03, SPEC-0011:E2E-02
 
 ## 8. Questões em Aberto
 - [x] Hospedagem agora ou depois? — Depois; validar tudo localmente por enquanto (thomas, 2026-10-07)
@@ -116,3 +120,4 @@ Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com e
 ## 12. Emendas
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v2 | 2026-10-07 | Nova filha SPEC-0011 (animação da cena da Pipa) e ADR-0021 (direção de animação); 2 critérios de aceite novos | Pedido do usuário por animação bonita; lacunas encontradas na SPEC-0010 (movimento reduzido, medição de fps, efeitos do design) | SPEC-0011 (nova); SPEC-0010 inalterada | pendente (H1) |

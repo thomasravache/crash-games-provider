@@ -5,7 +5,7 @@
 ## Saúde
 
 - Validação (G0): **0 erro(s), 10 aviso(s)** — rode `spec_graph.py validate`
-- Specs: approved 9
+- Specs: proposed 1, approved 9
 - Impedimentos: **0 aberto(s)**, 0 resolvido(s)
 
 ## Cobertura de Pilares
@@ -54,12 +54,13 @@ Perfil: **rigoroso**
 | 3 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | approved | ⛔ aguarda implementação de SPEC-0003; aguarda implementação de SPEC-0005 |  |
 | 4 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ⛔ aguarda implementação de SPEC-0003; aguarda implementação de SPEC-0005 | saiu da onda 3: max_parallel=3 |
 | 4 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0005; aguarda implementação de SPEC-0006 | saiu da onda 3: max_parallel=3 |
+| 5 | SPEC-0011 | Animação da cena da Pipa | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 0/9 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 0/10 implementadas |
 
 ## Grafo de Dependências
 
@@ -77,6 +78,7 @@ flowchart LR
     S0008["SPEC-0008<br/>Motor de rodada e salas em tempo real"]:::approved
     S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::approved
     S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::approved
+    S0011["SPEC-0011<br/>Animação da cena da Pipa"]:::proposed
   end
   S0002 --> S0003
   S0002 --> S0004
@@ -95,6 +97,8 @@ flowchart LR
   S0007 -. contrato v1 .-> S0010
   S0008 -. contrato v1 .-> S0010
   S0009 -. contrato v1 .-> S0010
+  S0010 --> S0011
+  S0010 -. contrato v1 .-> S0011
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -116,6 +120,7 @@ flowchart LR
 | [SPEC-0008](SPEC-0008-motor-rodada.md) | Motor de rodada e salas em tempo real | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | SPEC-0007@1 |
 | [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
 | [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@1, SPEC-0008@1, SPEC-0009@1 |
+| [SPEC-0011](SPEC-0011-animacao-pipa.md) | Animação da cena da Pipa | full | feature | proposed | 2026-10-07 | SPEC-0001 | SPEC-0010 | SPEC-0010@1 |
 
 ## ADRs
 
@@ -141,3 +146,4 @@ flowchart LR
 | [ADR-0018](../adr/ADR-0018-resiliencia.md) | Resiliência: rodada sempre termina, idempotência e recuperação | accepted | Testes de integração: queda do líder no meio do voo, timeout e duplicata da carteira, reinício do processo com outbox pendente |
 | [ADR-0019](../adr/ADR-0019-desempenho-escala.md) | Metas de desempenho e escala | accepted | Teste de carga k6 com limiares (thresholds) que reprovam a execução; Lighthouse CI com orçamento de bundle no build do jogo |
 | [ADR-0020](../adr/ADR-0020-acessibilidade-conformidade.md) | Acessibilidade e conformidade regulatória | accepted | @axe-core/playwright no CI para HUD e backoffice; checklist de conformidade no G4; spec de conformidade obrigatória antes de dinheiro real |
+| [ADR-0021](../adr/ADR-0021-direcao-animacao.md) | Direção de animação das cenas dos jogos | proposed | Testes de regressão visual (Playwright toHaveScreenshot) dos quadros-chave; E2E de movimento reduzido; medição de tempo de quadro; dependency-cruiser: animação só via GameAnimator |
