@@ -1,0 +1,51 @@
+# Apogeu
+
+Provedor B2B de crash games (primeiro jogo: Pipa). Monólito modular .NET 10 com PostgreSQL e Redis, front-end em workspace pnpm (Vite + React + TypeScript) e orquestração local com Aspire. Contexto, decisões e specs estão em [`docs/`](docs/).
+
+## Pré-requisitos
+
+- .NET SDK 10.0.x (fixado em `global.json`)
+- Node.js na linha LTS indicada em `src/frontend/.nvmrc` (24) e pnpm 10 (`packageManager` em `src/frontend/package.json`)
+- Docker (testes de integração e ambiente local das próximas specs)
+
+## Estrutura
+
+```text
+src/backend/{Host,BuildingBlocks,Modules/<Modulo>/<Modulo>.<Camada>}
+src/frontend/{apps/<app>,packages/<pkg>}
+tests/backend/<Projeto>.Tests, tests/e2e
+docs/{adr,specs}
+```
+
+Módulos: Rounds, Fairness, Betting, Wallet, Operators e Backoffice. Cada um expõe só o projeto `<Modulo>.Contracts`; as camadas internas são `Features` (vertical slices), `Infrastructure` e, em Rounds, Fairness, Betting e Wallet, `Domain` (ADR-0001). O `Host` registra cada módulo com `Add<Modulo>Module()` e `Map<Modulo>Endpoints()`.
+
+## Comandos
+
+Todos na raiz do repositório.
+
+```bash
+# Back-end
+dotnet build Apogeu.slnx                        # 0 avisos, 0 erros (avisos são erros)
+dotnet test Apogeu.slnx                         # testes (os de integração são lentos: usam git, dotnet e pnpm reais)
+dotnet format Apogeu.slnx --verify-no-changes   # exit 0 se formatado
+dotnet format Apogeu.slnx                       # aplica a formatação
+
+# Front-end
+pnpm -C src/frontend install --frozen-lockfile
+pnpm -C src/frontend build
+pnpm -C src/frontend lint
+pnpm -C src/frontend typecheck
+pnpm -C src/frontend format:check
+pnpm -C src/frontend format                     # aplica a formatação
+
+# Controle SDD
+python3 tools/sdd/spec_graph.py status
+git config core.hooksPath .githooks             # ativa commit-msg e pre-commit (uma vez por clone)
+```
+
+## Qualidade de código
+
+- C#: `Nullable`, `TreatWarningsAsErrors`, `AnalysisMode=Recommended` e Meziantou.Analyzer em `Directory.Build.props`; versões de pacotes em `Directory.Packages.props` (Central Package Management) com `packages.lock.json` versionados; fonte de pacotes única em `nuget.config`.
+- TypeScript: `tsconfig.base.json` estrito; ESLint (typescript-eslint `strictTypeChecked`, react-hooks, jsx-a11y) e Prettier.
+- Commits em Conventional Commits com o rodapé `Refs: SPEC-NNNN` (hook `commit-msg`).
+- Segredos locais (`.env*`, `secrets.json`, `appsettings.*.local.json`) são ignorados pelo git.

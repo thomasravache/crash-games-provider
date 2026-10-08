@@ -1,0 +1,30 @@
+#!/bin/sh
+# Project pre-commit step (ADR-0012), kept apart from the vendored SDD hook: verifies the formatting of the
+# staged files only. Skips silently when nothing relevant is staged (e.g. `git commit --allow-empty`) or when
+# the tool is not available (no dotnet, or a copy without src/frontend/node_modules). Never rewrites files.
+root=$(git rev-parse --show-toplevel) || exit 0
+cd "$root" || exit 0
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+status=0
+
+cs_files=$(printf '%s\n' "$staged" | grep -E '\.cs$')
+if [ -n "$cs_files" ] && command -v dotnet >/dev/null 2>&1 && [ -f Apogeu.slnx ]; then
+  # shellcheck disable=SC2086 # word splitting is intended: one argument per staged file
+  if ! dotnet format Apogeu.slnx --verify-no-changes --include $cs_files; then
+    echo "pre-commit: C# fora do formato; rode 'dotnet format Apogeu.slnx' e adicione as mudanças" >&2
+    status=1
+  fi
+fi
+
+prettier=src/frontend/node_modules/.bin/prettier
+fe_files=$(printf '%s\n' "$staged" | grep -E '^src/frontend/.+\.(ts|tsx|js|mjs|cjs|json|css|html|md|yaml|yml)$' | sed 's#^src/frontend/##')
+if [ -n "$fe_files" ] && [ -x "$prettier" ]; then
+  # shellcheck disable=SC2086 # word splitting is intended: one argument per staged file
+  if ! (cd src/frontend && node_modules/.bin/prettier --check --ignore-unknown $fe_files); then
+    echo "pre-commit: front-end fora do formato; rode 'pnpm -C src/frontend format' e adicione as mudanças" >&2
+    status=1
+  fi
+fi
+
+exit $status

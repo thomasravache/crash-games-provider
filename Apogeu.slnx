@@ -1,0 +1,43 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/backend/Host/Host.csproj" />
+    <Project Path="src/backend/BuildingBlocks/BuildingBlocks.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Rounds/">
+    <Project Path="src/backend/Modules/Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Rounds/Rounds.Domain/Rounds.Domain.csproj" />
+    <Project Path="src/backend/Modules/Rounds/Rounds.Infrastructure/Rounds.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Rounds/Rounds.Features/Rounds.Features.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Fairness/">
+    <Project Path="src/backend/Modules/Fairness/Fairness.Contracts/Fairness.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Fairness/Fairness.Domain/Fairness.Domain.csproj" />
+    <Project Path="src/backend/Modules/Fairness/Fairness.Infrastructure/Fairness.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Fairness/Fairness.Features/Fairness.Features.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Betting/">
+    <Project Path="src/backend/Modules/Betting/Betting.Contracts/Betting.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Betting/Betting.Domain/Betting.Domain.csproj" />
+    <Project Path="src/backend/Modules/Betting/Betting.Infrastructure/Betting.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Betting/Betting.Features/Betting.Features.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Wallet/">
+    <Project Path="src/backend/Modules/Wallet/Wallet.Contracts/Wallet.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Wallet/Wallet.Domain/Wallet.Domain.csproj" />
+    <Project Path="src/backend/Modules/Wallet/Wallet.Infrastructure/Wallet.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Wallet/Wallet.Features/Wallet.Features.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Operators/">
+    <Project Path="src/backend/Modules/Operators/Operators.Contracts/Operators.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Operators/Operators.Infrastructure/Operators.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Operators/Operators.Features/Operators.Features.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Backoffice/">
+    <Project Path="src/backend/Modules/Backoffice/Backoffice.Contracts/Backoffice.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Backoffice/Backoffice.Infrastructure/Backoffice.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/backend/Repository.Tests/Repository.Tests.csproj" />
+  </Folder>
+</Solution>

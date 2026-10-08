@@ -1,0 +1,24 @@
+<Project>
+
+  <!-- Central code-quality configuration (ADR-0012). Every .NET project in the repository inherits it. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <RootNamespace>Apogeu.$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>Apogeu.$(MSBuildProjectName)</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Reproducible restores (ADR-0016): packages.lock.json is versioned; CI restores in locked mode. -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

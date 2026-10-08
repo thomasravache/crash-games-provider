@@ -4,13 +4,13 @@ title: "Harness de testes e testes de arquitetura"
 tier: full
 type: foundation
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002]
 consumes_contract: []
 contract_version: 1
-touches: ["tests/backend/TestKit/**", "tests/backend/Architecture.Tests/**", "tests/frontend/**", "tests/e2e/harness/**", "src/frontend/vitest.workspace.ts", "src/frontend/playwright.config.ts", "src/frontend/.dependency-cruiser.cjs", "src/frontend/package.json", "stryker-config.json"]
+touches: ["tests/backend/TestKit/**", "tests/backend/Architecture.Tests/**", "tests/frontend/**", "tests/e2e/harness/**", "src/frontend/vitest.workspace.ts", "src/frontend/playwright.config.ts", "src/frontend/.dependency-cruiser.cjs", "src/frontend/package.json", "stryker-config.json", "Directory.Packages.props", ".config/dotnet-tools.json"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0009]
 external: []
 size: M
@@ -135,6 +135,33 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 ## 11. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
 
+<!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
+
+**Fase 1: Andaime do contrato**
+- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0004, ADR-0009 relidos
+
+**Fase 2: Unitários**
+- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0003:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
+- [ ] Refactor mantendo tudo verde
+- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+
+**Fase 3: Integração e contrato (dependências reais)**
+- [ ] Red: escrever IT-01, IT-02, IT-03 com a tag `SPEC-0003:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Green: implementar o mínimo para passar
+- [ ] Refactor mantendo tudo verde
+- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+
+**Fase 4: Jornada E2E**
+- [ ] Red: E2E-01 falhando pelo motivo certo
+- [ ] Green: jornada completa passando localmente
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
 | Gate | Status | Evidência | Data |
@@ -182,6 +209,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
 - [ ] Documentação raiz e CHANGELOG atualizados (G7)
 - [ ] Pendências registradas como novas specs (ou nenhuma)
+- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
