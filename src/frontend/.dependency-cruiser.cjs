@@ -31,10 +31,11 @@ module.exports = {
       name: "scene-does-not-import-transport",
       comment:
         "ADR-0004: scene-kit and the scene of the apps do not import the network layer nor the transport types; " +
-        "they only read the state exposed by game-sdk.",
+        "they only read the state exposed by game-sdk. Checked by reachability, so the transport is also rejected " +
+        "when it arrives through the game-sdk entry (a re-export) or any other module in between.",
       severity: "error",
       from: { path: ["^packages/scene-kit/", "^apps/[^/]+/src/scene/"] },
-      to: { path: "^packages/game-sdk/src/transport/" },
+      to: { path: "^packages/game-sdk/src/transport/", reachable: true },
     },
     {
       name: "no-app-imports-another-app",
