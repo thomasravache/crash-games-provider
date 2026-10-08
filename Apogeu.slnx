@@ -41,6 +41,8 @@
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/backend/AppHost.Tests/AppHost.Tests.csproj" />
     <Project Path="tests/backend/Repository.Tests/Repository.Tests.csproj" />
+    <Project Path="tests/backend/ServiceDefaults.Tests/ServiceDefaults.Tests.csproj" />
   </Folder>
 </Solution>
