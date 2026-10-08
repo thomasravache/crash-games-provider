@@ -1,6 +1,5 @@
+using Testcontainers.Redis;
 using Xunit;
-
-#pragma warning disable MA0025 // Scaffold (SPEC-0003 phase 1): every stub is replaced by the Testcontainers code in the Green phase.
 
 namespace Apogeu.TestKit.Containers;
 
@@ -10,10 +9,12 @@ namespace Apogeu.TestKit.Containers;
 /// </summary>
 public sealed class RedisContainerFixture : IAsyncLifetime
 {
+    private readonly RedisContainer _container = new RedisBuilder(ContainerImages.Redis).Build();
+
     /// <summary>The configuration string for StackExchange.Redis of the running container.</summary>
-    public string ConnectionString => throw new NotImplementedException();
+    public string ConnectionString => _container.GetConnectionString();
 
-    public ValueTask InitializeAsync() => throw new NotImplementedException();
+    public async ValueTask InitializeAsync() => await _container.StartAsync().ConfigureAwait(false);
 
-    public ValueTask DisposeAsync() => throw new NotImplementedException();
+    public ValueTask DisposeAsync() => _container.DisposeAsync();
 }
