@@ -12,7 +12,7 @@ public sealed class KeycloakContainerFixture : IAsyncLifetime
     private readonly KeycloakContainer _container = new KeycloakBuilder(ContainerImages.Keycloak).Build();
 
     /// <summary>The base address of the Keycloak server of the running container.</summary>
-    public string ConnectionString => _container.GetBaseAddress();
+    public string BaseAddress => _container.GetBaseAddress();
 
     public async ValueTask InitializeAsync() => await _container.StartAsync().ConfigureAwait(false);
 
