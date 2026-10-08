@@ -348,14 +348,6 @@
           "Microsoft.Extensions.Options": "10.0.12"
         }
       },
-      "Microsoft.Extensions.Logging.Abstractions": {
-        "type": "Transitive",
-        "resolved": "10.0.12",
-        "contentHash": "+24lC4plfbEDNfLAdTV/SWKS7dW+16X4HdydO3R++134kSNTzcbYA4KpR1Hdh6uWisB8Za3AzwyOn+K+NxWIug==",
-        "dependencies": {
-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
-        }
-      },
       "Microsoft.Extensions.Logging.Configuration": {
         "type": "Transitive",
         "resolved": "10.0.12",
@@ -502,14 +494,6 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
-      "Npgsql": {
-        "type": "Transitive",
-        "resolved": "10.0.3",
-        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
-        "dependencies": {
-          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
-        }
-      },
       "OpenTelemetry": {
         "type": "Transitive",
         "resolved": "1.19.1",
@@ -609,14 +593,6 @@
         "dependencies": {
           "xunit.v3.extensibility.core": "[4.0.1]",
           "xunit.v3.runner.inproc.console": "[4.0.1]"
-        }
-      },
-      "xunit.v3.extensibility.core": {
-        "type": "Transitive",
-        "resolved": "4.0.1",
-        "contentHash": "J0d5OfFcp920nZxCRIvU14+TZhiSPQR0wvqEMZ3MRiJLPu1VmYlcRNkmcSW0i1DwkB81gAHc+fHUQf/cU64MYg==",
-        "dependencies": {
-          "xunit.v3.common": "[4.0.1]"
         }
       },
       "xunit.v3.runner.common": {
@@ -806,6 +782,24 @@
           "Microsoft.Extensions.Resilience": "10.10.0"
         }
       },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "+24lC4plfbEDNfLAdTV/SWKS7dW+16X4HdydO3R++134kSNTzcbYA4KpR1Hdh6uWisB8Za3AzwyOn+K+NxWIug==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
+        }
+      },
+      "Npgsql": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
+        }
+      },
       "Npgsql.EntityFrameworkCore.PostgreSQL": {
         "type": "CentralTransitive",
         "requested": "[10.0.3, )",
@@ -874,6 +868,15 @@
           "Microsoft.Extensions.Logging.Abstractions": "10.0.5",
           "RESPite": "3.3.1",
           "System.IO.Hashing": "10.0.12"
+        }
+      },
+      "xunit.v3.extensibility.core": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.1, )",
+        "resolved": "4.0.1",
+        "contentHash": "J0d5OfFcp920nZxCRIvU14+TZhiSPQR0wvqEMZ3MRiJLPu1VmYlcRNkmcSW0i1DwkB81gAHc+fHUQf/cU64MYg==",
+        "dependencies": {
+          "xunit.v3.common": "[4.0.1]"
         }
       }
     }
