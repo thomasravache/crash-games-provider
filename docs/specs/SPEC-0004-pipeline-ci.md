@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0002, SPEC-0003]
 consumes_contract: [SPEC-0006@1]
 contract_version: 1
-touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**"]
+touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**"]
 adrs: [ADR-0011, ADR-0012, ADR-0013, ADR-0016]
 external: []
 size: M
