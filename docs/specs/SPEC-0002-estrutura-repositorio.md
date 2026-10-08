@@ -171,7 +171,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS — 7a812e0 | 2026-10-07 |
 | G2 Green | PASS | build exit 0 (✓ built in 53ms); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 53 s - Ap); lint exit 0 (All matched files use Prettier code style!) — 813a567 | 2026-10-08 |
 | G3 Arquitetura | N/A | Testes de arquitetura ainda não existem: são entregues pela SPEC-0003 (harness e testes de arquitetura), que roda logo após esta onda | 2026-10-08 |
-| G4 Review | PENDING | | |
+| G4 Review | FAIL | Reviewer: CHANGES_REQUESTED — 1 major (licenças fora da lista do ADR-0016: PostgreSQL License, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0) + 5 minor (.gitattributes -diff nos lockfiles, props redundantes no csproj de testes, CODEOWNERS sem workflows, pre-commit sem formatação, override de peer do jsx-a11y) | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
@@ -181,6 +181,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-08 | G4 | decisão | Dependências com licenças fora da lista permitida do ADR-0016: Npgsql (PostgreSQL License), minimatch (BlueOak-1.0.0), language-subtag-registry (CC0-1.0), caniuse-lite (CC-BY-4.0, dado usado só no build) | Reviewer confirmou que todas são permissivas e entram por ferramentas já decididas (EF Core/PostgreSQL, Vite, jsx-a11y); nenhuma troca de código resolve sem perder essas ferramentas | thomas: aceitar as licenças (ADR que amplia a lista) ou restringir a lista a dependências de runtime |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
