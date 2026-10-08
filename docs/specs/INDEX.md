@@ -4,8 +4,8 @@
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 2 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 7, in-progress 2, implemented 1
+- Validação (G0): **1 erro(s), 5 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 3, approved 7, implemented 3
 - Impedimentos: **0 aberto(s)**, 2 resolvido(s)
 
 ## Cobertura de Pilares
@@ -39,30 +39,28 @@ Perfil: **rigoroso**
 
 ## Plano de Execução
 
-**Em andamento:** SPEC-0003, SPEC-0005  
+**Em andamento:** —  
 **Paradas por impedimento:** —  
-**Próximo lote:** —
+**Próximo lote:** SPEC-0004, SPEC-0006, SPEC-0007
 
 | Onda | Spec | Título | Tier/Tam. | Status | Prontidão | Observação |
 |---|---|---|---|---|---|---|
-| 1 | SPEC-0003 | Harness de testes e testes de arquitetura | full/M | in-progress | 🔄 em andamento |  |
-| 1 | SPEC-0005 | Ambiente local com Aspire e observabilidade base | full/M | in-progress | 🔄 em andamento |  |
-| 1 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) |  |
-| 2 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | approved | ⛔ aguarda implementação de SPEC-0003 |  |
-| 2 | SPEC-0006 | Contratos gerados do backend para o front-end | full/M | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0003, SPEC-0005 |
-| 2 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | approved | ⛔ aguarda implementação de SPEC-0003 |  |
-| 3 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | approved | ⛔ aguarda implementação de SPEC-0003; aguarda implementação de SPEC-0005 | saiu da onda 2: max_parallel=3 |
-| 3 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ⛔ aguarda implementação de SPEC-0003; aguarda implementação de SPEC-0005 | saiu da onda 2: max_parallel=3 |
-| 3 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0005; aguarda implementação de SPEC-0006 |  |
-| 4 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
-| 4 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
-| 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0005; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 1 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | approved | ✅ pronta |  |
+| 1 | SPEC-0006 | Contratos gerados do backend para o front-end | full/M | approved | ✅ pronta |  |
+| 1 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | approved | ✅ pronta |  |
+| 2 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
+| 2 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
+| 2 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0006 |  |
+| 3 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
+| 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
+| 3 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
+| 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 1/10 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/10 implementadas |
 
 ## Grafo de Dependências
 
@@ -75,9 +73,9 @@ flowchart LR
   S0014["SPEC-0014<br/>Endurecimento do mascaramento de logs e…"]:::proposed
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0002["SPEC-0002<br/>Estrutura do repositório e qualidade de…"]:::implemented
-    S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::inprogress
+    S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::implemented
     S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::approved
-    S0005["SPEC-0005<br/>Ambiente local com Aspire e observabili…"]:::inprogress
+    S0005["SPEC-0005<br/>Ambiente local com Aspire e observabili…"]:::implemented
     S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::approved
     S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::approved
     S0008["SPEC-0008<br/>Motor de rodada e salas em tempo real"]:::approved
@@ -119,9 +117,9 @@ flowchart LR
 |---|---|---|---|---|---|---|---|---|
 | [SPEC-0001](SPEC-0001-fundacao.md) | Fundação da plataforma Apogeu Games | epic | foundation | approved | 2026-10-07 | — | — | — |
 | [SPEC-0002](SPEC-0002-estrutura-repositorio.md) | Estrutura do repositório e qualidade de código | full | foundation | implemented | 2026-10-07 | SPEC-0001 | — | — |
-| [SPEC-0003](SPEC-0003-harness-testes.md) | Harness de testes e testes de arquitetura | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
+| [SPEC-0003](SPEC-0003-harness-testes.md) | Harness de testes e testes de arquitetura | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
 | [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
-| [SPEC-0005](SPEC-0005-ambiente-aspire.md) | Ambiente local com Aspire e observabilidade base | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
+| [SPEC-0005](SPEC-0005-ambiente-aspire.md) | Ambiente local com Aspire e observabilidade base | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
 | [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
 | [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
 | [SPEC-0008](SPEC-0008-motor-rodada.md) | Motor de rodada e salas em tempo real | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | SPEC-0007@1 |
