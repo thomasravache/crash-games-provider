@@ -18,6 +18,8 @@
   <ItemGroup>
     <!-- Real assemblies checked by IT-01: the Host references every module and BuildingBlocks. -->
     <ProjectReference Include="../../../src/backend/Host/Host.csproj" />
+    <!-- Aliased: AppHost and Host both expose a top-level Program class; referenced so the solution-wide rules see Apogeu.AppHost. -->
+    <ProjectReference Include="../../../src/backend/AppHost/AppHost.csproj" Aliases="AppHostAssembly" />
     <!-- Fixture assemblies with known violations, used by UT-01..UT-04. -->
     <ProjectReference Include="Fixtures/Architecture.Fixtures/Architecture.Fixtures.csproj" />
     <ProjectReference Include="Fixtures/StandIn.MediatR/StandIn.MediatR.csproj" />
