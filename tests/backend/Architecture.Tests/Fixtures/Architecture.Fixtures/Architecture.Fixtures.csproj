@@ -10,6 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ASP.NET Core types for the DomainIsFrameworkFree guard (IT-01). -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../StandIn.MediatR/StandIn.MediatR.csproj" />
     <ProjectReference Include="../StandIn.AutoMapper/StandIn.AutoMapper.csproj" />
   </ItemGroup>

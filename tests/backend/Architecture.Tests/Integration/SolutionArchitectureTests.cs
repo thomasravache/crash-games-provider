@@ -22,14 +22,8 @@ public sealed class SolutionArchitectureTests
             "Assemblies of the solution missing from the test output (reference them from Architecture.Tests): "
             + string.Join(", ", missing));
 
-        var rules = new List<ArchitectureRule>(ArchitectureRules.All())
-        {
-            new("ModuleBoundaries", "ADR-0001", ArchitectureRules.ModuleBoundaries()),
-            new("ForbiddenPackages", "ADR-0002", ArchitectureRules.ForbiddenPackages()),
-            new("FairnessUsesCryptographicRandomness", "ADR-0006", ArchitectureRules.FairnessUsesCryptographicRandomness()),
-            new("MonetaryValuesAreDecimal", "ADR-0002", ArchitectureRules.MonetaryValuesAreDecimal()),
-        };
-        var coveredAdrs = ArchitectureRules.All().Select(rule => rule.Adr).ToHashSet(StringComparer.Ordinal);
+        var rules = ArchitectureRules.All();
+        var coveredAdrs = rules.Select(rule => rule.Adr).ToHashSet(StringComparer.Ordinal);
         Assert.All(RequiredAdrs, adr => Assert.Contains(adr, coveredAdrs));
 
         var architecture = SolutionArchitecture.Instance;
