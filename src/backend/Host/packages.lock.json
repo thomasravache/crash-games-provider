@@ -1,0 +1,132 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Meziantou.Analyzer": {
+        "type": "Direct",
+        "requested": "[3.0.294, )",
+        "resolved": "3.0.294",
+        "contentHash": "j78ENG75OozcuL0OPSIjvgLaYI4F5nS8mpK02PlXCCCXj8A4CAIfpKw27ZPvG4k8TweGqParV8Dwm2VAwBBmgg=="
+      },
+      "Apogeu.Backoffice.Contracts": {
+        "type": "Project"
+      },
+      "Apogeu.Backoffice.Features": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Backoffice.Contracts": "[1.0.0, )",
+          "Apogeu.Backoffice.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Backoffice.Infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Backoffice.Contracts": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Betting.Contracts": {
+        "type": "Project"
+      },
+      "Apogeu.Betting.Domain": {
+        "type": "Project"
+      },
+      "Apogeu.Betting.Features": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Betting.Contracts": "[1.0.0, )",
+          "Apogeu.Betting.Domain": "[1.0.0, )",
+          "Apogeu.Betting.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Betting.Infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Betting.Contracts": "[1.0.0, )",
+          "Apogeu.Betting.Domain": "[1.0.0, )"
+        }
+      },
+      "Apogeu.BuildingBlocks": {
+        "type": "Project"
+      },
+      "Apogeu.Fairness.Contracts": {
+        "type": "Project"
+      },
+      "Apogeu.Fairness.Domain": {
+        "type": "Project"
+      },
+      "Apogeu.Fairness.Features": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Fairness.Contracts": "[1.0.0, )",
+          "Apogeu.Fairness.Domain": "[1.0.0, )",
+          "Apogeu.Fairness.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Fairness.Infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Fairness.Contracts": "[1.0.0, )",
+          "Apogeu.Fairness.Domain": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Operators.Contracts": {
+        "type": "Project"
+      },
+      "Apogeu.Operators.Features": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Operators.Contracts": "[1.0.0, )",
+          "Apogeu.Operators.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Operators.Infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Operators.Contracts": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Rounds.Contracts": {
+        "type": "Project"
+      },
+      "Apogeu.Rounds.Domain": {
+        "type": "Project"
+      },
+      "Apogeu.Rounds.Features": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Rounds.Contracts": "[1.0.0, )",
+          "Apogeu.Rounds.Domain": "[1.0.0, )",
+          "Apogeu.Rounds.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Rounds.Infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Rounds.Contracts": "[1.0.0, )",
+          "Apogeu.Rounds.Domain": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Wallet.Contracts": {
+        "type": "Project"
+      },
+      "Apogeu.Wallet.Domain": {
+        "type": "Project"
+      },
+      "Apogeu.Wallet.Features": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Wallet.Contracts": "[1.0.0, )",
+          "Apogeu.Wallet.Domain": "[1.0.0, )",
+          "Apogeu.Wallet.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "Apogeu.Wallet.Infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Wallet.Contracts": "[1.0.0, )",
+          "Apogeu.Wallet.Domain": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}

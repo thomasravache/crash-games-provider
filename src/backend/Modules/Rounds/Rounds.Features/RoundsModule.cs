@@ -1,0 +1,22 @@
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Apogeu.Rounds.Features;
+
+/// <summary>Entry points the Host calls to compose the Rounds module (ADR-0001).</summary>
+public static class RoundsModule
+{
+    public static IServiceCollection AddRoundsModule(this IServiceCollection services)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+
+        return services;
+    }
+
+    public static IEndpointRouteBuilder MapRoundsEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        ArgumentNullException.ThrowIfNull(endpoints);
+
+        return endpoints;
+    }
+}

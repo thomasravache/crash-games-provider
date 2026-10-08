@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Fairness.Contracts/Fairness.Contracts.csproj" />
+    <ProjectReference Include="../Fairness.Domain/Fairness.Domain.csproj" />
+    <ProjectReference Include="../Fairness.Infrastructure/Fairness.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
