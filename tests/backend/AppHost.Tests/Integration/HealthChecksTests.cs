@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Apogeu.AppHost.Tests.Integration;
 
+[Collection(AppHostEnvironmentGroup.Name)]
 public sealed class HealthChecksTests
 {
     private static readonly TimeSpan HealthTransitionTimeout = TimeSpan.FromMinutes(2);

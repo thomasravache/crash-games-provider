@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Apogeu.AppHost.Tests.Integration;
 
+[Collection(AppHostEnvironmentGroup.Name)]
 public sealed class EnvironmentStartupTests
 {
     private static readonly TimeSpan HealthyBudget = TimeSpan.FromSeconds(90);
