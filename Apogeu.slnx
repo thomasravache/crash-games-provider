@@ -43,5 +43,7 @@
     <Project Path="tests/backend/Architecture.Tests/Fixtures/Architecture.Fixtures/Architecture.Fixtures.csproj" />
     <Project Path="tests/backend/Architecture.Tests/Fixtures/MediatR/MediatR.csproj" />
     <Project Path="tests/backend/Repository.Tests/Repository.Tests.csproj" />
+    <Project Path="tests/backend/TestKit/TestKit.csproj" />
+    <Project Path="tests/backend/TestKit/Tests/TestKit.Tests.csproj" />
   </Folder>
 </Solution>
