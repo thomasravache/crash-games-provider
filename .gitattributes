@@ -1,0 +1,13 @@
+* text=auto eol=lf
+
+*.sh text eol=lf
+.githooks/* text eol=lf
+*.cs text eol=lf diff=csharp
+*.slnx text eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.woff2 binary
+pnpm-lock.yaml -diff linguist-generated
+packages.lock.json -diff linguist-generated

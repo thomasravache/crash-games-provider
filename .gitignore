@@ -1,0 +1,27 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+coverage/
+*.log
+
+# Front-end
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Local secrets and configuration (never commit)
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.*.local.json
+
+# OS and editors
+.DS_Store
+.idea/
+.vs/
+*.user
+*.suo
