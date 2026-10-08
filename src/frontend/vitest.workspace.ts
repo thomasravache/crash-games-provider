@@ -1,11 +1,10 @@
 // Vitest projects of the front-end (ADR-0009). Vitest 5 has no workspace file discovery, so the package.json scripts pass
 // this file with --config. The tests live in tests/frontend (outside the pnpm workspace) and run from it as project root.
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-const testsRoot = fileURLToPath(new URL("../../tests/frontend", import.meta.url));
-// Keeps the Vite/Vitest cache inside src/frontend/node_modules instead of creating one under tests/frontend.
-const cacheDir = fileURLToPath(new URL("node_modules/.vite", import.meta.url));
+const testsRoot = "../../tests/frontend";
+// Keeps the Vite/Vitest cache in src/frontend/node_modules instead of creating one under tests/frontend.
+const cacheDir = "../../src/frontend/node_modules/.vite";
 
 export default defineConfig({
   test: {
