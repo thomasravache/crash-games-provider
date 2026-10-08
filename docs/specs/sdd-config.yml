@@ -8,7 +8,7 @@ max_parallel: 3
 
 # --- Build e testes (G2, G5) ---
 # Exemplos: "dotnet build" | "npm run build" | "./gradlew build" | "go build ./..."
-build: "dotnet build Apogeu.slnx && pnpm -C src/frontend build"
+build: "pnpm -C src/frontend install --frozen-lockfile && dotnet build Apogeu.slnx && pnpm -C src/frontend build"
 # Suíte completa. Exemplos: "dotnet test" | "npm test" | "pytest" | "go test ./..."
 test: "dotnet test Apogeu.slnx"
 test_integration: ""

@@ -172,7 +172,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 50 s - Ap); lint exit 0 (All matched files use Prettier code style!) — 9009df1 | 2026-10-08 |
 | G3 Arquitetura | N/A | Testes de arquitetura ainda não existem: são entregues pela SPEC-0003 (harness e testes de arquitetura), que roda logo após esta onda | 2026-10-08 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 358c0bd — 0 blocker/major; 2 minor no format-staged (caminhos com espaço, cópia não-staged) aceitos como débito — 358c0bd | 2026-10-08 |
-| G5 Integração & CI | PENDING | | |
+| G5 Integração & CI | FAIL | build exit 1 (sh: tsc: command not found); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 1 m 7 s -) — bee4762 | 2026-10-08 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
