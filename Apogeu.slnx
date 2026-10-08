@@ -32,12 +32,16 @@
     <Project Path="src/backend/Modules/Operators/Operators.Infrastructure/Operators.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Operators/Operators.Features/Operators.Features.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Backoffice/">
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Contracts/Backoffice.Contracts.csproj" />
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Infrastructure/Backoffice.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/backend/Architecture.Tests/Architecture.Tests.csproj" />
+    <Project Path="tests/backend/Architecture.Tests/Fixtures/Architecture.Fixtures/Architecture.Fixtures.csproj" />
+    <Project Path="tests/backend/Architecture.Tests/Fixtures/MediatR/MediatR.csproj" />
     <Project Path="tests/backend/Repository.Tests/Repository.Tests.csproj" />
   </Folder>
 </Solution>

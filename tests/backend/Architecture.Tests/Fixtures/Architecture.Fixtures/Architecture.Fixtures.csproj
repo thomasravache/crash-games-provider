@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Fixture assembly for the architecture tests (SPEC-0003 UT-01..UT-04). It reproduces the namespaces of the real
+    modules (Apogeu.<Module>.<Layer>) and contains known violations on purpose. Compiled only for the tests; never
+    referenced by production code.
+  -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../MediatR/MediatR.csproj" />
+  </ItemGroup>
+
+</Project>

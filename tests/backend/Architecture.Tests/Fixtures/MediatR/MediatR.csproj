@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Stand-in for the forbidden MediatR package (ADR-0002), used by SPEC-0003 UT-02. Same assembly name and root
+    namespace as the real package, so a rule that checks either the assembly or the namespace detects it, without
+    adding a commercially licensed package to the repository.
+  -->
+  <PropertyGroup>
+    <AssemblyName>MediatR</AssemblyName>
+    <RootNamespace>MediatR</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>
