@@ -1008,7 +1008,10 @@
         "type": "Project"
       },
       "Apogeu.Fairness.Domain": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Fairness.Contracts": "[1.0.0, )"
+        }
       },
       "Apogeu.Fairness.Features": {
         "type": "Project",

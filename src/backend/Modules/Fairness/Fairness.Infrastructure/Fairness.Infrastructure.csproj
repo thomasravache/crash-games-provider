@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- Dependency injection, logging and Data Protection (ADR-0014: seeds encrypted at rest). -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Fairness.Contracts/Fairness.Contracts.csproj" />
     <ProjectReference Include="../Fairness.Domain/Fairness.Domain.csproj" />
   </ItemGroup>
