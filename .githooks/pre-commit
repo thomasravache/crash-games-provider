@@ -6,4 +6,10 @@ if git diff --cached --name-only | grep -Eq '^docs/(specs|adr)/'; then
     exit 1
   fi
 fi
+
+# Project step (not vendored): formatting of the staged files (ADR-0012).
+hooks_dir=$(dirname "$0")
+if [ -x "$hooks_dir/format-staged" ]; then
+  "$hooks_dir/format-staged" || exit 1
+fi
 exit 0
