@@ -161,7 +161,8 @@
       "Apogeu.Architecture.Fixtures": {
         "type": "Project",
         "dependencies": {
-          "MediatR": "[1.0.0, )"
+          "StandIn.AutoMapper": "[1.0.0, )",
+          "StandIn.MediatR": "[1.0.0, )"
         }
       },
       "Apogeu.Backoffice.Contracts": {
@@ -295,7 +296,10 @@
           "Apogeu.Wallet.Domain": "[1.0.0, )"
         }
       },
-      "mediatr": {
+      "standin.automapper": {
+        "type": "Project"
+      },
+      "standin.mediatr": {
         "type": "Project"
       },
       "xunit.v3.extensibility.core": {

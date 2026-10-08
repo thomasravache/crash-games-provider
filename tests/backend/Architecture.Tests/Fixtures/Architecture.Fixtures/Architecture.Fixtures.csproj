@@ -10,7 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../MediatR/MediatR.csproj" />
+    <ProjectReference Include="../StandIn.MediatR/StandIn.MediatR.csproj" />
+    <ProjectReference Include="../StandIn.AutoMapper/StandIn.AutoMapper.csproj" />
   </ItemGroup>
 
 </Project>

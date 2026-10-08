@@ -20,7 +20,8 @@
     <ProjectReference Include="../../../src/backend/Host/Host.csproj" />
     <!-- Fixture assemblies with known violations, used by UT-01..UT-04. -->
     <ProjectReference Include="Fixtures/Architecture.Fixtures/Architecture.Fixtures.csproj" />
-    <ProjectReference Include="Fixtures/MediatR/MediatR.csproj" />
+    <ProjectReference Include="Fixtures/StandIn.MediatR/StandIn.MediatR.csproj" />
+    <ProjectReference Include="Fixtures/StandIn.AutoMapper/StandIn.AutoMapper.csproj" />
   </ItemGroup>
 
 </Project>

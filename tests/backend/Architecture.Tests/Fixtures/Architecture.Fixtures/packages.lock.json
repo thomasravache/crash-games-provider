@@ -8,7 +8,10 @@
         "resolved": "3.0.294",
         "contentHash": "j78ENG75OozcuL0OPSIjvgLaYI4F5nS8mpK02PlXCCCXj8A4CAIfpKw27ZPvG4k8TweGqParV8Dwm2VAwBBmgg=="
       },
-      "mediatr": {
+      "standin.automapper": {
+        "type": "Project"
+      },
+      "standin.mediatr": {
         "type": "Project"
       }
     }

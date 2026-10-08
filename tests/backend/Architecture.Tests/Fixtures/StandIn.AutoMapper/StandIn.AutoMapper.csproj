@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Stand-in for the forbidden AutoMapper package (ADR-0002), used by SPEC-0003 UT-02. Like the real package, its
+    registration extension lives in namespace Microsoft.Extensions.DependencyInjection, so only the assembly
+    (AutoMapper.StandIn, prefix AutoMapper) reveals where the type comes from.
+  -->
+  <PropertyGroup>
+    <AssemblyName>AutoMapper.StandIn</AssemblyName>
+    <RootNamespace>Microsoft.Extensions.DependencyInjection</RootNamespace>
+    <!-- Project id seen in packages.lock.json: must not start with a forbidden package id. -->
+    <PackageId>StandIn.AutoMapper</PackageId>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>
