@@ -1,0 +1,19 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <!-- Aspire AppHost (ADR-0003): orchestrates the local environment. Shape follows the official Aspire 13.6.1 template. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>2b7f73b3-7789-42ed-93f4-afacb2c7c0d7</UserSecretsId>
+    <!-- DCP and the dashboard come from NuGet packages, so `dotnet run` and Aspire.Hosting.Testing work without the
+         Aspire CLI installed; ASPIRE010 only warns that the CLI bundle is off, which is intended here. -->
+    <AspireUseCliBundle>false</AspireUseCliBundle>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+  <!-- Explicit so the version comes from Directory.Packages.props: under Central Package Management the SDK's
+       implicit Aspire.Hosting.AppHost reference conflicts with its PackageVersion (NU1009). -->
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+
+</Project>

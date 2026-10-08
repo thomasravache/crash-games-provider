@@ -1,7 +1,9 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/backend/Host/Host.csproj" />
+    <Project Path="src/backend/AppHost/AppHost.csproj" />
     <Project Path="src/backend/BuildingBlocks/BuildingBlocks.csproj" />
+    <Project Path="src/backend/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/Modules/Rounds/">
     <Project Path="src/backend/Modules/Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
@@ -32,6 +34,7 @@
     <Project Path="src/backend/Modules/Operators/Operators.Infrastructure/Operators.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Operators/Operators.Features/Operators.Features.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Backoffice/">
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Contracts/Backoffice.Contracts.csproj" />
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Infrastructure/Backoffice.Infrastructure.csproj" />
