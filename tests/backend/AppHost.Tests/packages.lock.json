@@ -1077,9 +1077,7 @@
           "Apogeu.Operators.Features": "[1.0.0, )",
           "Apogeu.Rounds.Features": "[1.0.0, )",
           "Apogeu.ServiceDefaults": "[1.0.0, )",
-          "Apogeu.Wallet.Features": "[1.0.0, )",
-          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
-          "StackExchange.Redis": "[3.3.1, )"
+          "Apogeu.Wallet.Features": "[1.0.0, )"
         }
       },
       "Apogeu.Operators.Contracts": {
@@ -1128,7 +1126,8 @@
           "OpenTelemetry.Extensions.Hosting": "[1.19.1, )",
           "OpenTelemetry.Instrumentation.AspNetCore": "[1.19.0, )",
           "OpenTelemetry.Instrumentation.Http": "[1.19.0, )",
-          "OpenTelemetry.Instrumentation.Runtime": "[1.19.0, )"
+          "OpenTelemetry.Instrumentation.Runtime": "[1.19.0, )",
+          "StackExchange.Redis": "[3.3.1, )"
         }
       },
       "Apogeu.Wallet.Contracts": {

@@ -14,6 +14,14 @@
        implicit Aspire.Hosting.AppHost reference conflicts with its PackageVersion (NU1009). -->
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+    <PackageReference Include="Aspire.Hosting.Keycloak" />
+    <PackageReference Include="Aspire.Hosting.JavaScript" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Host/Host.csproj" />
   </ItemGroup>
 
 </Project>
