@@ -60,6 +60,7 @@ scope_exempt:
   - "docs/adr/**"
   - "src/frontend/pnpm-lock.yaml"      # gerado pelo pnpm; muda junto com qualquer package.json em escopo
   - "**/packages.lock.json"            # gerado pelo NuGet (lock files)
+  - "Apogeu.slnx"                     # lista de projetos da solução; cada spec só adiciona os seus (`dotnet sln add`)
 # Mudança nesses arquivos sem ADR na spec gera alerta no G4 (lib/framework nova precisa de ADR).
 # Omitido = padrão da skill (package.json, *.csproj, pyproject.toml, go.mod, pom.xml, ...).
 dependency_manifests: []

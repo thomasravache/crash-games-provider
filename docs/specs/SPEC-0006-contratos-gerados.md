@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0002]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/BuildingBlocks/Contracts/**", "src/backend/Host/OpenApi/**", "src/backend/Modules/Backoffice/Backoffice.Features/Meta/**", "src/frontend/packages/contracts/**", "tools/contracts/**", "tests/backend/Contracts.Tests/**"]
+touches: ["src/backend/BuildingBlocks/Contracts/**", "src/backend/Host/OpenApi/**", "src/backend/Modules/Backoffice/Backoffice.Features/Meta/**", "src/frontend/packages/contracts/**", "tools/contracts/**", "tests/backend/Contracts.Tests/**", "src/backend/Host/Program.cs", "src/backend/Host/Host.csproj", "src/backend/Modules/Backoffice/Backoffice.Features/BackofficeModule.cs", "src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj", "src/frontend/package.json"]
 adrs: [ADR-0008, ADR-0004]
 external: []
 size: M

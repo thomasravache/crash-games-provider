@@ -4,13 +4,13 @@ title: "Harness de testes e testes de arquitetura"
 tier: full
 type: foundation
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002]
 consumes_contract: []
 contract_version: 1
-touches: ["tests/backend/TestKit/**", "tests/backend/Architecture.Tests/**", "tests/frontend/**", "tests/e2e/harness/**", "src/frontend/vitest.workspace.ts", "src/frontend/playwright.config.ts", "src/frontend/.dependency-cruiser.cjs", "src/frontend/package.json", "stryker-config.json"]
+touches: ["tests/backend/TestKit/**", "tests/backend/Architecture.Tests/**", "tests/frontend/**", "tests/e2e/harness/**", "src/frontend/vitest.workspace.ts", "src/frontend/playwright.config.ts", "src/frontend/.dependency-cruiser.cjs", "src/frontend/package.json", "stryker-config.json", "Directory.Packages.props", ".config/dotnet-tools.json"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0009]
 external: []
 size: M

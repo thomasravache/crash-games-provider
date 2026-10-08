@@ -4,13 +4,13 @@ title: "Ambiente local com Aspire e observabilidade base"
 tier: full
 type: foundation
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/AppHost/**", "src/backend/ServiceDefaults/**", "src/backend/BuildingBlocks/Observability/**", "tests/backend/AppHost.Tests/**", "tests/backend/ServiceDefaults.Tests/**"]
+touches: ["src/backend/AppHost/**", "src/backend/ServiceDefaults/**", "src/backend/BuildingBlocks/Observability/**", "tests/backend/AppHost.Tests/**", "tests/backend/ServiceDefaults.Tests/**", "src/backend/Host/Program.cs", "src/backend/Host/Host.csproj", "src/backend/Host/appsettings*.json"]
 adrs: [ADR-0003, ADR-0010, ADR-0014, ADR-0017]
 external: []
 size: M
