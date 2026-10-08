@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: []
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/**", "src/frontend/**", "tests/backend/Repository.Tests/**", "Directory.Build.props", "Directory.Packages.props", "global.json", "Apogeu.slnx", ".editorconfig", ".gitignore", ".gitattributes", ".githooks/**", ".github/pull_request_template.md", ".github/CODEOWNERS", "tools/sdd/**", "README.md", "CLAUDE.md", "AGENTS.md", "CHANGELOG.md"]
+touches: ["src/backend/**", "src/frontend/**", "tests/backend/Repository.Tests/**", "Directory.Build.props", "Directory.Packages.props", "global.json", "Apogeu.slnx", "nuget.config", ".editorconfig", ".gitignore", ".gitattributes", ".githooks/**", ".github/pull_request_template.md", ".github/CODEOWNERS", "tools/sdd/**", "README.md", "CLAUDE.md", "AGENTS.md", "CHANGELOG.md"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0011, ADR-0012, ADR-0016]
 external: []
 size: M
@@ -168,9 +168,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G1 Red | PASS | verify G1: PASS — 7a812e0 | 2026-10-07 |
+| G2 Green | PASS | build exit 0 (✓ built in 53ms); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 53 s - Ap); lint exit 0 (All matched files use Prettier code style!) — 813a567 | 2026-10-08 |
+| G3 Arquitetura | N/A | Testes de arquitetura ainda não existem: são entregues pela SPEC-0003 (harness e testes de arquitetura), que roda logo após esta onda | 2026-10-08 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
