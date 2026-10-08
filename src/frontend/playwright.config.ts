@@ -1,5 +1,6 @@
-// Playwright configuration (ADR-0009). The E2E tests live in tests/e2e, outside the pnpm workspace; they resolve
-// @playwright/test and @axe-core/playwright from src/frontend/node_modules through the `paths` of their tsconfig.
+// Playwright configuration (ADR-0009): Chromium, WebKit mobile and Firefox. The E2E tests live in tests/e2e, outside
+// the pnpm workspace; they resolve @playwright/test and @axe-core/playwright from src/frontend/node_modules through the
+// `paths` of their tsconfig.
 import { defineConfig, devices } from "@playwright/test";
 
 // Fixed and strict, so a test never runs against another server that took the port.
@@ -23,6 +24,7 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit-mobile", use: { ...devices["iPhone 15"] } },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
   ],
   webServer: {
     command: `pnpm --filter @apogeu/game-pipa exec vite --host 127.0.0.1 --port ${String(gamePipaPort)} --strictPort`,
