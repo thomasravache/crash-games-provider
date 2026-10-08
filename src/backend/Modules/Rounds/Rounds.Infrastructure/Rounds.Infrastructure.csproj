@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../Rounds.Contracts/Rounds.Contracts.csproj" />
+    <ProjectReference Include="../Rounds.Domain/Rounds.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

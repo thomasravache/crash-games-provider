@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../Fairness.Contracts/Fairness.Contracts.csproj" />
+    <ProjectReference Include="../Fairness.Domain/Fairness.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

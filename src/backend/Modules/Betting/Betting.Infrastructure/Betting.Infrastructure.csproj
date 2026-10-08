@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="../Betting.Contracts/Betting.Contracts.csproj" />
+    <ProjectReference Include="../Betting.Domain/Betting.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

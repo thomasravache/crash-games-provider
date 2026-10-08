@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Rounds.Contracts/Rounds.Contracts.csproj" />
+    <ProjectReference Include="../Rounds.Domain/Rounds.Domain.csproj" />
+    <ProjectReference Include="../Rounds.Infrastructure/Rounds.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
