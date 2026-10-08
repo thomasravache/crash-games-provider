@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0002]
 consumes_contract: []
 contract_version: 1
-touches: ["tests/backend/TestKit/**", "tests/backend/Architecture.Tests/**", "tests/frontend/**", "tests/e2e/harness/**", "src/frontend/vitest.workspace.ts", "src/frontend/playwright.config.ts", "src/frontend/.dependency-cruiser.cjs", "src/frontend/package.json", "stryker-config.json", "Directory.Packages.props", ".config/dotnet-tools.json"]
+touches: ["tests/backend/TestKit/**", "tests/backend/Architecture.Tests/**", "tests/frontend/**", "tests/e2e/harness/**", "src/frontend/vitest.workspace.ts", "src/frontend/playwright.config.ts", "src/frontend/.dependency-cruiser.cjs", "src/frontend/package.json", "stryker-config.json", "Directory.Packages.props", ".config/dotnet-tools.json", "src/frontend/tsconfig.json"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0009]
 external: []
 size: M
@@ -167,7 +167,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx` exit 1 (red: [xUnit.net 00:00:11.19]     Dado um assembly-fixture em que Betting.Features referencia Wa) — 00122b8 | 2026-10-08 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -180,6 +180,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-08 | G2 | spec | touches incompleto: o lint type-aware exige src/frontend/tsconfig.json para incluir playwright.config.ts e vitest.workspace.ts (exigidos pela spec) | Implementer verificou que nenhum arquivo dentro de touches resolve; com o tsconfig temporário todos os gates ficam verdes | Architect: ampliar touches (sem mudança de contrato) |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
