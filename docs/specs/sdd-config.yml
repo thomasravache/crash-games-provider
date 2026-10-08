@@ -8,15 +8,15 @@ max_parallel: 3
 
 # --- Build e testes (G2, G5) ---
 # Exemplos: "dotnet build" | "npm run build" | "./gradlew build" | "go build ./..."
-build: ""
+build: "dotnet build Apogeu.slnx && pnpm -C src/frontend build"
 # Suíte completa. Exemplos: "dotnet test" | "npm test" | "pytest" | "go test ./..."
-test: ""
+test: "dotnet test Apogeu.slnx"
 test_integration: ""
 # E2E da jornada do usuário. Exemplos: "npx playwright test" | "npx cypress run" | "maestro test flows/"
 test_e2e: ""
 # Subconjunto rápido rodado após cada deploy (G6).
 smoke_test: ""
-lint: ""
+lint: "dotnet format Apogeu.slnx --verify-no-changes && pnpm -C src/frontend lint && pnpm -C src/frontend format:check"
 # G2 — cobertura das linhas alteradas (ex: diff-cover, coverlet + reportgenerator). Opcional.
 coverage: ""
 coverage_min_changed_lines: 80

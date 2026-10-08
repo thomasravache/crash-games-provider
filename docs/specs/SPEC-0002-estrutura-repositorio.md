@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: []
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/**", "src/frontend/**", "tests/backend/Repository.Tests/**", "Directory.Build.props", "Directory.Packages.props", "global.json", "Apogeu.slnx", ".editorconfig", ".gitignore", ".gitattributes", ".githooks/**", ".github/pull_request_template.md", ".github/CODEOWNERS", "tools/sdd/**", "README.md", "CLAUDE.md", "AGENTS.md", "CHANGELOG.md"]
+touches: ["src/backend/**", "src/frontend/**", "tests/backend/Repository.Tests/**", "Directory.Build.props", "Directory.Packages.props", "global.json", "Apogeu.slnx", "nuget.config", ".editorconfig", ".gitignore", ".gitattributes", ".githooks/**", ".github/pull_request_template.md", ".github/CODEOWNERS", "tools/sdd/**", "README.md", "CLAUDE.md", "AGENTS.md", "CHANGELOG.md"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0011, ADR-0012, ADR-0016]
 external: []
 size: M
@@ -168,7 +168,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS — 7a812e0 | 2026-10-07 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
