@@ -4,7 +4,7 @@ title: "Contratos gerados do backend para o front-end"
 tier: full
 type: foundation
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002]

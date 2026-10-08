@@ -4,8 +4,8 @@
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 5 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 7, implemented 3
+- Validação (G0): **1 erro(s), 2 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 3, approved 4, in-progress 3, implemented 3
 - Impedimentos: **0 aberto(s)**, 2 resolvido(s)
 
 ## Cobertura de Pilares
@@ -39,15 +39,15 @@ Perfil: **rigoroso**
 
 ## Plano de Execução
 
-**Em andamento:** —  
+**Em andamento:** SPEC-0004, SPEC-0006, SPEC-0007  
 **Paradas por impedimento:** —  
-**Próximo lote:** SPEC-0004, SPEC-0006, SPEC-0007
+**Próximo lote:** —
 
 | Onda | Spec | Título | Tier/Tam. | Status | Prontidão | Observação |
 |---|---|---|---|---|---|---|
-| 1 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | approved | ✅ pronta |  |
-| 1 | SPEC-0006 | Contratos gerados do backend para o front-end | full/M | approved | ✅ pronta |  |
-| 1 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | approved | ✅ pronta |  |
+| 1 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | in-progress | 🔄 em andamento |  |
+| 1 | SPEC-0006 | Contratos gerados do backend para o front-end | full/M | in-progress | 🔄 em andamento |  |
+| 1 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | in-progress | 🔄 em andamento |  |
 | 2 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
 | 2 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
 | 2 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0006 |  |
@@ -74,10 +74,10 @@ flowchart LR
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0002["SPEC-0002<br/>Estrutura do repositório e qualidade de…"]:::implemented
     S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::implemented
-    S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::approved
+    S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::inprogress
     S0005["SPEC-0005<br/>Ambiente local com Aspire e observabili…"]:::implemented
-    S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::approved
-    S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::approved
+    S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::inprogress
+    S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::inprogress
     S0008["SPEC-0008<br/>Motor de rodada e salas em tempo real"]:::approved
     S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::approved
     S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::approved
@@ -118,10 +118,10 @@ flowchart LR
 | [SPEC-0001](SPEC-0001-fundacao.md) | Fundação da plataforma Apogeu Games | epic | foundation | approved | 2026-10-07 | — | — | — |
 | [SPEC-0002](SPEC-0002-estrutura-repositorio.md) | Estrutura do repositório e qualidade de código | full | foundation | implemented | 2026-10-07 | SPEC-0001 | — | — |
 | [SPEC-0003](SPEC-0003-harness-testes.md) | Harness de testes e testes de arquitetura | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
-| [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
+| [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
 | [SPEC-0005](SPEC-0005-ambiente-aspire.md) | Ambiente local com Aspire e observabilidade base | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
-| [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
-| [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
+| [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
+| [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
 | [SPEC-0008](SPEC-0008-motor-rodada.md) | Motor de rodada e salas em tempo real | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | SPEC-0007@1 |
 | [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
 | [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@1, SPEC-0008@1, SPEC-0009@1 |
