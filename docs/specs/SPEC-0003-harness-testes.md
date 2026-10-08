@@ -180,7 +180,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
-| IMP-01 | 2026-10-08 | G2 | spec | touches incompleto: o lint type-aware exige src/frontend/tsconfig.json para incluir playwright.config.ts e vitest.workspace.ts (exigidos pela spec) | Implementer verificou que nenhum arquivo dentro de touches resolve; com o tsconfig temporário todos os gates ficam verdes | Architect: ampliar touches (sem mudança de contrato) |  |  |
+| IMP-01 | 2026-10-08 | G2 | spec | touches incompleto: o lint type-aware exige src/frontend/tsconfig.json para incluir playwright.config.ts e vitest.workspace.ts (exigidos pela spec) | Implementer verificou que nenhum arquivo dentro de touches resolve; com o tsconfig temporário todos os gates ficam verdes | Architect: ampliar touches (sem mudança de contrato) | Emenda de escopo (contrato v1 inalterado) — touches inclui src/frontend/tsconfig.json | 2026-10-08 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -223,3 +223,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0003`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (inalterado) | 2026-10-08 | Emenda de escopo: `touches` inclui `src/frontend/tsconfig.json` | Lint type-aware exige um projeto TS para `playwright.config.ts` e `vitest.workspace.ts` (IMP-01) | Nenhuma (contrato inalterado) | Architect — correção de escopo sem mudança de contrato, coberta pela autorização do usuário para seguir sem paradas (2026-10-08) |
