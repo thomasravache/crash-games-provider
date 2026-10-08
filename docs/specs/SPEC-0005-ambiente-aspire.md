@@ -163,7 +163,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx` exit 1 (red: [xUnit.net 00:02:04.02]     Dada uma requisição a /health, quando concluída, então existe ) — ae79f2a | 2026-10-08 |
 | G2 Green | PASS | build exit 0 (✓ built in 61ms); test exit 0 (Passed!  - Failed:     0, Passed:     5, Skipped:     0, Total:     5, Duration: 1 m 6 s -); lint exit 0 (All matched files use Prettier code style!) — ccf128b | 2026-10-08 |
 | G3 Arquitetura | N/A | Suíte de arquitetura chega com a SPEC-0003 na mesma onda; as regras rodam sobre o resultado integrado no G5 | 2026-10-08 |
-| G4 Review | PENDING | | |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em ccf128b — 0 blocker/major; 6 minor (escopos e exceções sem máscara no OTLP, mascaramento por substring, acoplamento do ServiceDefaults a Npgsql/Redis, /health exposto em todo ambiente, leitura não-volátil no RedisHealthCheck) viram spec de pendências — ccf128b | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |

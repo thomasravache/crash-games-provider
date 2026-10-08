@@ -5,8 +5,8 @@
 ## Saúde
 
 - Validação (G0): **1 erro(s), 2 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 2, approved 7, in-progress 2, implemented 1
-- Impedimentos: **0 aberto(s)**, 1 resolvido(s)
+- Specs: proposed 3, approved 7, in-progress 2, implemented 1
+- Impedimentos: **0 aberto(s)**, 2 resolvido(s)
 
 ## Cobertura de Pilares
 
@@ -56,6 +56,7 @@ Perfil: **rigoroso**
 | 3 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0005; aguarda implementação de SPEC-0006 |  |
 | 4 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
 | 4 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
+| 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0005; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
 
 ## Épicos
 
@@ -71,6 +72,7 @@ Seta contínua: depende da implementação. Seta tracejada: consome contrato.
 flowchart LR
   S0012["SPEC-0012<br/>Hospedagem e deploy (staging e produção)"]:::proposed
   S0013["SPEC-0013<br/>Robustez do hook format-staged e overri…"]:::proposed
+  S0014["SPEC-0014<br/>Endurecimento do mascaramento de logs e…"]:::proposed
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0002["SPEC-0002<br/>Estrutura do repositório e qualidade de…"]:::implemented
     S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::inprogress
@@ -128,6 +130,7 @@ flowchart LR
 | [SPEC-0011](SPEC-0011-animacao-pipa.md) | Animação da cena da Pipa | full | feature | approved | 2026-10-07 | SPEC-0001 | SPEC-0010 | SPEC-0010@1 |
 | [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
 | [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | proposed | 2026-10-08 | — | — | — |
+| [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | proposed | 2026-10-08 | — | — | — |
 
 ## ADRs
 
