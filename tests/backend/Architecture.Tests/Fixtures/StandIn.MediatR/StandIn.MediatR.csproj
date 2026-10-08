@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Stand-in for the forbidden MediatR package (ADR-0002), used by SPEC-0003 UT-02. Root namespace MediatR, like the
+    real package, so a namespace-based rule detects it; assembly MediatR.StandIn so an assembly-based rule (prefix
+    MediatR) detects it too, while dependency and licence scans never mistake it for the real package.
+  -->
+  <PropertyGroup>
+    <AssemblyName>MediatR.StandIn</AssemblyName>
+    <RootNamespace>MediatR</RootNamespace>
+    <!-- Project id seen in packages.lock.json: must not start with a forbidden package id. -->
+    <PackageId>StandIn.MediatR</PackageId>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>
