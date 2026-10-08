@@ -4,7 +4,7 @@ title: "Estrutura do repositório e qualidade de código"
 tier: full
 type: foundation
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: []
@@ -143,25 +143,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0004, ADR-0011, ADR-0012, ADR-0016 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0004, ADR-0011, ADR-0012, ADR-0016 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02 com a tag `SPEC-0002:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02 com a tag `SPEC-0002:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06 com a tag `SPEC-0002:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06 com a tag `SPEC-0002:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -172,9 +172,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 50 s - Ap); lint exit 0 (All matched files use Prettier code style!) — 9009df1 | 2026-10-08 |
 | G3 Arquitetura | N/A | Testes de arquitetura ainda não existem: são entregues pela SPEC-0003 (harness e testes de arquitetura), que roda logo após esta onda | 2026-10-08 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 358c0bd — 0 blocker/major; 2 minor no format-staged (caminhos com espaço, cópia não-staged) aceitos como débito — 358c0bd | 2026-10-08 |
-| G5 Integração & CI | FAIL | build exit 1 (sh: tsc: command not found); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 1 m 7 s -) — bee4762 | 2026-10-08 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 67ms); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 58 s - Ap) — 0952a1e | 2026-10-08 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-08 |
+| G6 Deploy | N/A | Sem ambientes ainda: validação local por decisão do usuário (ADR-0013); deploy entra com a SPEC-0012 (hospedagem e deploy) | 2026-10-08 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
@@ -188,37 +188,61 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Repositório único pronto para as próximas specs:
+- Solução .NET 10 `Apogeu.slnx` com o monólito modular do ADR-0001: Host, BuildingBlocks e 6 módulos (Rounds, Fairness, Betting, Wallet, Operators, Backoffice), cada um com `Contracts` público, `Features`, `Infrastructure` e `Domain` onde previsto — 25 projetos compilando com 0 avisos.
+- Qualidade bloqueante: `Directory.Build.props` (Nullable, TreatWarningsAsErrors, AnalysisMode Recommended, Meziantou.Analyzer), `.editorconfig` verificado por `dotnet format`, Central Package Management com lock files e `nuget.config` só com nuget.org.
+- Front em workspace pnpm: apps `game-pipa`, `backoffice`, `demo-site` (Vite + React) e pacotes `contracts`, `game-sdk`, `game-ui`, `scene-kit`, com TypeScript estrito, ESLint (strictTypeChecked, react-hooks, jsx-a11y) e Prettier.
+- Controle SDD: `tools/sdd/spec_graph.py`, hooks `commit-msg` (Conventional Commits + `Refs: SPEC-NNNN`) e `pre-commit` (specs/ADRs + formatação dos arquivos staged), template de PR, CODEOWNERS, CHANGELOG; README e CLAUDE.md com os comandos.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+- TDD com papéis separados: Test-writer (commits red 00a4afc, 7a812e0; scaffold 9878a00), Implementer (bfe7a49..813a567 e correções d9bb4b3..9009df1), Reviewer independente (CHANGES_REQUESTED → APPROVED em 358c0bd).
+- Versões verificadas no nuget.org e no npm em 2026-10-07/08 (ex.: WolverineFx 6.48.1, Aspire 13.6.1, EF Core 10.0.12, Testcontainers 4.15.0, TngTech.ArchUnitNET 0.13.4, Vite 8.3.3, React 19.3.0, TypeScript 6.0.3 por limite do typescript-eslint 8.71.1, ESLint 10.12.0); Node fixado na LTS 24.
+- `Directory.Packages.props` já registra as versões dos pacotes previstos pelos ADRs, para as próximas specs não disputarem o arquivo.
+- xUnit v3 via `xunit.v3.mtp-off` para manter `dotnet test` (VSTest) no .NET 10.
+- Escopo: `nuget.config` incluído em `touches` (aviso NU1507 com duas fontes NuGet na máquina); sem mudança de contrato.
+- Decisão humana: licenças fora da lista do ADR-0016 aceitas pelo ADR-0022 (IMP-01).
+- Dívidas assumidas: override de peer do eslint-plugin-jsx-a11y para ESLint 10 e limitações do `format-staged` (caminhos com espaço, cópia não-staged) → SPEC-0013.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type foundation.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Configuração estrita do .NET (Directory.Build.props) | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
+| UT-02 | TypeScript estrito em todos os pacotes | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
+| IT-01 | Clone limpo compila front e back sem avisos | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
+| IT-02 | Código C# fora do formato reprova | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
+| IT-03 | Aviso de compilação C# reprova o build | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
+| IT-04 | Lint TS reprova `any` e `<img>` sem alt | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
+| IT-05 | Hook commit-msg rejeita mensagem fora do padrão | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
+| IT-06 | Arquivos de segredo locais ignorados pelo git | PASS | G5 0952a1e (`dotnet test Apogeu.slnx`: 21/21) |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5) — suíte verde em 0952a1e; arquitetura N/A até a SPEC-0003 e CI até a SPEC-0004 (gates registrados)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado (ADR-0022)
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — segredos ignorados (IT-06), jsx-a11y ativo (IT-04), demais N/A na spec
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: só validação local nesta fase (ADR-0013), G6 aponta a SPEC-0012
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout (rollback = reverter o merge commit; observabilidade N/A, sem serviço)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma) — SPEC-0013
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks v8.24.3: 25 commits, no leaks found (2026-10-08)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente remoto nesta fase (ADR-0013): integrado na branch `sdd/SPEC-0001` em bee4762 e validado localmente (G5 0952a1e). Deploy (G6) N/A até a SPEC-0012.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0013 — robustez do hook `format-staged` e remoção do override de peer do jsx-a11y.
+- SPEC-0012 — hospedagem e deploy (fecha o G6).
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0002`. -->
