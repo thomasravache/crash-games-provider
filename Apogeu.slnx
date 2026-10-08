@@ -50,5 +50,6 @@
     <Project Path="tests/backend/ServiceDefaults.Tests/ServiceDefaults.Tests.csproj" />
     <Project Path="tests/backend/TestKit/TestKit.csproj" />
     <Project Path="tests/backend/TestKit/Tests/TestKit.Tests.csproj" />
+    <Project Path="tests/ci/Ci.Tests/Ci.Tests.csproj" />
   </Folder>
 </Solution>
