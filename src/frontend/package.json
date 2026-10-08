@@ -13,16 +13,24 @@
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node -e \"console.log('No front-end tests yet: the Vitest harness arrives with SPEC-0003.')\""
+    "test": "vitest run --config vitest.workspace.ts",
+    "test:coverage": "vitest run --config vitest.workspace.ts --coverage",
+    "test:arch": "depcruise apps packages --config .dependency-cruiser.cjs && vitest run --config vitest.workspace.ts --project arch",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.0",
+    "@vitest/coverage-v8": "5.0.3",
+    "dependency-cruiser": "18.5.0",
     "eslint": "10.12.0",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.13.0",
     "prettier": "3.9.9",
     "typescript": "catalog:",
-    "typescript-eslint": "8.71.1"
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3"
   }
 }

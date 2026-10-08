@@ -8,6 +8,7 @@
     <ProjectReference Include="../Modules/Operators/Operators.Features/Operators.Features.csproj" />
     <ProjectReference Include="../Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj" />
     <ProjectReference Include="../BuildingBlocks/BuildingBlocks.csproj" />
+    <ProjectReference Include="../ServiceDefaults/ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
