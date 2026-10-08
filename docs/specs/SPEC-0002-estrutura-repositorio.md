@@ -11,7 +11,7 @@ depends_on: []
 consumes_contract: []
 contract_version: 1
 touches: ["src/backend/**", "src/frontend/**", "tests/backend/Repository.Tests/**", "Directory.Build.props", "Directory.Packages.props", "global.json", "Apogeu.slnx", "nuget.config", ".editorconfig", ".gitignore", ".gitattributes", ".githooks/**", ".github/pull_request_template.md", ".github/CODEOWNERS", "tools/sdd/**", "README.md", "CLAUDE.md", "AGENTS.md", "CHANGELOG.md"]
-adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0011, ADR-0012, ADR-0016]
+adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0011, ADR-0012, ADR-0016, ADR-0022]
 external: []
 size: M
 approved_by: thomas
@@ -181,7 +181,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
-| IMP-01 | 2026-10-08 | G4 | decisão | Dependências com licenças fora da lista permitida do ADR-0016: Npgsql (PostgreSQL License), minimatch (BlueOak-1.0.0), language-subtag-registry (CC0-1.0), caniuse-lite (CC-BY-4.0, dado usado só no build) | Reviewer confirmou que todas são permissivas e entram por ferramentas já decididas (EF Core/PostgreSQL, Vite, jsx-a11y); nenhuma troca de código resolve sem perder essas ferramentas | thomas: aceitar as licenças (ADR que amplia a lista) ou restringir a lista a dependências de runtime |  |  |
+| IMP-01 | 2026-10-08 | G4 | decisão | Dependências com licenças fora da lista permitida do ADR-0016: Npgsql (PostgreSQL License), minimatch (BlueOak-1.0.0), language-subtag-registry (CC0-1.0), caniuse-lite (CC-BY-4.0, dado usado só no build) | Reviewer confirmou que todas são permissivas e entram por ferramentas já decididas (EF Core/PostgreSQL, Vite, jsx-a11y); nenhuma troca de código resolve sem perder essas ferramentas | thomas: aceitar as licenças (ADR que amplia a lista) ou restringir a lista a dependências de runtime | ADR-0022 — opção A do usuário: lista de licenças ampliada (PostgreSQL, BlueOak-1.0.0, CC0-1.0; CC-BY-4.0 só para dados de build) | 2026-10-08 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
