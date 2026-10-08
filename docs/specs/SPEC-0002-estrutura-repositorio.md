@@ -169,7 +169,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS — 7a812e0 | 2026-10-07 |
-| G2 Green | PASS | build exit 0 (✓ built in 53ms); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 53 s - Ap); lint exit 0 (All matched files use Prettier code style!) — 813a567 | 2026-10-08 |
+| G2 Green | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 50 s - Ap); lint exit 0 (All matched files use Prettier code style!) — 9009df1 | 2026-10-08 |
 | G3 Arquitetura | N/A | Testes de arquitetura ainda não existem: são entregues pela SPEC-0003 (harness e testes de arquitetura), que roda logo após esta onda | 2026-10-08 |
 | G4 Review | FAIL | Reviewer: CHANGES_REQUESTED — 1 major (licenças fora da lista do ADR-0016: PostgreSQL License, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0) + 5 minor (.gitattributes -diff nos lockfiles, props redundantes no csproj de testes, CODEOWNERS sem workflows, pre-commit sem formatação, override de peer do jsx-a11y) | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
