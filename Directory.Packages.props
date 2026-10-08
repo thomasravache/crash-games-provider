@@ -31,6 +31,8 @@
     <PackageVersion Include="Testcontainers.Keycloak" Version="4.15.0" />
     <!-- Test clients for the TestKit's own tests (SPEC-0003 IT-02); verified on nuget.org on 2026-10-08. -->
     <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <!-- Log capture of the TestKit (SPEC-0003): platform logging abstractions, MIT; verified on nuget.org on 2026-10-08. -->
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
 
   <!-- Runtime, messaging and outbox (ADR-0002) -->
