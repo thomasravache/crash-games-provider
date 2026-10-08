@@ -170,7 +170,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx` exit 1 (red: [xUnit.net 00:00:11.19]     Dado um assembly-fixture em que Betting.Features referencia Wa) — 00122b8 | 2026-10-08 |
 | G2 Green | PASS | build exit 0 (✓ built in 95ms); test exit 0 (Duration  804ms (tests 98%, transform 1%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T01:24:45: Report generation took 0,1 seconds) — 9524d66 | 2026-10-08 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  437ms (tests 96%, transform 3%, import 1%, worker 1%)) — 9524d66 | 2026-10-08 |
-| G4 Review | PENDING | | |
+| G4 Review | FAIL | Reviewer: CHANGES_REQUESTED em 9524d66 — 3 major válidos (NoCyclesBetweenModules fatia por camada e nunca falha; ForbiddenPackages ignora assembly, namespace global e PackageReference; regra de transporte do dependency-cruiser não pega import pela entrada do pacote) + 1 major improcedente (sdd-config já preenchido na integração) + 7 minor | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
