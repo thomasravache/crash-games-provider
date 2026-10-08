@@ -46,6 +46,25 @@ internal static partial class TypeConditions
             type => ReferencedTypes(type).Where(target => namespaces.Any(ns => IsInNamespace(target, ns))),
             "depends on " + what);
 
+    /// <summary>
+    /// The type depends on no type of the given packages, recognised by namespace (<c>MediatR</c>, <c>MediatR.*</c>) or by
+    /// assembly name (<c>AutoMapper</c>, <c>AutoMapper.*</c>): some packages declare types in a namespace of another
+    /// library, like AutoMapper's <c>AddAutoMapper</c> in Microsoft.Extensions.DependencyInjection.
+    /// </summary>
+    public static ICondition<IType> NotDependOnPackages(string what, params string[] packages) =>
+        new SimpleCondition<IType>(
+            type =>
+            {
+                var targets = ReferencedTypes(type)
+                    .Where(target => packages.Any(package => IsInNamespace(target, package) || IsFromPackage(target, package)))
+                    .Select(target => $"{target.FullName} (assembly {AssemblyName(target)})")
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal)
+                    .ToList();
+                return new ConditionResult(type, targets.Count == 0, $"depends on {what} {string.Join(", ", targets)}");
+            },
+            "not depend on " + what);
+
     /// <summary>The type does not depend on the type named <paramref name="fullName"/>.</summary>
     public static ICondition<IType> NotDependOnType(string fullName) =>
         Condition(
@@ -65,19 +84,24 @@ internal static partial class TypeConditions
                 .Select(call => call.Target),
             "reads the system clock through");
 
-    /// <summary>No property or field of the type is double or float (nullable included).</summary>
-    public static ICondition<IType> HaveNoFloatingPointMembers() =>
+    /// <summary>
+    /// No property or field of the type is double or float (nullable included). Types outside
+    /// <paramref name="strictNamespaces"/> are only checked on money-named members (Amount, Stake, Payout, Balance,
+    /// Price): there a double may be a curve exponent or a multiplier, never money.
+    /// </summary>
+    public static ICondition<IType> HaveNoFloatingPointMoney(Regex strictNamespaces) =>
         new SimpleCondition<IType>(
             type =>
             {
+                var strict = strictNamespaces.IsMatch(type.Namespace.FullName);
                 var offending = type.Members
                     .Where(member => member is PropertyMember or FieldMember)
-                    .Where(member => !member.IsCompilerGenerated && IsFloatingPoint(member))
+                    .Where(member => !member.IsCompilerGenerated && (strict || MoneyName().IsMatch(member.Name)) && IsFloatingPoint(member))
                     .Select(member => member.FullName)
                     .ToList();
-                return new ConditionResult(type, offending.Count == 0, "has double/float members: " + string.Join(", ", offending));
+                return new ConditionResult(type, offending.Count == 0, "has double/float money members: " + string.Join(", ", offending));
             },
-            "have no double or float properties or fields");
+            "have no double or float money properties or fields");
 
     private static bool IsFloatingPoint(IMember member)
     {
@@ -101,9 +125,21 @@ internal static partial class TypeConditions
             description);
 
     /// <summary>Every type the given type depends on, including the generic arguments of each dependency.</summary>
-    private static IEnumerable<IType> ReferencedTypes(IType type) =>
+    internal static IEnumerable<IType> ReferencedTypes(IType type) =>
         type.Dependencies.SelectMany(dependency =>
             dependency.TargetGenericArguments.Select(argument => argument.Type).Prepend(dependency.Target));
+
+    private static bool IsFromPackage(IType type, string package)
+    {
+        var assembly = AssemblyName(type);
+        return assembly.Equals(package, StringComparison.OrdinalIgnoreCase)
+            || assembly.StartsWith(package + ".", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string AssemblyName(IType type) => type.Assembly.FullName.Split(',')[0].Trim();
+
+    [GeneratedRegex("Amount|Stake|Payout|Balance|Price", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex MoneyName();
 
     private static bool IsInNamespace(IType type, string ns) =>
         type.Namespace.FullName.Equals(ns, StringComparison.Ordinal)

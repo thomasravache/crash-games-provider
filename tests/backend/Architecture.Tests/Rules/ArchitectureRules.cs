@@ -1,5 +1,5 @@
+using System.Text.RegularExpressions;
 using ArchUnitNET.Fluent;
-using ArchUnitNET.Fluent.Slices;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 namespace Apogeu.Architecture.Tests.Rules;
@@ -13,12 +13,18 @@ namespace Apogeu.Architecture.Tests.Rules;
 public static class ArchitectureRules
 {
     private const string SolutionTypes = @"^Apogeu(\.|$)";
+    private const string SolutionAssemblies = @"^Apogeu\.";
     private const string DomainLayers = @"^Apogeu\.[A-Za-z0-9]+\.Domain(\.|$)";
     private const string FairnessModule = @"^Apogeu\.Fairness(\.|$)";
     private const string FairnessDomain = @"^Apogeu\.Fairness\.Domain(\.|$)";
 
-    // Money lives in Betting and Wallet, and crosses Rounds only through its contract (the curve inside Rounds uses double).
-    private const string MonetaryNamespaces = @"^Apogeu\.(Betting|Wallet)(\.|$)|^Apogeu\.Rounds\.Contracts(\.|$)";
+    // Money modules. Betting, Wallet and the Rounds contracts never hold double/float; inside Rounds the multiplier curve
+    // uses double, so only money-named members are checked there.
+    private const string MonetaryNamespaces = @"^Apogeu\.(Betting|Wallet|Rounds)(\.|$)";
+    private static readonly Regex StrictMonetaryNamespaces = new(
+        @"^Apogeu\.(Betting|Wallet)(\.|$)|^Apogeu\.Rounds\.Contracts(\.|$)",
+        RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture,
+        TimeSpan.FromSeconds(1));
 
     /// <summary>ADR-0001: no module references the Features, Domain or Infrastructure of another module.</summary>
     public static IArchRule ModuleBoundaries() =>
@@ -55,14 +61,21 @@ public static class ArchitectureRules
             .Because("ADR-0001: Fairness.Domain only computes and verifies; Fairness.Infrastructure persists the seeds")
             .WithoutRequiringPositiveResults();
 
-    /// <summary>ADR-0001: there are no dependency cycles between modules (one slice per <c>Apogeu.&lt;Module&gt;</c>).</summary>
+    /// <summary>ADR-0001: there are no dependency cycles between modules (one node per <c>Apogeu.&lt;Module&gt;</c>).</summary>
     public static IArchRule NoCyclesBetweenModules() =>
-        SliceRuleDefinition.Slices().Matching("Apogeu.(*)..").Should().BeFreeOfCycles();
-
-    /// <summary>ADR-0002: no type depends on MediatR, AutoMapper or MassTransit (commercial licences).</summary>
-    public static IArchRule ForbiddenPackages() =>
         Types().That().ResideInNamespaceMatching(SolutionTypes)
-            .Should().FollowCustomCondition(TypeConditions.NotDependOnNamespaces(
+            .Should().FollowCustomCondition(new ModuleCycleCondition())
+            .Because("ADR-0001: modules depend on each other in one direction only, Contracts included")
+            .WithoutRequiringPositiveResults();
+
+    /// <summary>
+    /// ADR-0002: no type of the solution assemblies (global namespace included) depends on MediatR, AutoMapper or
+    /// MassTransit (commercial licences), recognised by namespace or by assembly. Package references are checked by
+    /// <see cref="PackageReferenceScanner"/>.
+    /// </summary>
+    public static IArchRule ForbiddenPackages() =>
+        Types().That().ResideInAssemblyMatching(SolutionAssemblies)
+            .Should().FollowCustomCondition(TypeConditions.NotDependOnPackages(
                 "a forbidden package",
                 "MediatR",
                 "AutoMapper",
@@ -80,8 +93,8 @@ public static class ArchitectureRules
     /// <summary>ADR-0002: monetary values of Betting, Wallet and Rounds are <see cref="decimal"/>, never double or float.</summary>
     public static IArchRule MonetaryValuesAreDecimal() =>
         Types().That().ResideInNamespaceMatching(MonetaryNamespaces)
-            .Should().FollowCustomCondition(TypeConditions.HaveNoFloatingPointMembers())
-            .Because("ADR-0002: money is decimal in Betting, Wallet and the Rounds contracts")
+            .Should().FollowCustomCondition(TypeConditions.HaveNoFloatingPointMoney(StrictMonetaryNamespaces))
+            .Because("ADR-0002: money is decimal in Betting, Wallet and Rounds")
             .WithoutRequiringPositiveResults();
 
     /// <summary>Every rule of ADR-0001, ADR-0002 and ADR-0006 that applies to the structure, including the four above.</summary>
