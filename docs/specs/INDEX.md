@@ -4,8 +4,8 @@
 
 ## Saúde
 
-- Validação (G0): **0 erro(s), 11 aviso(s)** — rode `spec_graph.py validate`
-- Specs: approved 10
+- Validação (G0): **1 erro(s), 1 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 1, approved 10
 - Impedimentos: **0 aberto(s)**, 0 resolvido(s)
 
 ## Cobertura de Pilares
@@ -55,6 +55,7 @@ Perfil: **rigoroso**
 | 4 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ⛔ aguarda implementação de SPEC-0003; aguarda implementação de SPEC-0005 | saiu da onda 3: max_parallel=3 |
 | 4 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0005; aguarda implementação de SPEC-0006 | saiu da onda 3: max_parallel=3 |
 | 5 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
+| 5 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
 
 ## Épicos
 
@@ -68,6 +69,7 @@ Seta contínua: depende da implementação. Seta tracejada: consome contrato.
 
 ```mermaid
 flowchart LR
+  S0012["SPEC-0012<br/>Hospedagem e deploy (staging e produção)"]:::proposed
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0002["SPEC-0002<br/>Estrutura do repositório e qualidade de…"]:::approved
     S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::approved
@@ -99,6 +101,8 @@ flowchart LR
   S0009 -. contrato v1 .-> S0010
   S0010 --> S0011
   S0010 -. contrato v1 .-> S0011
+  S0004 --> S0012
+  S0010 --> S0012
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -121,6 +125,7 @@ flowchart LR
 | [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
 | [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@1, SPEC-0008@1, SPEC-0009@1 |
 | [SPEC-0011](SPEC-0011-animacao-pipa.md) | Animação da cena da Pipa | full | feature | approved | 2026-10-07 | SPEC-0001 | SPEC-0010 | SPEC-0010@1 |
+| [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
 
 ## ADRs
 

@@ -141,4 +141,6 @@ root_docs:
   - README.md
 changelog: CHANGELOG.md
 # Itens extras de Definição de Pronto do projeto, anexados a cada spec no PLAN.
-dod_extra: []
+dod_extra:
+  - "Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)"
+  - "Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha"
