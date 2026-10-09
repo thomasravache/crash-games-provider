@@ -28,7 +28,7 @@ public static partial class SalaIdentity
         name.CopyTo(data, 16);
 
 #pragma warning disable CA5350 // UUID v5 is defined over SHA-1 by RFC 9562; it names a room, it protects nothing.
-        var hash = SHA1.HashData(data);
+        var hash = SHA1.HashData(data); // nosemgrep: semgrep.apogeu-cs-weak-hash -- UUID v5 (RFC 9562) exige SHA-1; só deriva um identificador estável, não é prova de integridade nem de justiça
 #pragma warning restore CA5350
 
         hash[6] = (byte)((hash[6] & 0x0F) | 0x50);
