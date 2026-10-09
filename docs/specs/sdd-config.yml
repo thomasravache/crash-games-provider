@@ -13,7 +13,7 @@ build: "pnpm -C src/frontend install --frozen-lockfile && dotnet build Apogeu.sl
 test: "dotnet test Apogeu.slnx --filter \"Category!=Nightly&Category!=CiLive&Category!=Performance\" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test"
 test_integration: "dotnet test Apogeu.slnx --filter Category=Integration"
 # E2E da jornada do usuário. Exemplos: "npx playwright test" | "npx cypress run" | "maestro test flows/"
-test_e2e: "pnpm -C src/frontend test:e2e"
+test_e2e: "tools/ci/run-e2e.sh"
 # Subconjunto rápido rodado após cada deploy (G6).
 smoke_test: ""
 lint: "dotnet format Apogeu.slnx --verify-no-changes && pnpm -C src/frontend lint && pnpm -C src/frontend format:check"
