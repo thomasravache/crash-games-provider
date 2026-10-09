@@ -16,7 +16,7 @@ public static class OperatorsAuthentication
     public const string OperatorPolicy = "Operator";
 
     /// <summary>A valid player session.</summary>
-    public const string PlayerPolicy = "Player";
+    public const string PlayerPolicy = BuildingBlocks.Security.SecurityPolicies.PlayerSession;
 
     /// <summary>A backoffice token of the realm with at least one Apogeu role.</summary>
     public const string BackofficePolicy = "Backoffice";
