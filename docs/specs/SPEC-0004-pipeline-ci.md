@@ -165,7 +165,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:01.16]     Dado um workflow inseguro, quando tools/ci/check-workflows rod) — 367e6a8 | 2026-10-08 |
 | G2 Green | PASS | build exit 0 (✓ built in 151ms); test exit 0 (Duration  1.32s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T22:56:22: Report generation took 0,1 seconds) — cea0495 | 2026-10-08 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  757ms (tests 98%, transform 1%, import 1%)) — cea0495 | 2026-10-08 |
-| G4 Review | PENDING | | |
+| G4 Review | FAIL | Reviewer CHANGES_REQUESTED: 2 major (paths-filter no push da main falha com checkout raso; artefato de imagens estoura 500 MB de storage do Free), 4 minor (asserções de log fracas em IT-03/IT-04; minutos do Actions; semgrep sem hash; mutação pulada até todos os projetos existirem), 4 nit | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
