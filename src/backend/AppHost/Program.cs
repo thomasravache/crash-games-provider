@@ -1,4 +1,5 @@
 using Aspire.Hosting.JavaScript;
+using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -39,8 +40,12 @@ var gamePipa = builder.AddViteApp("game-pipa", $"{FrontendApps}/game-pipa")
     .WithPnpm(install: true, installArgs: ["--frozen-lockfile"]);
 var frontendInstall = gamePipa.Resource.Annotations.OfType<JavaScriptPackageInstallerAnnotation>().Single().Resource;
 
+// SPEC-0010 (tools/ci/run-e2e.sh): the E2E runner picks a free port and passes it as AppHost__ApiHttpPort, so it knows the
+// API URL without reading the dashboard. Unset (the normal local run and Aspire.Hosting.Testing), the port stays dynamic.
+var apiHttpPort = builder.Configuration.GetValue<int?>("AppHost:ApiHttpPort");
+
 var api = builder.AddProject<Projects.Host>("api")
-    .WithHttpEndpoint()
+    .WithHttpEndpoint(port: apiHttpPort)
     .WithHttpHealthCheck("/health")
     .WithReference(apogeuDatabase)
     .WaitFor(apogeuDatabase)
