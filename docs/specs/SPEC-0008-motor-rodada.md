@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0003, SPEC-0005]
 consumes_contract: [SPEC-0007@2]
-contract_version: 2
+contract_version: 3
 touches: ["src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "tests/load/rounds/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "Directory.Packages.props", "tools/contracts/frontend-modules.mjs"]
 adrs: [ADR-0001, ADR-0005, ADR-0010, ADR-0017, ADR-0018, ADR-0019]
 external: []
@@ -88,7 +88,7 @@ RoundSnapshot { sala:{id,rtp,cap,growthK},
                          startedAt?, crashPoint?, crashedAt?, revealedSeed?},   // campos ausentes = null; crashPoint e
                                                                                 // revealedSeed só depois do crash
                 history:[{roundId,roundNumber,crashPoint}] (últimas 20) }
-REST
+REST (v3: exige a sessão do jogador — Authorization: Bearer sessionToken da SPEC-0009; sem sessão → 401)
   GET /api/v1/salas/{salaId}/rounds?limit=1..100   → 200 [{roundId, roundNumber, crashPoint, crashedAt}] | 404 SALA_NOT_FOUND | 400 INVALID_LIMIT
   GET /api/v1/rounds/{roundId}/verification         → 200 {seed, previousSeed, salt, rtp, cap, crashPoint, terminalHash}
                                                       | 404 ROUND_NOT_FOUND | 409 ROUND_NOT_FINISHED
@@ -255,3 +255,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|---|---|
 | v2 | 2026-10-09 | (D1) ponto de crash via `GetCrashPointAsync` da SPEC-0007@2, só em memória até o crash; `RevealAsync` só depois; (D2) UT-02 corrigido com a regra `t ≥ t_c ⇒ m = crash`; (D3) `touches` com os contratos gerados e `Directory.Packages.props`; (D4) `RoundSnapshot.current`, tipos de `rtp`/`growthK`, id da sala (texto + UUID v5) e erros (ProblemDetails `code`) definidos; (D5) cliente `Microsoft.AspNetCore.SignalR.Client` só nos testes (emenda do ADR-0005); (D6) carga por imagem k6 após a SPEC-0009 | IMP-01 (SPEC_DEFECT do Test-writer, 2026-10-09) | SPEC-0010 (pin → SPEC-0008@2, SPEC-0007@2) | Architect — recomendações aplicadas pela autorização do usuário (thomas, 2026-10-09); a confirmar no resumo da manhã |
 | v2 (inalterado) | 2026-10-09 | Escopo: `tools/contracts/frontend-modules.mjs` — `formatTypeScript` roda o Prettier até a saída estabilizar (uma passada não é idempotente para assinaturas longas do hub); a regressão é o IT-02 da SPEC-0006 (`contracts:check` no estado versionado), que falha no scaffold desta spec | D7 do Test-writer: o contrato gerado não satisfazia ao mesmo tempo `contracts:check` e `format:check` | SPEC-0006 (só a correção do gerador; contrato inalterado) | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
+
+| v3 | 2026-10-09 | REST de rodadas (histórico e verificação) passa a exigir a sessão do jogador (Bearer) e responde 401 sem ela; o hub já exigia | Correção de integração da onda 4 (3050067) aplicou a política de sessão ao REST; o contrato não registrava — lacuna encontrada pelo Implementer da SPEC-0010. Mantido por negação por padrão (ADR-0015); verificador público fica para spec futura | SPEC-0010 (cliente já envia a sessão; pin → @3) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09); a confirmar no resumo |
