@@ -1,12 +1,14 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Apogeu.Ci.Tests.Support;
 using Xunit;
 
 namespace Apogeu.Ci.Tests.Live;
 
 /// <summary>
-/// IT-05: merging a green PR runs the images workflow on main, which attaches the container images as artifacts.
+/// IT-05: merging a green PR runs the images workflow on main, which attaches the <c>container-images</c> artifact with
+/// the API archive and the image tarballs of game-pipa, backoffice and demo-site.
 /// The probe PR carries a single empty commit, so the merge leaves main's content unchanged (only a merge commit).
 /// </summary>
 [Collection(CiLiveDefinition.Name)]
@@ -14,6 +16,12 @@ public sealed class ImagesOnMergeTests
 {
     private static readonly TimeSpan RunAppearTimeout = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan RunTimeout = TimeSpan.FromMinutes(60);
+    private static readonly TimeSpan DownloadTimeout = TimeSpan.FromMinutes(15);
+
+    /// <summary>Artifact and archive names of .github/workflows/images.yml (SPEC-0004, ADR-0013).</summary>
+    private const string ImagesArtifact = "container-images";
+    private const string ApiArchive = "apogeu-api.tar";
+    private static readonly string[] Apps = ["game-pipa", "backoffice", "demo-site"];
 
     [Fact(
         DisplayName = "Dado o merge de um PR verde, quando o workflow images roda, então as imagens são geradas e anexadas como artefato",
@@ -48,11 +56,53 @@ public sealed class ImagesOnMergeTests
         Assert.True(artifacts.Succeeded, artifacts.Describe());
         var names = artifacts.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         Assert.True(
-            names.Any(name => name.Contains("image", StringComparison.OrdinalIgnoreCase)),
-            $"The images run {runId} attached no image artifact (artifacts: {string.Join(", ", names)}).");
+            names.Contains(ImagesArtifact, StringComparer.Ordinal),
+            $"The images run {runId} did not attach the '{ImagesArtifact}' artifact (artifacts: {string.Join(", ", names)}).");
+
+        var files = await DownloadImagesArtifactAsync(runId, cancellationToken);
+        Assert.True(
+            files.Contains(ApiArchive, StringComparer.Ordinal),
+            $"'{ImagesArtifact}' of run {runId} has no {ApiArchive} (files: {string.Join(", ", files)}).");
+        foreach (var app in Apps)
+        {
+            Assert.True(
+                files.Any(file => AppArchive(app).IsMatch(file)),
+                $"'{ImagesArtifact}' of run {runId} has no image tarball of {app} (apogeu-{app}.tar[.gz]; files: {string.Join(", ", files)}).");
+        }
+
         TestContext.Current.TestOutputHelper?.WriteLine(
-            $"IT-05 evidence: {pullRequest.Url} merged as {mergeCommit}; images run {runId}; artifacts: {string.Join(", ", names)}");
+            $"IT-05 evidence: {pullRequest.Url} merged as {mergeCommit}; images run {runId}; {ImagesArtifact}: {string.Join(", ", files)}");
     }
+
+    /// <summary>Downloads the images artifact to a scratch directory and returns its non-empty files (names only).</summary>
+    private static async Task<IReadOnlyList<string>> DownloadImagesArtifactAsync(string runId, CancellationToken cancellationToken)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "apogeu-ci-live-images-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var download = await GitHubCli.RunAsync(
+                ["run", "download", runId, "--name", ImagesArtifact, "--dir", directory],
+                DownloadTimeout,
+                cancellationToken).ConfigureAwait(false);
+            Assert.True(download.Succeeded, $"Could not download '{ImagesArtifact}' of run {runId}. " + download.Describe());
+
+            return [.. Directory
+                .EnumerateFiles(directory, "*", SearchOption.AllDirectories)
+                .Where(file => new FileInfo(file).Length > 0)
+                .Select(file => Path.GetFileName(file))
+                .Order(StringComparer.Ordinal)];
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    private static Regex AppArchive(string app) =>
+        new($"^apogeu-{Regex.Escape(app)}\\.tar(?:\\.gz)?$", RegexOptions.None, TimeSpan.FromSeconds(1));
 
     private static async Task<string> WaitForImagesRunAsync(string mergeCommit, CancellationToken cancellationToken)
     {

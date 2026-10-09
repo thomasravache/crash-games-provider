@@ -17,7 +17,11 @@ public static class GitHubCli
     };
 
     public static Task<ProcessResult> RunAsync(IEnumerable<string> arguments, CancellationToken cancellationToken) =>
-        ProcessRunner.RunAsync("gh", arguments, System.IO.Path.GetTempPath(), ProcessRunner.ShortTimeout, Environment, cancellationToken);
+        RunAsync(arguments, ProcessRunner.ShortTimeout, cancellationToken);
+
+    /// <summary>Same as <see cref="RunAsync(IEnumerable{string}, CancellationToken)"/> for slow commands (e.g. artifact downloads).</summary>
+    public static Task<ProcessResult> RunAsync(IEnumerable<string> arguments, TimeSpan timeout, CancellationToken cancellationToken) =>
+        ProcessRunner.RunAsync("gh", arguments, System.IO.Path.GetTempPath(), timeout, Environment, cancellationToken);
 
     /// <summary>Runs a gh command that prints JSON and parses it; fails the test when the command fails.</summary>
     public static async Task<JsonElement> JsonAsync(IEnumerable<string> arguments, CancellationToken cancellationToken)

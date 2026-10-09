@@ -1,10 +1,13 @@
+using System.Text.RegularExpressions;
 using Apogeu.Ci.Tests.Support;
 using Xunit;
 
 namespace Apogeu.Ci.Tests.Live;
 
-internal static class LiveAssert
+internal static partial class LiveAssert
 {
+    private const int LogExcerpt = 6000;
+
     /// <summary>The check of job <paramref name="job"/> of the ci workflow; fails when it was not reported.</summary>
     public static PullRequestCheck Job(IReadOnlyList<PullRequestCheck> checks, string job)
     {
@@ -30,10 +33,59 @@ internal static class LiveAssert
         string expected,
         CancellationToken cancellationToken)
     {
-        var log = await ProbePullRequest.FailedLogAsync(Job(checks, job), cancellationToken).ConfigureAwait(false);
+        var output = await FailedToolOutputAsync(checks, job, cancellationToken).ConfigureAwait(false);
         Assert.True(
-            log.Contains(expected, StringComparison.OrdinalIgnoreCase),
-            $"The failed steps of {CiPipeline.CiWorkflowName}/{job} do not mention '{expected}' (failed for another reason?):"
-            + Environment.NewLine + (log.Length > 6000 ? "[...]" + log[^6000..] : log));
+            output.Contains(expected, StringComparison.OrdinalIgnoreCase),
+            $"The output of the failed steps of {CiPipeline.CiWorkflowName}/{job} does not contain '{expected}' (failed for another reason?):"
+            + Environment.NewLine + Excerpt(output));
     }
+
+    /// <summary>
+    /// Asserts that the output printed by the failed steps (not the step names) matches every pattern, so a step that
+    /// fails for another reason (missing tool, broken build, failed download) does not satisfy the test.
+    /// </summary>
+    public static async Task FailedOutputMatchesAsync(
+        IReadOnlyList<PullRequestCheck> checks,
+        string job,
+        CancellationToken cancellationToken,
+        params Regex[] patterns)
+    {
+        var output = await FailedToolOutputAsync(checks, job, cancellationToken).ConfigureAwait(false);
+        var missing = patterns.Where(pattern => !pattern.IsMatch(output)).Select(pattern => pattern.ToString()).ToList();
+        Assert.True(
+            missing.Count == 0,
+            $"The output of the failed steps of {CiPipeline.CiWorkflowName}/{job} does not match {string.Join(", ", missing)} "
+            + "(failed for another reason?):" + Environment.NewLine + Excerpt(output));
+    }
+
+    /// <summary>
+    /// Text the failed steps printed. <c>gh run view --log-failed</c> prefixes every line with
+    /// <c>job&lt;TAB&gt;step&lt;TAB&gt;timestamp</c>; the prefix and ANSI colors are removed so assertions see only the tools' output.
+    /// </summary>
+    public static async Task<string> FailedToolOutputAsync(
+        IReadOnlyList<PullRequestCheck> checks,
+        string job,
+        CancellationToken cancellationToken)
+    {
+        var log = await ProbePullRequest.FailedLogAsync(Job(checks, job), cancellationToken).ConfigureAwait(false);
+        return ToolOutput(log);
+    }
+
+    internal static string ToolOutput(string log) =>
+        string.Join(
+            '\n',
+            log.Split('\n').Select(line =>
+            {
+                var parts = line.TrimEnd('\r').Split('\t', 3);
+                var content = parts.Length == 3 ? parts[2] : line.TrimEnd('\r');
+                return Ansi().Replace(Timestamp().Replace(content, string.Empty, 1), string.Empty);
+            }));
+
+    private static string Excerpt(string output) => output.Length > LogExcerpt ? "[...]" + output[^LogExcerpt..] : output;
+
+    [GeneratedRegex(@"^\uFEFF?\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z ?", RegexOptions.None, 1000)]
+    private static partial Regex Timestamp();
+
+    [GeneratedRegex(@"\x1B\[[0-9;]*[A-Za-z]", RegexOptions.None, 1000)]
+    private static partial Regex Ansi();
 }

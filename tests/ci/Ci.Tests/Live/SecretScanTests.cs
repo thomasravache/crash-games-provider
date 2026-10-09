@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using Apogeu.Ci.Tests.Support;
 using Xunit;
 
@@ -6,7 +7,7 @@ namespace Apogeu.Ci.Tests.Live;
 
 /// <summary>IT-03: a PR that commits an AWS-style access key makes the security job fail on gitleaks.</summary>
 [Collection(CiLiveDefinition.Name)]
-public sealed class SecretScanTests
+public sealed partial class SecretScanTests
 {
     private const string Base32Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
@@ -30,7 +31,9 @@ public sealed class SecretScanTests
         var checks = await pullRequest.WaitForChecksAsync(CiPipeline.CiWorkflowName, [CiPipeline.Security], cancellationToken);
 
         LiveAssert.Bucket(checks, CiPipeline.Security, "fail");
-        await LiveAssert.FailedLogContainsAsync(checks, CiPipeline.Security, "gitleaks", cancellationToken);
+        // What gitleaks itself prints (the step names also say "gitleaks", so they prove nothing): the leak summary and
+        // the id of the default rule that matches the probe key. A failed download or checksum would print neither.
+        await LiveAssert.FailedOutputMatchesAsync(checks, CiPipeline.Security, cancellationToken, LeaksFound(), AwsRule());
         TestContext.Current.TestOutputHelper?.WriteLine($"IT-03 evidence: {pullRequest.Url}");
     }
 
@@ -51,4 +54,10 @@ public sealed class SecretScanTests
         }
 
         """;
+
+    [GeneratedRegex(@"leaks found: [1-9]", RegexOptions.IgnoreCase, 1000)]
+    private static partial Regex LeaksFound();
+
+    [GeneratedRegex(@"\baws-access-token\b", RegexOptions.None, 1000)]
+    private static partial Regex AwsRule();
 }
