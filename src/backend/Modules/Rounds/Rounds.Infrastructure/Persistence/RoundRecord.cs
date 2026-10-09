@@ -34,4 +34,13 @@ internal sealed class RoundRecord
     public string? AnnulReason { get; set; }
 
     public DateTimeOffset? AnnulledAt { get; set; }
+
+    /// <summary>RTP the round is played with; null only for a round opened without parameters.</summary>
+    public decimal? Rtp { get; set; }
+
+    /// <summary>Cap the round is played with; null only for a round opened without parameters.</summary>
+    public decimal? Cap { get; set; }
+
+    /// <summary>Growth constant of the round's flight; null only for a round opened without parameters.</summary>
+    public double? GrowthK { get; set; }
 }

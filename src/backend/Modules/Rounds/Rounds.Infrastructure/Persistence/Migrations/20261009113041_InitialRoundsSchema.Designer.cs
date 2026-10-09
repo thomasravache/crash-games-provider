@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Apogeu.Rounds.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(RoundsDbContext))]
-    [Migration("20261009070621_InitialRoundsSchema")]
+    [Migration("20261009113041_InitialRoundsSchema")]
     partial class InitialRoundsSchema
     {
         /// <inheritdoc />
@@ -83,6 +83,11 @@ namespace Apogeu.Rounds.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("betting_ends_at");
 
+                    b.Property<decimal?>("Cap")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("cap");
+
                     b.Property<Guid>("ChainId")
                         .HasColumnType("uuid")
                         .HasColumnName("chain_id");
@@ -106,6 +111,10 @@ namespace Apogeu.Rounds.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("crashed_at");
 
+                    b.Property<double?>("GrowthK")
+                        .HasColumnType("double precision")
+                        .HasColumnName("growth_k");
+
                     b.Property<long>("Number")
                         .HasColumnType("bigint")
                         .HasColumnName("number");
@@ -114,6 +123,11 @@ namespace Apogeu.Rounds.Infrastructure.Persistence.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("revealed_seed");
+
+                    b.Property<decimal?>("Rtp")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("numeric(5,4)")
+                        .HasColumnName("rtp");
 
                     b.Property<string>("SalaId")
                         .IsRequired()
@@ -143,6 +157,8 @@ namespace Apogeu.Rounds.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("ck_rounds_number", "number >= 1");
 
                             t.HasCheckConstraint("ck_rounds_outcome_after_crash", "(state = 'crashed') = (crash_point IS NOT NULL AND revealed_seed IS NOT NULL AND crashed_at IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_rounds_parameters", "(rtp IS NULL) = (cap IS NULL) AND (rtp IS NULL) = (growth_k IS NULL)");
 
                             t.HasCheckConstraint("ck_rounds_state", "state IN ('betting', 'flying', 'crashed', 'annulled')");
                         });

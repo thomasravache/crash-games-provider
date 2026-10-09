@@ -8,6 +8,8 @@
     <!-- Leader lock per room and SignalR backplane in Redis (ADR-0005, ADR-0010). -->
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" />
+    <!-- OpenAPI description of the REST endpoints (ADR-0008): `limit` stays an integer in the document. -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
 
   <ItemGroup>

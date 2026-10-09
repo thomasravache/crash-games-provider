@@ -14,7 +14,10 @@ namespace Apogeu.Rounds.Features.Conductor;
 /// <summary>
 /// One leader per room (ADR-0005): each instance tries to take the lock <c>rounds:leader:{sala}</c> (SET NX, TTL 5 s) and,
 /// while it holds it, renews it every second and runs the room's <see cref="SalaConductor"/>. Losing the lock (failed
-/// renewal) stops the conductor; stopping the host releases the lock so another instance takes over at once. Each renewal
+/// renewal) stops the conductor; stopping the host releases the lock so another instance takes over at once. The term is
+/// bounded by the lease itself: a renewal that does not answer in time (a hung connection, a paused process) does not
+/// extend it, and the conductor stops <see cref="RenewInterval"/> before the lock can expire, so the old leader never
+/// conducts once another instance may hold the lock. Each renewal
 /// also records when the leader was last seen alive (<c>rounds:leader-seen:{sala}</c>), so the next leader knows how long
 /// an interrupted round stayed without one.
 /// </summary>
@@ -76,10 +79,14 @@ internal sealed class RoundsLeadershipService(
         {
             IDatabase db;
             DateTimeOffset? lastSeen;
+            DateTimeOffset requestedAt;
             try
             {
                 db = await redis.DatabaseAsync().ConfigureAwait(false);
                 lastSeen = await ReadLastSeenAsync(db, sala.Id).ConfigureAwait(false);
+
+                // The lease runs from when the lock was requested at the latest (Redis starts its TTL after this instant).
+                requestedAt = time.GetUtcNow();
                 if (!await db.StringSetAsync(LockKey(sala.Id), _owner, LockTtl, When.NotExists).ConfigureAwait(false))
                 {
                     await DelayAsync(AcquireInterval, stopping).ConfigureAwait(false);
@@ -93,18 +100,24 @@ internal sealed class RoundsLeadershipService(
                 continue;
             }
 
-            await LeadTermAsync(sala, db, lastSeen, stopping).ConfigureAwait(false);
+            if (time.GetUtcNow() >= LeaseEnd(requestedAt))
+            {
+                // The answer came too late to lead safely: let the lock expire and try again.
+                continue;
+            }
+
+            await LeadTermAsync(sala, db, lastSeen, requestedAt, stopping).ConfigureAwait(false);
         }
     }
 
-    private async Task LeadTermAsync(SalaConfig sala, IDatabase db, DateTimeOffset? lastSeen, CancellationToken stopping)
+    private async Task LeadTermAsync(SalaConfig sala, IDatabase db, DateTimeOffset? lastSeen, DateTimeOffset acquiredAt, CancellationToken stopping)
     {
         _leading[sala.Id] = true;
         metrics.LeaderChanged(sala.Id);
         RoundsLog.LeadershipAcquired(_logger, sala.Id);
 
         using var term = CancellationTokenSource.CreateLinkedTokenSource(stopping);
-        var renewing = RenewAsync(sala.Id, db, term.Token);
+        var renewing = RenewAsync(sala.Id, db, acquiredAt, term.Token);
         var conducting = ConductAsync(sala, lastSeen, term.Token);
 
         // A plain array: a params span would make the compiler emit a global-namespace inline-array helper type.
@@ -126,10 +139,13 @@ internal sealed class RoundsLeadershipService(
         }
     }
 
-    /// <summary>Renews the lock every second; returns when it is lost (or the term ends).</summary>
-    private async Task RenewAsync(string salaId, IDatabase db, CancellationToken term)
+    /// <summary>
+    /// Renews the lock every second; returns when it is lost, when the lease runs out without a renewal answering in time,
+    /// or when the term ends.
+    /// </summary>
+    private async Task RenewAsync(string salaId, IDatabase db, DateTimeOffset acquiredAt, CancellationToken term)
     {
-        var renewedAt = time.GetUtcNow();
+        var renewedAt = acquiredAt;
         while (!term.IsCancellationRequested)
         {
             if (!await DelayAsync(RenewInterval, term).ConfigureAwait(false))
@@ -138,12 +154,20 @@ internal sealed class RoundsLeadershipService(
             }
 
             var now = time.GetUtcNow();
+            var remaining = LeaseEnd(renewedAt) - now;
+            if (remaining <= TimeSpan.Zero)
+            {
+                return;
+            }
+
             try
             {
+                // A hung call must not keep this instance leading past its lease: wait for it only while the lease lasts.
                 var result = await db.ScriptEvaluateAsync(
                     RenewScript,
                     [LockKey(salaId), LastSeenKey(salaId)],
                     [_owner, (long)LockTtl.TotalMilliseconds, now.ToUnixTimeMilliseconds(), (long)LastSeenTtl.TotalMilliseconds])
+                    .WaitAsync(remaining, time, term)
                     .ConfigureAwait(false);
                 if ((long)result != 1)
                 {
@@ -152,18 +176,28 @@ internal sealed class RoundsLeadershipService(
 
                 renewedAt = now;
             }
+            catch (OperationCanceledException) when (term.IsCancellationRequested)
+            {
+                return;
+            }
             catch (Exception exception) when (exception is RedisException or TimeoutException)
             {
                 RoundsLog.LeadershipUnavailable(_logger, salaId, exception);
 
                 // Without a renewal the lock expires: stop before another instance can take it.
-                if (time.GetUtcNow() - renewedAt >= LockTtl - RenewInterval)
+                if (time.GetUtcNow() >= LeaseEnd(renewedAt))
                 {
                     return;
                 }
             }
         }
     }
+
+    /// <summary>
+    /// When this instance must stop leading after a lock set or renewed at <paramref name="renewedAt"/>: one renewal interval
+    /// before its TTL can expire in Redis.
+    /// </summary>
+    private static DateTimeOffset LeaseEnd(DateTimeOffset renewedAt) => renewedAt + LockTtl - RenewInterval;
 
     /// <summary>Runs the conductor of the room until the term ends; a failed conductor resumes from the store.</summary>
     private async Task ConductAsync(SalaConfig sala, DateTimeOffset? lastSeen, CancellationToken term)

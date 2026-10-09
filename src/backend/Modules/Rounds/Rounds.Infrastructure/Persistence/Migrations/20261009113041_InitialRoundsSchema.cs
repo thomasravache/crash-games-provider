@@ -49,13 +49,17 @@ namespace Apogeu.Rounds.Infrastructure.Persistence.Migrations
                     crash_point = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: true),
                     revealed_seed = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     annul_reason = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    annulled_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                    annulled_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    rtp = table.Column<decimal>(type: "numeric(5,4)", precision: 5, scale: 4, nullable: true),
+                    cap = table.Column<decimal>(type: "numeric(12,2)", precision: 12, scale: 2, nullable: true),
+                    growth_k = table.Column<double>(type: "double precision", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_rounds", x => x.id);
                     table.CheckConstraint("ck_rounds_number", "number >= 1");
                     table.CheckConstraint("ck_rounds_outcome_after_crash", "(state = 'crashed') = (crash_point IS NOT NULL AND revealed_seed IS NOT NULL AND crashed_at IS NOT NULL)");
+                    table.CheckConstraint("ck_rounds_parameters", "(rtp IS NULL) = (cap IS NULL) AND (rtp IS NULL) = (growth_k IS NULL)");
                     table.CheckConstraint("ck_rounds_state", "state IN ('betting', 'flying', 'crashed', 'annulled')");
                 });
 

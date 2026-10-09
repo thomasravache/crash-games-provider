@@ -70,6 +70,13 @@ public sealed class Round
     /// <summary>When the round was annulled; set only by <see cref="Annul"/>.</summary>
     public DateTimeOffset? AnnulledAt { get; private set; }
 
+    /// <summary>
+    /// The parameters the round is played with (RTP and cap of its crash point, growth constant of its flight), fixed when
+    /// its bets open and kept for its resumption and verification; <see langword="null"/> only for a round opened without
+    /// them, to which the room's current configuration applies. Never the crash point itself.
+    /// </summary>
+    public RoundParameters? Parameters { get; private init; }
+
     /// <summary>Whether the round reached a terminal state (Crashed or Annulled).</summary>
     public bool IsFinished => State is RoundState.Crashed or RoundState.Annulled;
 
@@ -81,8 +88,9 @@ public sealed class Round
         Guid chainId,
         int chainRoundIndex,
         string commitment,
-        DateTimeOffset bettingEndsAt) =>
-        new(id, salaId, number, chainId, chainRoundIndex, commitment, RoundState.Betting, bettingEndsAt);
+        DateTimeOffset bettingEndsAt,
+        RoundParameters? parameters = null) =>
+        new(id, salaId, number, chainId, chainRoundIndex, commitment, RoundState.Betting, bettingEndsAt) { Parameters = parameters };
 
     /// <summary>Rebuilds a persisted round (stores only).</summary>
     public static Round Restore(
@@ -99,9 +107,11 @@ public sealed class Round
         decimal? crashPoint,
         string? revealedSeed,
         string? annulReason,
-        DateTimeOffset? annulledAt = null) =>
+        DateTimeOffset? annulledAt = null,
+        RoundParameters? parameters = null) =>
         new(id, salaId, number, chainId, chainRoundIndex, commitment, state, bettingEndsAt)
         {
+            Parameters = parameters,
             StartedAt = startedAt,
             CrashedAt = state == RoundState.Crashed ? crashedAt : null,
             CrashPoint = state == RoundState.Crashed ? crashPoint : null,

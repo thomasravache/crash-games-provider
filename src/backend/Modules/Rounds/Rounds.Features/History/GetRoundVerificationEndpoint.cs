@@ -48,8 +48,11 @@ internal static class GetRoundVerificationEndpoint
             return RoundsProblems.RoundNotFinished();
         }
 
+        // The parameters the round was played with: a later change of the room's configuration (or its removal) does not
+        // change its verification. Only a round opened without them falls back to the room's current configuration.
         var chain = await chains.FindAsync(round.ChainId, ct).ConfigureAwait(false);
-        if (chain is null || !salas.TryGet(round.SalaId, out var sala))
+        var parameters = round.Parameters ?? (salas.TryGet(round.SalaId, out var sala) ? RoundParameters.Of(sala) : null);
+        if (chain is null || parameters is null)
         {
             return RoundsProblems.RoundNotFound();
         }
@@ -59,8 +62,8 @@ internal static class GetRoundVerificationEndpoint
             round.RevealedSeed!,
             round.Commitment,
             chain.Salt,
-            SalaSnapshotQuery.FormatRtp(sala.Rtp),
-            new ContractMultiplier(sala.Cap),
+            SalaSnapshotQuery.FormatRtp(parameters.Rtp),
+            new ContractMultiplier(parameters.Cap),
             new ContractMultiplier(round.CrashPoint!.Value),
             chain.TerminalHash));
     }

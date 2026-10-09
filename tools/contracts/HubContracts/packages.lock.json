@@ -486,6 +486,7 @@
           "Apogeu.Rounds.Contracts": "[1.0.0, )",
           "Apogeu.Rounds.Domain": "[1.0.0, )",
           "Apogeu.Rounds.Infrastructure": "[1.0.0, )",
+          "Microsoft.AspNetCore.OpenApi": "[10.0.12, )",
           "Microsoft.AspNetCore.SignalR.StackExchangeRedis": "[10.0.12, )",
           "StackExchange.Redis": "[3.3.1, )"
         }

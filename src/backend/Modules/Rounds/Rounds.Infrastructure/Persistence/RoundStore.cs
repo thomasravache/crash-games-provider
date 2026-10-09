@@ -57,6 +57,9 @@ internal sealed class RoundStore(RoundsDbContext db) : IRoundStore, IRoundChainS
         record.RevealedSeed = round.RevealedSeed;
         record.AnnulReason = round.AnnulReason;
         record.AnnulledAt = round.AnnulledAt;
+        record.Rtp = round.Parameters?.Rtp;
+        record.Cap = round.Parameters?.Cap;
+        record.GrowthK = round.Parameters?.GrowthK;
 
         try
         {
@@ -119,7 +122,8 @@ internal sealed class RoundStore(RoundsDbContext db) : IRoundStore, IRoundChainS
         record.CrashPoint,
         record.RevealedSeed,
         record.AnnulReason,
-        record.AnnulledAt);
+        record.AnnulledAt,
+        record is { Rtp: { } rtp, Cap: { } cap, GrowthK: { } growthK } ? new RoundParameters(rtp, cap, growthK) : null);
 
     private static string StateName(RoundState state) => state switch
     {

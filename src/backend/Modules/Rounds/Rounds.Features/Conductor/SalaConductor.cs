@@ -29,6 +29,12 @@ public sealed class SalaConductor
     /// <summary>Reason recorded on a round annulled because no leader resumed it within <see cref="ResumeDeadline"/>.</summary>
     public const string ResumeDeadlineReason = "RESUME_DEADLINE_EXCEEDED";
 
+    /// <summary>
+    /// Reason recorded on a round whose revealed crash point differs from the one read at the start of its flight: such a
+    /// round is never published as crashed.
+    /// </summary>
+    public const string CrashPointMismatchReason = "CRASH_POINT_MISMATCH";
+
     /// <summary>Upper bound of actions run by one step, so a step always returns even if the clock jumps far ahead.</summary>
     private const int MaxActionsPerStep = 64;
 
@@ -43,11 +49,7 @@ public sealed class SalaConductor
     private readonly ILogger<SalaConductor> _logger;
     private readonly IRoundChainStore? _chains;
     private readonly DateTimeOffset? _leaderLastSeenAt;
-    private readonly GrowthCurve _curve;
-    private readonly Rtp _rtp;
-    private readonly FairnessMultiplier _cap;
     private readonly SalaId _fairnessSala;
-    private readonly string _growthK;
 
     private bool _resumed;
     private Round? _round;
@@ -58,6 +60,9 @@ public sealed class SalaConductor
     private decimal? _crashPoint;
     private DateTimeOffset _crashAt;
     private long _nextSync;
+
+    // The growth curve of the round in flight: the one of the parameters it was opened with.
+    private GrowthCurve _curve;
 
     public SalaConductor(
         SalaConfig sala,
@@ -112,10 +117,7 @@ public sealed class SalaConductor
         _chains = chains;
         _leaderLastSeenAt = leaderLastSeenAt;
         _curve = new GrowthCurve(sala.GrowthK);
-        _rtp = new Rtp(sala.Rtp);
-        _cap = new FairnessMultiplier(sala.Cap);
         _fairnessSala = SalaIdentity.ToFairness(sala.Id);
-        _growthK = FormatGrowthK(sala.GrowthK);
     }
 
     /// <summary>The contract text of a growth constant (<c>"0.00006"</c>, SPEC-0008 §6).</summary>
@@ -222,7 +224,8 @@ public sealed class SalaConductor
             issued.ChainId.Value,
             issued.RoundIndex,
             issued.Commitment.ToHex(),
-            now + _sala.BettingDuration);
+            now + _sala.BettingDuration,
+            RoundParameters.Of(_sala));
         activity?.SetTag("rounds.sala_id", _sala.Id).SetTag("rounds.round_id", round.Id.Value).SetTag("rounds.round_number", round.Number);
 
         await _store.SaveAsync(round, ct).ConfigureAwait(false);
@@ -241,8 +244,9 @@ public sealed class SalaConductor
         using var activity = StartRoundActivity("rounds.start_flight", round);
 
         // The crash point is read before the flight starts and stays in memory only (SPEC-0008 §4, emenda v2).
+        var parameters = ParametersOf(round);
         var crashPoint = await _fairness
-            .GetCrashPointAsync(new ChainId(round.ChainId), round.ChainRoundIndex, _rtp, _cap, ct)
+            .GetCrashPointAsync(new ChainId(round.ChainId), round.ChainRoundIndex, new Rtp(parameters.Rtp), new FairnessMultiplier(parameters.Cap), ct)
             .ConfigureAwait(false);
         var startedAt = _time.GetUtcNow();
         round.StartFlight(startedAt);
@@ -252,7 +256,7 @@ public sealed class SalaConductor
         _metrics.RoundStarted(_sala.Id);
         RoundsLog.FlightStarted(_logger, _sala.Id, round.Number, round.Id.Value, startedAt);
         await _broadcaster.Sala(_sala.Id)
-            .RoundFlying(new RoundFlyingMessage(round.Id.Value, startedAt, _growthK))
+            .RoundFlying(new RoundFlyingMessage(round.Id.Value, startedAt, FormatGrowthK(parameters.GrowthK)))
             .ConfigureAwait(false);
     }
 
@@ -262,12 +266,16 @@ public sealed class SalaConductor
         var crashedAt = _crashAt;
 
         // Only now, after the crash, is the seed revealed (SPEC-0007@2, ADR-0014).
+        var parameters = ParametersOf(round);
         var revealed = await _fairness
-            .RevealAsync(new ChainId(round.ChainId), round.ChainRoundIndex, _rtp, _cap, ct)
+            .RevealAsync(new ChainId(round.ChainId), round.ChainRoundIndex, new Rtp(parameters.Rtp), new FairnessMultiplier(parameters.Cap), ct)
             .ConfigureAwait(false);
         if (revealed.CrashPoint.Value != crashPoint)
         {
+            // The seed would not verify the crash the room flew: never publish it as a crash.
             RoundsLog.CrashPointMismatch(_logger, _sala.Id, round.Number, round.Id.Value);
+            await AnnulAsync(round, CrashPointMismatchReason, ct).ConfigureAwait(false);
+            return;
         }
 
         round.Crash(crashPoint, revealed.Seed.ToHex(), crashedAt);
@@ -347,8 +355,10 @@ public sealed class SalaConductor
     /// <summary>Reads the crash point of a resumed flight again (deterministic) and schedules its crash and syncs.</summary>
     private async Task LoadCrashPointAsync(Round round, CancellationToken ct)
     {
+        // The parameters the round was opened with, not the room's current configuration (it may have changed meanwhile).
+        var parameters = ParametersOf(round);
         var crashPoint = await _fairness
-            .GetCrashPointAsync(new ChainId(round.ChainId), round.ChainRoundIndex, _rtp, _cap, ct)
+            .GetCrashPointAsync(new ChainId(round.ChainId), round.ChainRoundIndex, new Rtp(parameters.Rtp), new FairnessMultiplier(parameters.Cap), ct)
             .ConfigureAwait(false);
         Schedule(round, crashPoint.Value);
 
@@ -359,6 +369,7 @@ public sealed class SalaConductor
 
     private void Schedule(Round round, decimal crashPoint)
     {
+        _curve = new GrowthCurve(ParametersOf(round).GrowthK);
         _crashPoint = crashPoint;
         _crashAt = round.StartedAt!.Value + _curve.TimeToCrash(crashPoint);
         _nextSync = 1;
@@ -401,6 +412,9 @@ public sealed class SalaConductor
 
         RoundsLog.ChainCreated(_logger, _sala.Id, chain.ChainId.Value, chain.Length);
     }
+
+    /// <summary>The parameters the round is played with; the room's current configuration for a round opened without them.</summary>
+    private RoundParameters ParametersOf(Round round) => round.Parameters ?? RoundParameters.Of(_sala);
 
     private Activity? StartRoundActivity(string name, Round round) =>
         Activities.StartActivity(name)?

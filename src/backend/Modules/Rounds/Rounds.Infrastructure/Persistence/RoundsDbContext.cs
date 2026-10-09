@@ -26,6 +26,11 @@ internal sealed class RoundsDbContext(DbContextOptions<RoundsDbContext> options)
                 table.HasCheckConstraint(
                     "ck_rounds_outcome_after_crash",
                     "(state = 'crashed') = (crash_point IS NOT NULL AND revealed_seed IS NOT NULL AND crashed_at IS NOT NULL)");
+
+                // The parameters of a round are recorded together, or not at all (a round opened without them).
+                table.HasCheckConstraint(
+                    "ck_rounds_parameters",
+                    "(rtp IS NULL) = (cap IS NULL) AND (rtp IS NULL) = (growth_k IS NULL)");
             });
             round.HasKey(r => r.Id).HasName("pk_rounds");
             round.Property(r => r.Id).HasColumnName("id").ValueGeneratedNever();
@@ -42,6 +47,9 @@ internal sealed class RoundsDbContext(DbContextOptions<RoundsDbContext> options)
             round.Property(r => r.RevealedSeed).HasColumnName("revealed_seed").HasMaxLength(64);
             round.Property(r => r.AnnulReason).HasColumnName("annul_reason").HasMaxLength(200);
             round.Property(r => r.AnnulledAt).HasColumnName("annulled_at");
+            round.Property(r => r.Rtp).HasColumnName("rtp").HasPrecision(5, 4);
+            round.Property(r => r.Cap).HasColumnName("cap").HasPrecision(12, 2);
+            round.Property(r => r.GrowthK).HasColumnName("growth_k");
 
             // One round per number in a room: two conductors can never persist the same round number.
             round.HasIndex(r => new { r.SalaId, r.Number }).IsUnique().HasDatabaseName("ux_rounds_sala_id_number");
