@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0002, SPEC-0003]
 consumes_contract: [SPEC-0006@1]
 contract_version: 2
-touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**"]
+touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**", "src/backend/AppHost/AppHost.csproj", "src/backend/AppHost/packages.lock.json", "tests/backend/AppHost.Tests/AppHost.Tests.csproj", "tests/backend/AppHost.Tests/packages.lock.json", "tests/backend/Architecture.Tests/Architecture.Tests.csproj", "tests/backend/Architecture.Tests/packages.lock.json"]
 adrs: [ADR-0011, ADR-0012, ADR-0013, ADR-0016]
 external: []
 size: M
@@ -168,7 +168,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 81ms); test exit 0 (Duration  1.53s (tests 98%, transform 2%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T23:31:34: Report generation took 0,1 seconds) — 87317f8 | 2026-10-08 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.05s (tests 97%, transform 2%, import 1%)) — 87317f8 | 2026-10-08 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 87317f8, 0 blocker/major; pendências: UT-01 para as regras novas do check-workflows, .semgrepignore, Dependabot sem [no-spec] — 87317f8 | 2026-10-08 |
-| G5 Integração & CI | PENDING | | |
+| G5 Integração & CI | FAIL | CI do PR #6 (run 37876953623): backend, contracts e security falham no dotnet restore --locked-mode (NU1004 — pacotes Aspire por plataforma no lock do AppHost gerado no macOS) | 2026-10-09 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
@@ -222,3 +222,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|---|---|
 | 2 | 2026-10-08 | Proteção da `main` no servidor e IT-06 saem do escopo; IT-02 passa a verificar check vermelho e `mergeStateStatus` ≠ `CLEAN`; checks `ci/*` informativos, merge só pelo Architect após G5 | IMP-01: repositório privado no GitHub Free não tem branch protection nem rulesets (API 403); o humano escolheu manter privado | SPEC-0015 (nova, recebe a proteção e o IT-06); nenhum consumidor do contrato | thomas, 2026-10-08 (chat) |
 | 2 (inalterado) | 2026-10-08 | `images.yml` gera as imagens sem Aspire publish (`dotnet publish -t:PublishContainer` para a API, `docker build` para os apps Vite), mesmo artefato `container-images` | SPEC_DEFECT do Implementer: o AppHost quebra no modo publish (`.Single()` em `JavaScriptPackageInstallerAnnotation`) e não tem ambiente de computação; corrigir exige mexer no AppHost e talvez `Aspire.Hosting.Docker` (sem ADR) — decisão natural da SPEC-0012, que escolhe a hospedagem | SPEC-0012 (recebe o modo publish do AppHost) | Architect — mudança de texto sem mudança de contrato, coberta pela autorização do usuário para seguir recomendações (2026-10-08) |
+| 2 (inalterado) | 2026-10-09 | Escopo: AppHost, AppHost.Tests e Architecture.Tests restauram sem `packages.lock.json` (`RestorePackagesWithLockFile=false`, motivo no csproj); demais projetos seguem com lock e `--locked-mode` | G5 FAIL no primeiro run real da CI (PR #6): o SDK do Aspire referencia `Aspire.Dashboard.Sdk.<rid>`/`Aspire.Hosting.Orchestration.<rid>` da plataforma da máquina, então o lock gerado no macOS diverge no runner Linux (NU1004). Exceção pontual ao ADR-0016 para o orquestrador local | Nenhuma | Architect — correção de escopo para a CI rodar, coberta pela autorização do usuário para seguir recomendações (2026-10-09) |

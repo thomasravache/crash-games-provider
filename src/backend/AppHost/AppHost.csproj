@@ -1,6 +1,13 @@
 <Project Sdk="Aspire.AppHost.Sdk/13.6.1">
 
   <!-- Aspire AppHost (ADR-0003): orchestrates the local environment. Shape follows the official Aspire 13.6.1 template. -->
+  <!-- ADR-0016 exception (SPEC-0004 emenda): the Aspire SDK adds Aspire.Dashboard.Sdk.<rid> and
+       Aspire.Hosting.Orchestration.<rid> for the machine's own platform, so no single packages.lock.json fits macOS and
+       the Linux CI runners. This project (and the tests that reference the AppHost) restore without a lock file. -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <UserSecretsId>2b7f73b3-7789-42ed-93f4-afacb2c7c0d7</UserSecretsId>
