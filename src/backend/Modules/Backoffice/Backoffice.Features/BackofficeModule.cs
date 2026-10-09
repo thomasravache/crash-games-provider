@@ -1,3 +1,4 @@
+using Apogeu.Backoffice.Features.Meta;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,6 +17,8 @@ public static class BackofficeModule
     public static IEndpointRouteBuilder MapBackofficeEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
+
+        endpoints.MapGetMeta();
 
         return endpoints;
     }

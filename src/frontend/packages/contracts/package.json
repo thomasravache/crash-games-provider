@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "typescript": "catalog:"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
   }
 }
