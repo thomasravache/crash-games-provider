@@ -75,7 +75,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  824ms (tests 97%, transform 1%, import 1%)) — a75c4df | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em a75c4df — 0 blocker/major; minors: variável do Stryker dentro do teste, concorrência 1 sem teste estático, relatório HTML do noturno, dois nits de documentação — a75c4df | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 140ms); test exit 0 (Duration  1.31s (tests 81%, transform 13%, import 4%, worker 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 3 m 49 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  816ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 250 files: 0 findings.) — 7392d3f | 2026-10-09 |
-| H2 Integração aprovada | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
 
