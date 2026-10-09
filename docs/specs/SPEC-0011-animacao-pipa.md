@@ -29,15 +29,15 @@ Substitui a animação básica do esqueleto (SPEC-0010) por uma cena **bonita e 
 **Objetivos (dentro do escopo) — roteiro da rodada:**
 | Fase | O que acontece | Duração / suavização |
 |---|---|---|
-| **Apostas** (PREPARE SUA PIPA) | pipa baixa sobre a silhueta da orla do Rio com morros ao fundo, balançando ao vento; rabiola ondulando; partículas leves de vento; anel de contagem regressiva | durante a fase; balanço senoidal 2–3 s |
+| **Apostas** (PREPARE SUA PIPA) | pipa baixa sobre a silhueta da orla do Rio com morros ao fundo, balançando ao vento; rabiola ondulando; partículas leves de vento (a contagem fica no HUD — Emenda) | durante a fase; balanço senoidal 2–3 s |
 | **Decolagem** | puxão: pipa sobe com aceleração, linha estica, rabiola chicoteia | 600 ms, `power3.out` |
 | **Voo** | câmera sobe suavemente (o cenário desce), 3 camadas de nuvens em paralaxe cada vez mais rápidas; céu dia → pôr do sol (≥ 5x) → noite (≥ 25x) com estrelas surgindo (≥ 10x) e lua (≥ 50x); rastro brilhante da curva; vento e balanço aumentam com o multiplicador; pulso do multiplicador nos marcos 2x, 5x, 10x, 25x, 50x e 100x, com brilho dourado a partir de 10x | contínuo, guiado pelo multiplicador |
-| **Crash** (PIPA CORTADA!) | a linha arrebenta no ponto de tensão com recuo; clarão vermelho curto; leve tremor de tela; a pipa rodopia e cai com arrasto, saindo do quadro; o texto treme | impacto ≤ 300 ms; queda 1,5 s |
+| **Crash** (PIPA CORTADA!) | a linha arrebenta no ponto de tensão com recuo; clarão vermelho curto; leve tremor de tela; a pipa rodopia e cai com arrasto, saindo do quadro (o tremor do texto PIPA CORTADA! é do HUD: SPEC-0026 — Emenda) | impacto ≤ 300 ms; queda 1,5 s |
 | **Recomeço** | esmaecimento suave para o cenário inicial; nova pipa entra | 600 ms, `sine.inOut` |
 
 - Arte **vetorial desenhada em código** (pipa de 4 cores do design do Stitch, nuvens, estrelas, lua, silhueta da orla com morros), sem arquivos de arte externos.
 - Física própria: corda e rabiola por integração Verlet com passo fixo.
-- Filtros: brilho e bloom (pixi-filters) com teto; partículas com teto.
+- Filtros: brilho (pixi-filters `GlowFilter` na pipa a partir de 10x) e rastro brilhante em traços em camadas, com teto; partículas com teto. Bloom fica para a arte final (Emenda).
 - Modo **movimento reduzido**.
 - Tetos de desempenho, pausa com a aba oculta.
 - Imagens de referência dos quadros-chave aprovadas pelo usuário.
@@ -194,8 +194,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 8dec4f4 (árvore suja) | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:43.72]     Dado um processo que avança 3 rodadas e é reiniciado, quando N) — b867610 | 2026-10-09 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 154ms); test exit 0 (Duration  1.39s (tests 69%, transform 19%, import 11%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T18:48:49: Report generation took 0,3 seconds) — 6cd9827 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  802ms (tests 97%, transform 2%, import 1%)) — 6cd9827 | 2026-10-09 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
@@ -248,5 +248,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0011`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-09 | Escopo reduzido: (1) sem bloom — brilho por `GlowFilter` na pipa a partir de 10x e rastro em traços em camadas; bloom vai para a arte final antes do lançamento; (2) sem anel de contagem regressiva na cena — o `GameAnimator` não recebe o prazo das apostas e o HUD já mostra a contagem; (3) o tremor do texto PIPA CORTADA! sai desta spec e entra na SPEC-0026 (HUD) | Implementação: o bloom estourava a recriação do contexto WebGL (IT-02 ≤ 1 s) no GL por software da CI; anel e texto ficam fora do contrato e do `touches` | SPEC-0026 (tremor do texto) | thomas, 2026-10-09 (chat: "ok nas 3") |
 | 1 (inalterado) | 2026-10-09 | Escopo: `.github/workflows/visual-baselines.yml` (novo, `workflow_dispatch` + push em branch `sdd/**` que altere `tests/e2e/pipa-visual/**`) gera as imagens de referência no runner Linux da CI com `run-e2e.sh pipa-visual --project=chromium --update-snapshots=missing` e as publica como artefato; o usuário aprova as 6 imagens e elas são commitadas. Esclarecimentos: `frameTimes()` = duração do trabalho de cada quadro (ms), não o intervalo do rAF; IT-02 provado pelo gancho de teste (contexto vivo, canvas redesenhado e quadros novos em ≤ 1 s, mesma página); `freeze(t)` = ms desde o início da fase | G1: as imagens precisam do mesmo runner da CI (§7.6) e o `ci.yml` é da SPEC-0017; interpretações do Test-writer | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 | 1 (inalterado) | 2026-10-09 | Escopo: `tests/frontend/pipa/scene/**` (UT e CT no Vitest, onde vivem os testes do front) e `src/frontend/playwright.config.ts` (WebGL e imagens de referência dos testes visuais) | Despacho da onda 6: o `touches` não tinha onde colocar os unitários | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
