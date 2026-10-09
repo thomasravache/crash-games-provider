@@ -74,6 +74,8 @@ sdd-config:
   ci: "gh pr checks --watch"
   security_scan: "gitleaks detect --no-banner && semgrep scan --config .semgrep --error && dotnet list Apogeu.slnx package --vulnerable --include-transitive && pnpm -C src/frontend audit --audit-level high"
 Gatilhos: pull_request (main), push (main), schedule (nightly 03:00 UTC)
+Saídas verificáveis: gitleaks imprime "leaks found: N" e o RuleID (--verbose --redact); imagens no artefato `container-images`
+  (apogeu-api.tar, apogeu-game-pipa.tar, apogeu-backoffice.tar, apogeu-demo-site.tar), retenção de 1 dia
 ```
 
 **Design:** N/A — sem interface.

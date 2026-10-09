@@ -126,7 +126,7 @@ Vetores (JSON): [{ seed, previousSeed, salt, rtp, cap, crashPoint }]  — hex mi
 - **UT-08** — Dado `length` 0 ou 1.000.001, quando `CreateChainAsync` é chamado, então lança `ArgumentOutOfRangeException` sem persistir cadeia.
 
 ### 7.3 Testes de Integração
-- **IT-01** — Dado PostgreSQL real, quando uma cadeia de 50.000 elos é criada, então o banco contém só a origem cifrada e 5 checkpoints, e `RevealAsync` da rodada 12.345 devolve a semente que encadeia com a 12.344.
+- **IT-01** — Dado PostgreSQL real, quando uma cadeia de 50.000 elos é criada, então o banco contém 1 linha de cadeia e só 5 elos cifrados (checkpoints a cada 10.000, `h_0` incluído; `h_50000` é o hash terminal público), e `RevealAsync` da rodada 12.345 devolve a semente que encadeia com a 12.344.
 - **IT-02** — Dado um processo que avança 3 rodadas e é reiniciado, quando `NextRoundAsync` é chamado, então o índice é 4 (sem repetir nem pular semente); e, após aquecimento, a mediana de 15 obtenções da semente a ~10.000 hashes do checkpoint (`RevealAsync` da rodada 4) é ≤ 20 ms, com as amostras na mensagem de falha. Testes cronometrados (IT-02, UT-07) rodam sem paralelismo com os demais.
 - **IT-06** — Dada uma cadeia de 50 elos, quando 20 chamadas de `NextRoundAsync` para a mesma sala rodam em paralelo, então os índices são exatamente 1..20, sem repetição, e os compromissos são distintos.
 - **IT-03** — Dada a captura de logs ativa, quando cadeia é criada, avançada e revelada, então nenhuma semente não revelada aparece em log.
