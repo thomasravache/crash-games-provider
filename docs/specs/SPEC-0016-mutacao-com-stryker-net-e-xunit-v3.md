@@ -9,7 +9,7 @@ created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
 consumes_contract: []
-touches: ["tests/ci/**", ".github/workflows/nightly.yml", "stryker-config.json", ".config/dotnet-tools.json", "tools/ci/stryker-targets", "tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj", "Directory.Packages.props"]
+touches: ["tests/ci/**", ".github/workflows/nightly.yml", "stryker-config.json", ".config/dotnet-tools.json", "tools/ci/stryker-targets", "tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj", "Directory.Packages.props", "tests/backend/Modules/Fairness.Tests/Mutation/**"]
 adrs: [ADR-0011]
 external: []
 size: S
@@ -39,7 +39,8 @@ Diagnóstico do Reviewer da SPEC-0007: runner `mtp` do Stryker com o projeto de 
 ## 4. Plano de Testes (TDD)
 <!-- Mínimo: um teste de regressão que reproduz o problema e FALHA antes da correção, no nível em que o defeito aparece (IT para fronteiras de I/O, E2E para jornadas de usuário). Código sem cobertura: primeiro CH-xx fixando o comportamento atual. Tag no código: `SPEC-0016:<ID>`. Categoria sem teste: "N/A — motivo" SEM ID. -->
 - Caracterização: N/A — ferramenta de teste, sem comportamento de produção.
-- **UT-01** — Dado `Fairness.Tests` com os vetores públicos, quando `dotnet stryker` roda em `Fairness.Domain`, então o relatório JSON mostra testes cobrindo os mutantes de `SeedChain.cs` e o score ≥ 85% (evidência do SPEC-0007 §7.6).
+- **UT-01** — Dado `Fairness.Tests` com os vetores públicos, quando `dotnet stryker` roda em `Fairness.Domain`, então o relatório JSON mostra testes cobrindo os mutantes de `SeedChain.cs` e o score ≥ 85% (evidência do SPEC-0007 §7.6). Mutantes que o Stryker marca como `Ignored` pelo filtro de bloco não contam como descobertos (o próprio Stryker os exclui do score).
+- **UT-02** — (guarda: passa antes da mudança) Dados os pontos de entrada do `Fairness.Domain` (`CrashPointCalculator`, `FairnessVerifier`, `SeedChain.Build/Advance/Next/LinkIndexOfRound/CheckpointOf`), quando chamados com entradas válidas, inválidas e de borda, então devolvem os resultados do algoritmo v1 e lançam as exceções do contrato (InvalidRtp, InvalidCap, InvalidSeed, argumentos nulos/fora de faixa) — testes unitários novos em `Fairness.Tests/Mutation/`, sem alterar os testes da SPEC-0007, para que a mutação mate os mutantes de guarda e da cadeia.
 - Integração/E2E: N/A — a verificação é a própria execução do Stryker, local e no job `mutation` do nightly.
 
 ## 5. Questões em Aberto
@@ -82,6 +83,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-09 | G2 | spec | Mutação do Fairness.Domain em 37,84% (28/74): SeedChain só é exercida por testes de integração e nenhuma validação de entrada tem teste; e o UT-01 conta como não cobertos os mutantes que o Stryker 5 sempre ignora (filtro de bloco) | Implementer confirmou ativação dos mutantes, config correta e teto de ~73% sem testes novos; nenhuma opção do Stryker desliga o filtro de bloco | Architect: emenda — testes unitários novos do Fairness.Domain (guardas e SeedChain) e UT-01 desconsiderando mutantes Ignored; meta de 85% mantida | Emenda 2 (2026-10-09) — UT-01 ignora mutantes Ignored; UT-02 com testes unitários do Fairness.Domain; meta 85% mantida | 2026-10-09 |
 
 ## 10. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
@@ -116,4 +118,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 | 2026-10-09 | UT-01 desconsidera mutantes `Ignored` (filtro de bloco do Stryker 5); novo UT-02 com testes unitários do `Fairness.Domain` em `tests/backend/Modules/Fairness.Tests/Mutation/**` (escopo ampliado); meta de 85% mantida | Score real 37,84%: guardas sem teste e `SeedChain` só coberta por integração; filtro de bloco não pode ser desligado (IMP-01) | Nenhuma | Architect — opção recomendada (manter a meta e fortalecer os testes), pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09); a confirmar no resumo |
 | 1 | 2026-10-09 | Escopo: `tests/ci/**` (onde vive o UT-01) e `.github/workflows/nightly.yml`; o teste noturno de mutação leva `Category=Nightly` + `Category=Mutation`, o job `rtp-simulation` filtra `Category=Nightly&Category!=Mutation` e o job `mutation` roda o teste `Category=Mutation` (Stryker uma vez por noite) | SPEC_DEFECT do Test-writer: teste fora de `touches` e Stryker rodando duas vezes na noite | Nenhuma | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |

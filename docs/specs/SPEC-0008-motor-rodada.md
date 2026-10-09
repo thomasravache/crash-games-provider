@@ -202,8 +202,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  841ms (tests 97%, transform 2%, import 1%)) — 40fe12d | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 40fe12d, 0 blocker/major; pendências: teste unitário do LeaderLease, RoundCrashed reenviado na retomada logo após o crash, snapshot com growthK atual da sala — 40fe12d | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Duration  1.20s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 2 m 50 s ); test_e2e exit 0 (3 passed (4.3s)); arch_test exit 0 (Duration  772ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 217 files: 0 findings.) — 3285825 | 2026-10-09 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
+| G6 Deploy | N/A | Sem ambientes ainda: validação local por decisão do usuário (ADR-0013); deploy entra com a SPEC-0012 (hospedagem e deploy) | 2026-10-09 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
