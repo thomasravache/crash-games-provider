@@ -4,9 +4,9 @@
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 5 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 4, in-progress 4, implemented 6
-- Impedimentos: **1 aberto(s)**, 4 resolvido(s)
+- Validação (G0): **1 erro(s), 3 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 3, approved 11, in-progress 4, implemented 6
+- Impedimentos: **1 aberto(s)**, 5 resolvido(s)
 
 ## Impedimentos Abertos
 
@@ -39,8 +39,8 @@ Perfil: **rigoroso**
 
 | Jornada | Situação | Specs |
 |---|---|---|
-| Jogador abre o jogo pelo operador, aposta e faz cash-out antes do crash, com saldo atualizado na carteira | descoberta | — |
-| Jogador aposta, a rodada crasha antes do cash-out e a aposta é liquidada como perdida | descoberta | — |
+| Jogador abre o jogo pelo operador, aposta e faz cash-out antes do crash, com saldo atualizado na carteira | planejada | SPEC-0026 |
+| Jogador aposta, a rodada crasha antes do cash-out e a aposta é liquidada como perdida | planejada | SPEC-0026 |
 | Jogador verifica uma rodada encerrada pelo hash/semente e obtém o mesmo ponto de crash | planejada | SPEC-0010 |
 
 ## Plano de Execução
@@ -60,14 +60,22 @@ Perfil: **rigoroso**
 | 3 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0008, SPEC-0010, SPEC-0015; saiu da onda 2: arquivos em comum com SPEC-0009, SPEC-0016, SPEC-0011 |
 | 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 2: max_parallel=3 |
 | 4 | SPEC-0018 | Som da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0011 | saiu da onda 3: arquivos em comum com SPEC-0017 |
-| 4 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017 |
-| 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017 |
+| 4 | SPEC-0020 | Catálogo de jogos e limites por operador e moeda | full/M | approved | ⛔ aguarda implementação de SPEC-0009 | saiu da onda 3: arquivos em comum com SPEC-0017 |
+| 4 | SPEC-0021 | Carteira demo, livro-razão e contrato da carteira do operador | full/M | approved | ⛔ aguarda implementação de SPEC-0009 | saiu da onda 3: arquivos em comum com SPEC-0017 |
+| 5 | SPEC-0022 | Apostar, aposta dupla e cancelamento | full/M | approved | ⛔ aguarda implementação de SPEC-0008; aguarda implementação de SPEC-0009 | saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3 |
+| 5 | SPEC-0026 | Painel de aposta da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 | saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: arquivos em comum com SPEC-0018 |
+| 5 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3 |
+| 6 | SPEC-0023 | Cash-out manual e automático | full/M | approved | ⛔ aguarda implementação de SPEC-0022 |  |
+| 6 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3 |
+| 7 | SPEC-0024 | Liquidação da rodada e estorno | full/M | approved | ⛔ aguarda implementação de SPEC-0023 |  |
+| 8 | SPEC-0025 | Apostas ao vivo e histórico pessoal | full/M | approved | ⛔ aguarda implementação de SPEC-0024 |  |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
 | SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 6/14 implementadas |
+| SPEC-0019 | Apostas e cash-out em demo | approved | 0/7 implementadas |
 
 ## Grafo de Dependências
 
@@ -93,6 +101,15 @@ flowchart LR
     S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::approved
     S0018["SPEC-0018<br/>Som da Pipa"]:::approved
   end
+  subgraph E0019["SPEC-0019 · Apostas e cash-out em demo"]
+    S0020["SPEC-0020<br/>Catálogo de jogos e limites por operado…"]:::approved
+    S0021["SPEC-0021<br/>Carteira demo, livro-razão e contrato d…"]:::approved
+    S0022["SPEC-0022<br/>Apostar, aposta dupla e cancelamento"]:::approved
+    S0023["SPEC-0023<br/>Cash-out manual e automático"]:::approved
+    S0024["SPEC-0024<br/>Liquidação da rodada e estorno"]:::approved
+    S0025["SPEC-0025<br/>Apostas ao vivo e histórico pessoal"]:::approved
+    S0026["SPEC-0026<br/>Painel de aposta da Pipa"]:::approved
+  end
   S0003 --> S0004
   S0006 -. contrato v1 .-> S0004
   S0003 --> S0007
@@ -113,6 +130,26 @@ flowchart LR
   S0004 --> S0015
   S0011 --> S0018
   S0010 -. contrato v1 .-> S0018
+  S0009 --> S0020
+  S0009 --> S0021
+  S0008 --> S0022
+  S0009 --> S0022
+  S0020 -. contrato v1 .-> S0022
+  S0021 -. contrato v1 .-> S0022
+  S0022 --> S0023
+  S0020 -. contrato v1 .-> S0023
+  S0021 -. contrato v1 .-> S0023
+  S0023 --> S0024
+  S0021 -. contrato v1 .-> S0024
+  S0024 --> S0025
+  S0021 -. contrato v1 .-> S0025
+  S0010 --> S0026
+  S0020 -. contrato v1 .-> S0026
+  S0021 -. contrato v1 .-> S0026
+  S0022 -. contrato v1 .-> S0026
+  S0023 -. contrato v1 .-> S0026
+  S0024 -. contrato v1 .-> S0026
+  S0025 -. contrato v1 .-> S0026
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -142,6 +179,14 @@ flowchart LR
 | [SPEC-0016](SPEC-0016-mutacao-com-stryker-net-e-xunit-v3.md) | Mutação com Stryker.NET e xUnit v3 | lite | fix | in-progress | 2026-10-08 | SPEC-0001 | — | — |
 | [SPEC-0017](SPEC-0017-endurecimento-dos-testes-e-da-ci-da-onda-3.md) | Endurecimento dos testes e da CI da onda 3 | lite | refactor | approved | 2026-10-08 | SPEC-0001 | — | — |
 | [SPEC-0018](SPEC-0018-som-da-pipa.md) | Som da Pipa | full | feature | approved | 2026-10-09 | SPEC-0001 | SPEC-0011 | SPEC-0010@1 |
+| [SPEC-0019](SPEC-0019-apostas-cashout-demo.md) | Apostas e cash-out em demo | epic | feature | approved | 2026-10-09 | — | SPEC-0001 | — |
+| [SPEC-0020](SPEC-0020-catalogo-jogos.md) | Catálogo de jogos e limites por operador e moeda | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0009 | — |
+| [SPEC-0021](SPEC-0021-carteira-demo.md) | Carteira demo, livro-razão e contrato da carteira do operador | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0009 | — |
+| [SPEC-0022](SPEC-0022-apostar.md) | Apostar, aposta dupla e cancelamento | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0008, SPEC-0009 | SPEC-0020@1, SPEC-0021@1 |
+| [SPEC-0023](SPEC-0023-cashout.md) | Cash-out manual e automático | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0022 | SPEC-0020@1, SPEC-0021@1 |
+| [SPEC-0024](SPEC-0024-liquidacao.md) | Liquidação da rodada e estorno | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0023 | SPEC-0021@1 |
+| [SPEC-0025](SPEC-0025-apostas-ao-vivo.md) | Apostas ao vivo e histórico pessoal | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0024 | SPEC-0021@1 |
+| [SPEC-0026](SPEC-0026-painel-aposta-pipa.md) | Painel de aposta da Pipa | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0010 | SPEC-0020@1, SPEC-0021@1, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1 |
 
 ## ADRs
 
