@@ -45,6 +45,16 @@ python3 tools/sdd/spec_graph.py status
 git config core.hooksPath .githooks             # ativa commit-msg e pre-commit (uma vez por clone)
 ```
 
+## Rodar a Pipa demo
+
+Com o Docker aberto:
+
+```bash
+dotnet run --project src/backend/AppHost
+```
+
+O terminal mostra o link de login do painel do Aspire (porta 15270). No painel, copie o endereço do recurso `api` e abra `<endereço>/dev/launch-demo` (só em Development): ele cria uma sessão demo e redireciona para o jogo. O token de lançamento vale uma vez — para recarregar, volte a esse link. Rodadas, histórico e "Comprovadamente Justo" funcionam; apostas chegam com o épico SPEC-0019. Os E2E sobem o mesmo ambiente com `tools/ci/run-e2e.sh`.
+
 ## Qualidade de código
 
 - C#: `Nullable`, `TreatWarningsAsErrors`, `AnalysisMode=Recommended` e Meziantou.Analyzer em `Directory.Build.props`; versões de pacotes em `Directory.Packages.props` (Central Package Management) com `packages.lock.json` versionados; fonte de pacotes única em `nuget.config`.
