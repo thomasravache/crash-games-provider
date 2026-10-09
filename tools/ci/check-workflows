@@ -7,7 +7,9 @@ Fails (exit 1) when a workflow:
   - uses an action or reusable workflow not pinned by a full 40-character commit SHA
     (tags, branches and short SHAs are rejected; docker:// images need an @sha256 digest);
   - has no top-level `permissions` block, or the top-level block grants more than read access
-    (write access is granted per job, only where needed).
+    (write access is granted per job, only where needed);
+  - grants `permissions: write-all` anywhere (top level or job);
+  - is triggered by `pull_request_target` (runs fork code with a write token and the repository secrets).
 actionlint (syntax, expressions, shellcheck) is run separately; this script only enforces the pinning policy.
 """
 from __future__ import annotations
@@ -21,6 +23,8 @@ FULL_SHA = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-f]{40}$")
 DOCKER_DIGEST = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")
 TOP_LEVEL_KEY = re.compile(r"""^["']?(?P<key>[A-Za-z0-9_-]+)["']?\s*:(?:\s|$)""")
 MORE_THAN_READ = re.compile(r"\bwrite(?:-all)?\b|\bread-all\b")
+WRITE_ALL = re.compile(r"""^\s*permissions\s*:\s*["']?write-all["']?\s*$""")
+PULL_REQUEST_TARGET = re.compile(r"\bpull_request_target\b")
 
 
 def is_pinned(reference: str) -> bool:
@@ -45,6 +49,13 @@ def top_level_block(lines: list[str], key: str) -> str | None:
 def check(path: Path) -> list[str]:
     lines = path.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n")
     problems = []
+    for number, line in enumerate(lines, start=1):
+        code = re.sub(r"\s#.*$|^#.*$", "", line)
+        if WRITE_ALL.match(code):
+            problems.append(f"{path.name}:{number}: `permissions: write-all` is not allowed (grant each scope per job)")
+        if PULL_REQUEST_TARGET.search(code):
+            problems.append(f"{path.name}:{number}: the `pull_request_target` trigger is not allowed "
+                            "(it runs pull request code with a write token and secrets; use `pull_request`)")
     for number, line in enumerate(lines, start=1):
         match = USES.match(line)
         if match and not is_pinned(match.group("ref")):
