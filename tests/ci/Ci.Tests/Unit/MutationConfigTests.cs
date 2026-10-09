@@ -22,7 +22,7 @@ public sealed class MutationConfigTests
         Assert.True(
             missing.Count == 0,
             $"{StrykerConfig.FileName} lists test project(s) that do not exist: {string.Join(", ", missing)}. "
-            + "`dotnet stryker` with the repository config fails on them; tools/ci/stryker-targets filters them only in the nightly.");
+            + "`dotnet stryker` with the repository config fails on them, locally and in the nightly `mutation` job.");
     }
 
     [Fact(DisplayName = "Dado o stryker-config.json, quando lido, então só o Fairness.Domain é mutado")]

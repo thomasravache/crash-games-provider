@@ -15,7 +15,10 @@ public sealed class MutationReport
 
     public IEnumerable<Mutant> AllMutants => Files.Values.SelectMany(mutants => mutants);
 
-    /// <summary>Stryker's mutation score: detected (Killed, Timeout) over valid (detected, Survived, NoCoverage), in %.</summary>
+    /// <summary>
+    /// Stryker's mutation score: detected (Killed, Timeout) over valid (detected, Survived, NoCoverage), in %. Ignored,
+    /// CompileError and the other statuses are left out, as Stryker does.
+    /// </summary>
     public double Score => ScoreOf(AllMutants);
 
     public static MutationReport Load(string path)
@@ -47,6 +50,12 @@ public sealed class MutationReport
     public sealed record Mutant(string Id, string MutatorName, string Status, int Line, IReadOnlyList<string> CoveredBy, IReadOnlyList<string> KilledBy)
     {
         public bool IsDetected => Status is "Killed" or "Timeout";
+
+        /// <summary>
+        /// Ignored by Stryker (for example "Removed by block already covered filter", which Stryker 5 cannot turn off): never
+        /// run, left out of the score, so it counts neither as covered nor as uncovered.
+        /// </summary>
+        public bool IsIgnored => string.Equals(Status, "Ignored", StringComparison.Ordinal);
 
         public bool IsCovered => CoveredBy.Count > 0 || KilledBy.Count > 0 || IsDetected || string.Equals(Status, "Survived", StringComparison.Ordinal);
 

@@ -8,7 +8,8 @@ namespace Apogeu.Ci.Tests.Nightly;
 /// <summary>
 /// UT-01 of SPEC-0016 (real run, Category=Nightly): <c>dotnet stryker</c> with the repository config produces a JSON
 /// report in which the public vectors cover the mutants of <c>SeedChain.cs</c> and Fairness.Domain scores at least
-/// 85% (evidence of SPEC-0007 §7.6). Slow: restores the local tools, builds and runs the tests once per mutant.
+/// 85% (evidence of SPEC-0007 §7.6). Mutants that Stryker marks as <c>Ignored</c> (block filter) are left out of both
+/// checks, as Stryker leaves them out of its score (SPEC-0016 amendment 2). Slow: restores the local tools, builds and runs the tests once per mutant.
 /// </summary>
 public sealed class MutationScoreTests
 {
@@ -49,12 +50,15 @@ public sealed class MutationScoreTests
             var seedChain = report.MutantsOf("SeedChain.cs");
             Assert.True(seedChain.Count > 0, $"The report has no mutant of SeedChain.cs (files: {string.Join(", ", report.Files.Keys)}).");
 
-            var uncovered = seedChain.Where(mutant => !mutant.IsCovered).ToList();
+            var tested = seedChain.Where(mutant => !mutant.IsIgnored).ToList();
+            Assert.True(tested.Count > 0, $"Every SeedChain.cs mutant is Ignored (statuses: {Statuses(seedChain)}).");
+
+            var uncovered = tested.Where(mutant => !mutant.IsCovered).ToList();
             Assert.True(
                 uncovered.Count == 0,
-                $"{uncovered.Count} of {seedChain.Count} SeedChain.cs mutants are not covered by any test "
+                $"{uncovered.Count} of {tested.Count} non-ignored SeedChain.cs mutants are not covered by any test "
                 + $"(statuses: {Statuses(seedChain)}; first: {string.Join("; ", uncovered.Take(5).Select(Describe))}). {Tail(stryker)}");
-            Assert.Contains(seedChain, mutant => mutant.IsDetected);
+            Assert.Contains(tested, mutant => mutant.IsDetected);
 
             var files = report.Files.Keys.Where(file => !file.Replace('\\', '/').Contains("/Fairness.Domain/", StringComparison.Ordinal)).ToList();
             Assert.True(files.Count == 0, $"Stryker mutated files outside Fairness.Domain: {string.Join(", ", files)}");
