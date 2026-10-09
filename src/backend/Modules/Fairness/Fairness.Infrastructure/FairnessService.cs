@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Apogeu.Fairness.Contracts;
 using Apogeu.Fairness.Domain;
@@ -99,29 +100,29 @@ internal sealed class FairnessService(
 
     public async Task<RevealedRound> RevealAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct)
     {
-        var record = await db.Chains.AsNoTracking()
-            .Where(c => c.Id == chain.Value)
-            .Select(c => new { c.Length, c.IssuedRounds, c.Salt })
-            .SingleOrDefaultAsync(ct).ConfigureAwait(false);
-
-        // Only issued rounds are revealed: revealing s_r of a future round would expose every later outcome (ADR-0006).
-        if (record is null || roundIndex < 1 || roundIndex > record.IssuedRounds)
-        {
-            throw new RoundNotFoundException("The round does not exist or was not issued yet.");
-        }
-
-        var seed = await LinkAtAsync(chain, SeedChain.LinkIndexOfRound(record.Length, roundIndex), ct).ConfigureAwait(false);
-        var salt = new Salt(record.Salt);
+        var (seed, salt) = await IssuedRoundSeedAsync(chain, roundIndex, ct).ConfigureAwait(false);
         var crashPoint = CrashPointCalculator.Compute(seed, salt, rtp, cap);
 
         FairnessLog.RoundRevealed(logger, roundIndex, chain.Value);
         return new RevealedRound(seed, SeedChain.Next(seed), salt, crashPoint);
     }
 
-#pragma warning disable MA0025 // Scaffold of SPEC-0007 v2 (no logic yet): implemented in the green phase.
-    public Task<CrashPoint> GetCrashPointAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct) =>
-        throw new NotImplementedException();
-#pragma warning restore MA0025
+    public async Task<CrashPoint> GetCrashPointAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct)
+    {
+        var (seed, salt) = await IssuedRoundSeedAsync(chain, roundIndex, ct).ConfigureAwait(false);
+        try
+        {
+            var crashPoint = CrashPointCalculator.Compute(seed, salt, rtp, cap);
+
+            // Ids only: neither the seed nor the crash point of a round still in play is logged (ADR-0014).
+            FairnessLog.CrashPointRead(logger, roundIndex, chain.Value);
+            return crashPoint;
+        }
+        finally
+        {
+            Wipe(seed);
+        }
+    }
 
     public CrashPoint ComputeCrashPoint(Seed seed, Salt salt, Rtp rtp, Multiplier cap) =>
         CrashPointCalculator.Compute(seed, salt, rtp, cap);
@@ -142,6 +143,26 @@ internal sealed class FairnessService(
         }
     }
 
+    /// <summary>
+    /// The seed s_r of an issued round with the salt of its chain. Throws <see cref="RoundNotFoundException"/> for a round
+    /// not issued yet: exposing s_r of a future round would expose every later outcome (ADR-0006).
+    /// </summary>
+    private async Task<(Seed Seed, Salt Salt)> IssuedRoundSeedAsync(ChainId chain, int roundIndex, CancellationToken ct)
+    {
+        var record = await db.Chains.AsNoTracking()
+            .Where(c => c.Id == chain.Value)
+            .Select(c => new { c.Length, c.IssuedRounds, c.Salt })
+            .SingleOrDefaultAsync(ct).ConfigureAwait(false);
+
+        if (record is null || roundIndex < 1 || roundIndex > record.IssuedRounds)
+        {
+            throw new RoundNotFoundException("The round does not exist or was not issued yet.");
+        }
+
+        var seed = await LinkAtAsync(chain, SeedChain.LinkIndexOfRound(record.Length, roundIndex), ct).ConfigureAwait(false);
+        return (seed, new Salt(record.Salt));
+    }
+
     /// <summary>The link h_k: decrypts the nearest checkpoint below it and hashes forward (fewer than 10,000 hashes).</summary>
     private async Task<Seed> LinkAtAsync(ChainId chain, int linkIndex, CancellationToken ct)
     {
@@ -152,6 +173,21 @@ internal sealed class FairnessService(
             .SingleAsync(ct).ConfigureAwait(false);
 
         var checkpoint = protector.Unprotect(chain, checkpointIndex, protectedLink);
-        return SeedChain.Advance(checkpoint, linkIndex - checkpointIndex);
+        try
+        {
+            // Advance copies the bytes even for zero steps, so the decrypted checkpoint is never the returned link.
+            return SeedChain.Advance(checkpoint, linkIndex - checkpointIndex);
+        }
+        finally
+        {
+            Wipe(checkpoint);
+        }
     }
+
+    /// <summary>
+    /// Zeroes the bytes of a seed this service owns exclusively and discards (a decrypted checkpoint, the seed behind a
+    /// crash point): <see cref="Seed"/> is immutable to its callers, so its buffer is reached through its own span.
+    /// </summary>
+    private static void Wipe(Seed seed) =>
+        CryptographicOperations.ZeroMemory(MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(seed.AsSpan()), Seed.Length));
 }
