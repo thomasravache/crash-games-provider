@@ -39,6 +39,7 @@ Uma rodada de crash é um evento compartilhado em tempo real: todos os jogadores
 - A tolerância de latência do cash-out é um parâmetro de contrato versionado, não um valor solto no código.
 - O hub SignalR só traduz mensagens para comandos e consultas dos módulos; não contém regra de negócio.
 - Testes de integração do hub usam o cliente oficial `Microsoft.AspNetCore.SignalR.Client` (Microsoft, MIT, mesma versão do ASP.NET Core do ADR-0002), **só em projetos de teste** (emenda de 2026-10-09, SPEC-0008).
+- O cliente dos jogos usa o cliente JavaScript oficial `@microsoft/signalr` (Microsoft, MIT), na linha de versão do ASP.NET Core do ADR-0002 (emenda de 2026-10-09, SPEC-0010).
 - Jogadores de operadores diferentes na mesma sala aparecem anonimizados nas apostas ao vivo.
 
 ### Consequências
