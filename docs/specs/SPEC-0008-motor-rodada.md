@@ -201,7 +201,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 125ms); test exit 0 (Duration  2.24s (tests 98%, transform 2%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T09:12:27: Writing report file 'artifacts/coverage/Summary.txt') — 6e3baa1 | 2026-10-09 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.00s (tests 98%, transform 1%, import 1%)) — 6e3baa1 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 40fe12d, 0 blocker/major; pendências: teste unitário do LeaderLease, RoundCrashed reenviado na retomada logo após o crash, snapshot com growthK atual da sala — 40fe12d | 2026-10-09 |
-| G5 Integração & CI | PENDING | | |
+| G5 Integração & CI | FAIL | Resultado integrado da onda 4 (aa75cfd): negação por padrão da SPEC-0009 bloqueia hub e REST do Rounds nos testes da SPEC-0008 (7 falhas); IT-05 da SPEC-0009 ainda usa o RoundsHubStandIn em /hubs/rounds, que agora colide com o hub real (3 falhas) | 2026-10-09 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
