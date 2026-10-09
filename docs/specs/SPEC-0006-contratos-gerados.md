@@ -163,8 +163,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:35.89]     Dado o backend compilado, quando contracts:generate roda, entã) — 47f0252 | 2026-10-08 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 55ms); test exit 0 (Duration  1.15s (tests 98%, transform 1%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T22:37:01: Report generation took 0,1 seconds) — 92a9363 | 2026-10-08 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  781ms (tests 97%, transform 2%, import 1%)) — 92a9363 | 2026-10-08 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
