@@ -1,4 +1,158 @@
 {
   "realm": "apogeu",
-  "enabled": true
+  "displayName": "Apogeu Games",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "bruteForceProtected": true,
+  "organizationsEnabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "provider-admin",
+        "description": "Provider staff. OTP required at login."
+      },
+      {
+        "name": "operator-admin",
+        "description": "Administrator of one operator (organization)."
+      },
+      {
+        "name": "operator-viewer",
+        "description": "Read-only user of one operator (organization)."
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "apogeu-backoffice",
+      "name": "Apogeu backoffice",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:*"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "apogeu-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "apogeu-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "browserFlow": "apogeu browser",
+  "authenticatorConfig": [
+    {
+      "alias": "provider-admin role",
+      "config": {
+        "condUserRole": "provider-admin",
+        "negate": "false"
+      }
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "apogeu browser",
+      "description": "Browser login of the backoffice; OTP is required for provider-admin (ADR-0015).",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 25,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "flowAlias": "apogeu browser forms",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "apogeu browser forms",
+      "description": "Username and password, then OTP for provider-admin.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "flowAlias": "apogeu provider-admin otp",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "apogeu provider-admin otp",
+      "description": "OTP form when the user has the provider-admin role.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-role",
+          "authenticatorConfig": "provider-admin role",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "organizations": [
+    {
+      "name": "Demo",
+      "alias": "demo",
+      "enabled": true,
+      "description": "Demo operator (SPEC-0009).",
+      "domains": []
+    }
+  ]
 }
