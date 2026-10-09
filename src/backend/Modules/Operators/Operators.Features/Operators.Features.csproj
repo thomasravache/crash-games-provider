@@ -5,6 +5,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Standard OIDC bearer for the backoffice and the player session JWT (ADR-0015: no identity vendor SDK). -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
     <ProjectReference Include="../Operators.Contracts/Operators.Contracts.csproj" />
     <ProjectReference Include="../Operators.Infrastructure/Operators.Infrastructure.csproj" />
   </ItemGroup>
