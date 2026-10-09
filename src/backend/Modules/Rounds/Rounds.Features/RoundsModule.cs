@@ -64,7 +64,8 @@ public static class RoundsModule
         services.AddSingleton(provider => new SalaSnapshotQuery(
             provider.GetRequiredService<SalaCatalog>(),
             provider.GetRequiredService<SalaLiveViews>(),
-            provider.GetRequiredService<IServiceScopeFactory>()));
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            provider.GetRequiredService<IOptions<RoundsOptions>>().Value.SnapshotReadTimeout));
 
         services.AddSingleton<RoundsRedis>();
         services.AddSingleton<RoundsLeadershipService>();

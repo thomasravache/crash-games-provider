@@ -4,9 +4,11 @@ namespace Apogeu.Rounds.Features.Live;
 /// Reads the state of one room from the store for the joins of an instance that does not lead it (IMP-02): at most one read
 /// runs at a time, and every join waiting when it starts shares it. A join is only answered by a read that started after
 /// it asked, i.e. after it joined the room group, so no message the group received in between is missed; a burst of joins
-/// therefore costs one or two reads and a single database connection per room, instead of one read each.
+/// therefore costs one or two reads and a single database connection per room, instead of one read each. Each read has its
+/// own deadline: a stalled database fails the batch fast (every join of it gets a <see cref="TimeoutException"/>) and the
+/// next batch reads again.
 /// </summary>
-internal sealed class CoalescedSalaRead(Func<CancellationToken, Task<SalaLiveViews.LiveState>> read)
+internal sealed class CoalescedSalaRead(Func<CancellationToken, Task<SalaLiveViews.LiveState>> read, TimeSpan timeout)
 {
     private readonly Lock _gate = new();
     private TaskCompletionSource<SalaLiveViews.LiveState>? _waiting;
@@ -50,10 +52,15 @@ internal sealed class CoalescedSalaRead(Func<CancellationToken, Task<SalaLiveVie
                 _waiting = null;
             }
 
+            // Shared by every join of the batch: no single join's cancellation stops it, only its own deadline.
+            using var deadline = new CancellationTokenSource(timeout);
             try
             {
-                // Shared by every join of the batch: no single join's cancellation stops it.
-                batch.SetResult(await read(CancellationToken.None).ConfigureAwait(false));
+                batch.SetResult(await read(deadline.Token).ConfigureAwait(false));
+            }
+            catch (OperationCanceledException exception) when (deadline.IsCancellationRequested)
+            {
+                batch.SetException(new TimeoutException($"The snapshot read of the room did not finish within {timeout}.", exception));
             }
 #pragma warning disable CA1031 // The failure belongs to the joins of the batch: each of them observes it.
             catch (Exception exception)

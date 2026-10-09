@@ -4,7 +4,7 @@ namespace Apogeu.Rounds.Features.Salas;
 
 /// <summary>
 /// Validates <c>Rounds</c> at startup: room ids, RTP, cap, growth constant, phase durations and chain length of each room,
-/// and the size of the connection pool.
+/// the size of the connection pool and the deadline of a shared snapshot read.
 /// </summary>
 internal sealed class RoundsOptionsValidator : IValidateOptions<RoundsOptions>
 {
@@ -64,6 +64,11 @@ internal sealed class RoundsOptionsValidator : IValidateOptions<RoundsOptions>
         if (options.MaxPoolSize is < 1 or > RoundsOptions.MaxPoolSizeLimit)
         {
             failures.Add($"Rounds:MaxPoolSize must be between 1 and {RoundsOptions.MaxPoolSizeLimit}.");
+        }
+
+        if (options.SnapshotReadTimeout <= TimeSpan.Zero)
+        {
+            failures.Add("Rounds:SnapshotReadTimeout must be positive.");
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);

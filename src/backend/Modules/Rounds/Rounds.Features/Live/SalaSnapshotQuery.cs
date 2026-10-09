@@ -21,12 +21,22 @@ public sealed class SalaSnapshotQuery
 {
     public const int HistorySize = 20;
 
+    /// <summary>Default deadline of a shared store read (<c>Rounds:SnapshotReadTimeout</c>).</summary>
+    public static readonly TimeSpan DefaultReadTimeout = TimeSpan.FromSeconds(3);
+
     private readonly SalaCatalog _salas;
     private readonly SalaLiveViews _views;
     private readonly Dictionary<string, (SalaInfo Info, CoalescedSalaRead Read)> _rooms;
 
     internal SalaSnapshotQuery(SalaCatalog salas, SalaLiveViews views, IServiceScopeFactory scopes)
+        : this(salas, views, scopes, DefaultReadTimeout)
     {
+    }
+
+    /// <param name="readTimeout">Deadline of each shared store read: a stalled database fails the waiting joins fast.</param>
+    internal SalaSnapshotQuery(SalaCatalog salas, SalaLiveViews views, IServiceScopeFactory scopes, TimeSpan readTimeout)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(readTimeout, TimeSpan.Zero);
         ArgumentNullException.ThrowIfNull(salas);
         ArgumentNullException.ThrowIfNull(views);
         ArgumentNullException.ThrowIfNull(scopes);
@@ -35,7 +45,7 @@ public sealed class SalaSnapshotQuery
         _views = views;
         _rooms = salas.All.ToDictionary(
             sala => sala.Id,
-            sala => (Info(sala), new CoalescedSalaRead(ct => ReadAsync(scopes, sala.Id, ct))),
+            sala => (Info(sala), new CoalescedSalaRead(ct => ReadAsync(scopes, sala.Id, ct), readTimeout)),
             StringComparer.Ordinal);
     }
 
