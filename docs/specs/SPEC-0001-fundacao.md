@@ -72,6 +72,10 @@ flowchart LR
 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | M | SPEC-0003, SPEC-0005 | — |
 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full | foundation | M | SPEC-0005, SPEC-0006 | SPEC-0007@1, SPEC-0008@1, SPEC-0009@1 |
 | SPEC-0011 | Animação da cena da Pipa | full | feature | M | SPEC-0010 | SPEC-0010@1 |
+| SPEC-0015 | Proteção da branch main no GitHub | lite | feature | S | SPEC-0004 | — |
+| SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite | fix | S | — | — |
+| SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite | refactor | S | — | — |
+| SPEC-0018 | Som da Pipa | full | feature | M | SPEC-0011 | SPEC-0010@1 |
 
 ## 5. Estratégia de Entrega
 - **Ambientes:** apenas local (Aspire) e CI; sem staging/produção nesta fase (ADR-0013).

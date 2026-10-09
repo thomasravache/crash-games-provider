@@ -4,8 +4,8 @@
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 6 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 7, in-progress 3, implemented 3
+- Validação (G0): **1 erro(s), 3 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 4, approved 7, in-progress 3, implemented 3
 - Impedimentos: **1 aberto(s)**, 3 resolvido(s)
 
 ## Impedimentos Abertos
@@ -64,12 +64,13 @@ Perfil: **rigoroso**
 | 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006; saiu da onda 2: arquivos em comum com SPEC-0007; saiu da onda 3: arquivos em comum com SPEC-0015 |
 | 4 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
 | 5 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004; saiu da onda 2: arquivos em comum com SPEC-0007; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3 |
+| 5 | SPEC-0018 | Som da Pipa | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 4: max_parallel=3 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/13 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/14 implementadas |
 
 ## Grafo de Dependências
 
@@ -94,6 +95,7 @@ flowchart LR
     S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::approved
     S0016["SPEC-0016<br/>Mutação com Stryker.NET e xUnit v3"]:::approved
     S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::approved
+    S0018["SPEC-0018<br/>Som da Pipa"]:::proposed
   end
   S0002 --> S0003
   S0002 --> S0004
@@ -117,6 +119,8 @@ flowchart LR
   S0004 --> S0012
   S0010 --> S0012
   S0004 --> S0015
+  S0011 --> S0018
+  S0010 -. contrato v1 .-> S0018
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -145,6 +149,7 @@ flowchart LR
 | [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | approved | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
 | [SPEC-0016](SPEC-0016-mutacao-com-stryker-net-e-xunit-v3.md) | Mutação com Stryker.NET e xUnit v3 | lite | fix | approved | 2026-10-08 | SPEC-0001 | — | — |
 | [SPEC-0017](SPEC-0017-endurecimento-dos-testes-e-da-ci-da-onda-3.md) | Endurecimento dos testes e da CI da onda 3 | lite | refactor | approved | 2026-10-08 | SPEC-0001 | — | — |
+| [SPEC-0018](SPEC-0018-som-da-pipa.md) | Som da Pipa | full | feature | proposed | 2026-10-09 | SPEC-0001 | SPEC-0011 | SPEC-0010@1 |
 
 ## ADRs
 
@@ -173,3 +178,4 @@ flowchart LR
 | [ADR-0021](../adr/ADR-0021-direcao-animacao.md) | Direção de animação das cenas dos jogos | accepted | Testes de regressão visual (Playwright toHaveScreenshot) dos quadros-chave; E2E de movimento reduzido; medição de tempo de quadro; dependency-cruiser: animação só via GameAnimator |
 | [ADR-0022](../adr/ADR-0022-licencas-permitidas.md) | Ampliação das licenças permitidas | accepted | Verificação de licenças no CI (ferramenta escolhida na SPEC-0004) usando a lista permitida do ADR-0016 ampliada por este ADR |
 | [ADR-0023](../adr/ADR-0023-recraft-para-a-arte-vetorial-dos-jogos.md) | Recraft para a arte vetorial dos jogos | accepted | Revisão no G4 da spec de arte final (licença do plano e origem de cada asset registradas); regressão visual do ADR-0021 com imagens de referência aprovadas pelo usuário |
+| [ADR-0024](../adr/ADR-0024-audio-dos-jogos-com-web-audio-nativa-e-efeitos-cc0.md) | Áudio dos jogos com Web Audio nativa e efeitos CC0 | proposed | dependency-cruiser: só o scene-kit acessa AudioContext (áudio via GameAudio); revisão no G4 do registro de origem e da licença CC0 de cada arquivo em public/audio; orçamento de pacote no CI |
