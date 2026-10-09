@@ -163,8 +163,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:35.89]     Dado o backend compilado, quando contracts:generate roda, entã) — 47f0252 | 2026-10-08 |
-| G2 Green | FAIL | build exit 0 (✓ built in 51ms); test exit 0 (Duration  1.14s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:00:01.33]     Dado o Host num ambiente, quando GET /openapi/v1.json, então o) — ef81abd | 2026-10-08 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  781ms (tests 97%, transform 2%, import 1%)) — 92a9363 | 2026-10-08 |
+| G2 Green | PASS | build exit 0 (✓ built in 56ms); test exit 0 (Duration  1.40s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T23:24:17: Report generation took 0,2 seconds) — ef81abd | 2026-10-08 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.46s (tests 98%, transform 1%, import 1%)) — ef81abd | 2026-10-08 |
 | G4 Review | FAIL | Reviewer CHANGES_REQUESTED: 2 major (gerador de hubs sem teste; JsonHubProtocolOptions sem ContractJson), 3 minor (timestamp sem offset aceito; CT-01 contra documento servido; decimal cru), 2 nit | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
