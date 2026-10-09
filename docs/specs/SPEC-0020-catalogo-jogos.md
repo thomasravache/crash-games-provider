@@ -1,0 +1,207 @@
+---
+id: SPEC-0020
+title: "Catálogo de jogos e limites por operador e moeda"
+tier: full
+type: feature
+user_facing: false
+status: proposed
+created: 2026-10-07
+parent: SPEC-0019
+depends_on: [SPEC-0009]
+consumes_contract: []
+contract_version: 1
+touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**"]
+adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020]
+external: []
+size: M
+approved_by:
+approved_at:
+---
+
+# SPEC-0020 — Catálogo de jogos e limites por operador e moeda
+
+## 1. Visão Geral
+Cria o catálogo de jogos do provedor e os limites de aposta por operador e moeda. Um jogo passa a ser um registro (código, nome, app do cliente, tema e configuração padrão de sala), e o lançamento só aceita jogos habilitados para o operador. É a base para o segundo jogo ser praticamente configuração.
+
+## 2. Motivação & Escopo
+**Motivação:** "uma engine, vários jogos" (ADR-0004) precisa de um lugar no backend que diga quais jogos existem e com que regras; as apostas (SPEC-0022) precisam de limites por operador e moeda (decisão do usuário, 2026-10-09).
+
+**Objetivos (dentro do escopo):**
+- Catálogo no módulo Operators: jogo `pipa` semeado (código, nome, app `game-pipa`, tema `pipa`, padrão de sala: RTP 0,97, limite 10.000x, `growthK` 0,00006, apostas 6 s, pausa 3 s).
+- Habilitação de jogo por operador; o operador demo tem `pipa` habilitado.
+- Limites por operador **e por moeda**: aposta mínima, aposta máxima e ganho máximo por aposta. Padrão BRL: R$ 1,00 / R$ 1.000,00 / R$ 100.000,00. Só BRL habilitado neste épico, com o modelo pronto para multimoeda.
+- Contrato interno `Operators.Contracts` (`IGameCatalog`, `IOperatorLimits`) consumido por Betting e pelo cliente.
+- Lançamento (SPEC-0009) passa a recusar jogo inexistente ou não habilitado.
+
+**Não-objetivos (fora do escopo):**
+- Telas de backoffice para editar catálogo e limites (épico de backoffice); a configuração vem de seed e configuração.
+- Outras moedas além de BRL (só o modelo).
+
+## 3. Dependências
+- **Implementações necessárias:** SPEC-0009 — módulo Operators, operador demo e lançamento.
+- **Contratos consumidos:** N/A
+- **Pré-requisitos externos:** N/A
+
+## 4. Decisão Arquitetural
+**Contexto:** projeto novo; segue a implementação de referência do módulo Operators (SPEC-0009) e do Fairness (SPEC-0007): slices em `Features`, EF Core no schema do módulo, registro explícito no Host.
+
+**Decisão:** catálogo e limites vivem no módulo Operators (ADR-0001 já atribui a ele "limites e moedas"). A configuração de sala usada pelo motor continua no módulo Rounds; o catálogo fornece o **padrão** para criar salas novas de um jogo. Valores monetários são `Money` (decimal) sempre acompanhados de `Currency` (código ISO 4217).
+
+**Justificativa:** mantém a fronteira dos módulos e deixa o próximo jogo como dado, não código.
+
+**Desvio do padrão existente:** Nenhum. Extensão compatível do contrato da SPEC-0009: o lançamento ganha uma resposta de erro nova (`GAME_NOT_AVAILABLE`).
+
+**Alternativas descartadas:** módulo novo "Catalog" (multiplica fronteiras para pouco código); limites dentro do Betting (o ADR-0001 dá limites ao Operators).
+
+**ADRs:** ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020.
+
+## 5. Requisitos Não-Funcionais
+- **Desempenho e escala:** leitura de limites ≤ 1 ms com cache em memória invalidado por versão (usada a cada aposta) — UT-03.
+- **Segurança:** `GET /api/v1/games` exige assinatura HMAC de operador (SPEC-0009) — IT-03.
+- **Privacidade e dados pessoais:** N/A — sem dados de jogador.
+- **Disponibilidade e resiliência:** N/A — dados de configuração locais.
+- **Acessibilidade (UI):** N/A — sem interface.
+- **Custo:** N/A
+
+## 6. Artefato A — Contrato
+**Interface:** `Operators.Contracts` (v1) + REST.
+
+```text
+IGameCatalog
+  GameDefinition? Find(GameCode code)
+  bool IsEnabledFor(OperatorId op, GameCode code)
+GameDefinition { Code:"pipa", Name:"Pipa", ClientApp:"game-pipa", Theme:"pipa",
+                 DefaultSala:{ Rtp:0.97, Cap:Multiplier 10000.00, GrowthK:0.00006, BettingSeconds:6, PauseSeconds:3 },
+                 Currencies:["BRL"] }
+IOperatorLimits
+  BetLimits Get(OperatorId op, Currency currency)       // erro CURRENCY_NOT_ENABLED se a moeda não estiver habilitada
+BetLimits { Currency, MinBet:Money, MaxBet:Money, MaxWin:Money }
+REST (HMAC de operador, SPEC-0009)
+  GET /api/v1/games → 200 [{ code, name, currencies:[...] }]   // só jogos habilitados para o operador
+POST /api/v1/operator/launch (SPEC-0009) — extensão compatível:
+  400 GAME_NOT_AVAILABLE  (gameCode inexistente ou não habilitado para o operador)
+  400 CURRENCY_NOT_ENABLED (moeda sem limites configurados)
+```
+
+**Design:** N/A — sem interface.
+
+**Arquivos/módulos afetados:** ver `touches`.
+
+### 6.1 Mapa de Comportamentos
+| Cenário | Condição / Entrada | Resultado esperado | Testes |
+|---|---|---|---|
+| Jogo encontrado | `Find("pipa")` | definição com padrão de sala e moedas | UT-01 |
+| Jogo inexistente | `Find("aviao")` | nulo | UT-01 |
+| Limites padrão BRL | operador demo, BRL | 1,00 / 1.000,00 / 100.000,00 | UT-02 |
+| Moeda não habilitada | operador demo, USD | erro CURRENCY_NOT_ENABLED | UT-02 |
+| Cache de limites | 10.000 leituras | média ≤ 1 ms, atualiza quando a versão muda | UT-03 |
+| Catálogo persistido | seed aplicado no Postgres real | `pipa` habilitado para o operador demo | IT-01 |
+| Lançamento de jogo indisponível | `gameCode:"aviao"` ou jogo desabilitado | 400 GAME_NOT_AVAILABLE | IT-02 |
+| Lançamento com moeda não habilitada | `currency:"USD"` | 400 CURRENCY_NOT_ENABLED | IT-02 |
+| Lista de jogos | GET /api/v1/games assinado / sem assinatura | 200 com `pipa` / 401 | IT-03 |
+| Contrato publicado | respostas reais | conferem com o OpenAPI gerado | CT-01 |
+
+## 7. Artefato B — Plano de Testes (TDD)
+### 7.1 Testes de Caracterização
+- N/A — módulo Operators coberto pelos testes da SPEC-0009.
+
+### 7.2 Testes Unitários
+- **UT-01** — Dado o catálogo semeado, quando `Find("pipa")` e `Find("aviao")`, então retorna a definição completa da Pipa e nulo.
+- **UT-02** — Dado o operador demo, quando `Get(op, BRL)` e `Get(op, USD)`, então BRL traz 1,00/1.000,00/100.000,00 e USD lança CURRENCY_NOT_ENABLED.
+- **UT-03** — Dadas 10.000 leituras de limites, quando medidas, então a média é ≤ 1 ms e uma mudança de versão é refletida na leitura seguinte.
+
+### 7.3 Testes de Integração
+- **IT-01** — Dado PostgreSQL real com as migrações, quando o seed roda duas vezes, então existe um único `pipa` habilitado para o operador demo com os limites BRL padrão.
+- **IT-02** — Dado o Host real, quando o lançamento recebe `gameCode:"aviao"`, um jogo desabilitado e `currency:"USD"`, então 400 GAME_NOT_AVAILABLE, 400 GAME_NOT_AVAILABLE e 400 CURRENCY_NOT_ENABLED.
+- **IT-03** — Dado o Host real, quando `GET /api/v1/games` é chamado com e sem assinatura, então 200 com `[{code:"pipa",…}]` e 401.
+
+### 7.4 Testes de Contrato
+- **CT-01** — Dadas as respostas reais de IT-02 e IT-03, quando validadas contra o OpenAPI gerado (SPEC-0006), então conferem (contrato v1 consumido pelas SPEC-0022 e SPEC-0026).
+
+### 7.5 Testes E2E
+- N/A — o efeito visível (jogo abre ou recusa) é coberto pelas jornadas da SPEC-0026; esta spec só altera respostas da API de operador já cobertas por IT/CT (user_facing: false — a jornada do jogador é provada pelos E2E da SPEC-0026, que consome este contrato).
+
+### 7.6 Outros
+- N/A
+
+**Dublês e dados de teste:** operador demo e jogo desabilitado de teste criados por fixture.
+
+**Ambiente de execução:** Testcontainers (Postgres, Redis).
+
+## 8. Plano de Rollout
+- **Estratégia:** merge direto (demo local).
+- **Dados/schema:** tabelas novas no schema `operators` (expand), seed idempotente.
+- **Compatibilidade:** lançamento ganha duas respostas de erro novas; chamadas válidas não mudam.
+- **Observabilidade:** contador `operators.launch_rejected{reason=GAME_NOT_AVAILABLE|CURRENCY_NOT_ENABLED}`.
+- **Rollback:** reverter o merge commit e a migração (sem dados de produção).
+- **Etapas de migração/coexistência:** N/A
+
+## 9. Questões em Aberto
+- [x] Limites de aposta? — Mínimo R$ 1,00, máximo R$ 1.000,00, ganho máximo R$ 100.000,00 por aposta, configuráveis por operador (thomas, 2026-10-09)
+- [x] Moedas? — Só BRL neste épico, com modelo pronto para multimoeda (thomas, 2026-10-09)
+- [x] Catálogo de jogos neste épico? — Sim (thomas, 2026-10-09)
+
+## 10. Aprovação (H1)
+Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado". O arquiteto nunca aprova a própria spec.
+
+## 11. Checklist de Implementação
+<!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
+
+## 12. Registro de Gates
+<!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
+| Gate | Status | Evidência | Data |
+|---|---|---|---|
+| G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
+| G1 Red | PENDING | | |
+| G2 Green | PENDING | | |
+| G3 Arquitetura | PENDING | | |
+| G4 Review | PENDING | | |
+| G5 Integração & CI | PENDING | | |
+| H2 Integração aprovada | PENDING | | |
+| G6 Deploy | PENDING | | |
+| G7 Pronto & Docs | PENDING | | |
+
+## 13. Registro de Impedimentos
+<!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
+| ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
+|---|---|---|---|---|---|---|---|---|
+
+## 14. Relatório de Entrega
+<!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
+
+### O que foi entregue
+<!-- comportamento entregue do ponto de vista do usuário/sistema -->
+
+### Como foi feito
+<!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+
+### Prova de Correção
+<!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+
+### Verificação
+<!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
+| Teste | Comportamento | Resultado | Evidência |
+|---|---|---|---|
+
+### Definição de Pronto
+- [ ] Todos os testes do plano passando e listados na Verificação
+- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [ ] Review independente sem achados blocker/major (G4)
+- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
+- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
+- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
+- [ ] Documentação raiz e CHANGELOG atualizados (G7)
+- [ ] Pendências registradas como novas specs (ou nenhuma)
+
+### Deploy
+<!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+
+### Pendências
+<!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+
+## 15. Emendas
+<!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0020`. -->
+| Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
+|---|---|---|---|---|---|
