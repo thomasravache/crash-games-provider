@@ -39,10 +39,7 @@ var gamePipa = builder.AddViteApp("game-pipa", $"{FrontendApps}/game-pipa")
     .WithPnpm(install: true, installArgs: ["--frozen-lockfile"]);
 var frontendInstall = gamePipa.Resource.Annotations.OfType<JavaScriptPackageInstallerAnnotation>().Single().Resource;
 
-// The Host runs in the environment of the AppHost (Development locally), so the Development-only pieces of SPEC-0009
-// (migration and seed of the demo operator, /dev/launch-demo) are there under Aspire.
-builder.AddProject<Projects.Host>("api")
-    .WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+var api = builder.AddProject<Projects.Host>("api")
     .WithHttpEndpoint()
     .WithHttpHealthCheck("/health")
     .WithReference(apogeuDatabase)
@@ -55,6 +52,16 @@ builder.AddProject<Projects.Host>("api")
     .WithEnvironment("Security__PlayerSession__SigningKey", playerSessionSigningKey)
     .WithEnvironment("Security__Backoffice__Authority", ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/apogeu"))
     .WithEnvironment("Security__Backoffice__Audience", "apogeu-api");
+
+// Local run only: never baked into a publish (deploy output).
+if (builder.ExecutionContext.IsRunMode)
+{
+    // The Host runs in the environment of the AppHost (Development locally), so the Development-only pieces of SPEC-0009
+    // (migration and seed of the demo operator, /dev/launch-demo) are there under Aspire; and the local Keycloak may be
+    // served over plain HTTP, so its metadata is not required to come over HTTPS.
+    api.WithEnvironment("ASPNETCORE_ENVIRONMENT", builder.Environment.EnvironmentName)
+        .WithEnvironment("Security__Backoffice__RequireHttpsMetadata", "false");
+}
 
 builder.AddViteApp("backoffice", $"{FrontendApps}/backoffice")
     .WithPnpm(install: false)
