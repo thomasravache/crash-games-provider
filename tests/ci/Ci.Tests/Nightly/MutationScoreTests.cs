@@ -14,11 +14,15 @@ public sealed class MutationScoreTests
 {
     public const string Category = "Nightly";
 
+    /// <summary>Run by the nightly `mutation` job only; `rtp-simulation` filters it out (SPEC-0016 amendment 1).</summary>
+    public const string MutationCategory = "Mutation";
+
     private static readonly TimeSpan StrykerTimeout = TimeSpan.FromMinutes(90);
 
     [Fact(DisplayName = "Dado o Fairness.Tests com os vetores públicos, quando o dotnet stryker roda no Fairness.Domain, então o JSON mostra os mutantes de SeedChain.cs cobertos e score ≥ 85%")]
     [Trait("Spec", "SPEC-0016:UT-01")]
     [Trait("Category", Category)]
+    [Trait("Category", MutationCategory)]
     public async Task GivenPublicVectorsWhenStrykerRunsOnFairnessDomainThenSeedChainMutantsAreCoveredAndScoreIsAtLeast85()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

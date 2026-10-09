@@ -6,8 +6,8 @@ namespace Apogeu.Ci.Tests.Unit;
 
 /// <summary>
 /// UT-01 of SPEC-0016 (static part, normal suite): <c>stryker-config.json</c> mutates only Fairness.Domain, names only
-/// test projects that exist, breaks below 85% (SPEC-0007 §7.6) and uses a runner/coverage mode that works with the
-/// xUnit v3 test projects. The real run is <see cref="Nightly.MutationScoreTests"/>.
+/// test projects that exist, breaks below 85% (SPEC-0007 §7.6) and does not use the default vstest + perTest combination,
+/// which cannot capture coverage with the xUnit v3 test projects. The real run is <see cref="Nightly.MutationScoreTests"/>.
 /// </summary>
 public sealed class MutationConfigTests
 {
@@ -49,16 +49,17 @@ public sealed class MutationConfigTests
             + $"SPEC-0007 §7.6 requires a mutation score of at least {StrykerConfig.MinimumScore}% on Fairness.Domain.");
     }
 
-    [Fact(DisplayName = "Dado o stryker-config.json, quando lido, então o runner captura cobertura com xUnit v3 (runner mtp ou coverage-analysis off)")]
+    [Fact(DisplayName = "Dado o stryker-config.json, quando lido, então o runner não é a combinação padrão vstest + perTest")]
     [Trait("Spec", "SPEC-0016:UT-01")]
-    public void GivenStrykerConfigWhenReadThenRunnerIsCompatibleWithXunitV3()
+    public void GivenStrykerConfigWhenReadThenRunnerIsNotTheDefaultVstestPerTest()
     {
-        var mtp = string.Equals(_config.TestRunner, "mtp", StringComparison.OrdinalIgnoreCase);
-        var coverageOff = string.Equals(_config.CoverageAnalysis, "off", StringComparison.OrdinalIgnoreCase);
-        Assert.True(
-            mtp || coverageOff,
+        var vstest = _config.TestRunner is null || string.Equals(_config.TestRunner, "vstest", StringComparison.OrdinalIgnoreCase);
+        var perTest = _config.CoverageAnalysis is null || string.Equals(_config.CoverageAnalysis, "perTest", StringComparison.OrdinalIgnoreCase);
+        Assert.False(
+            vstest && perTest,
             $"{StrykerConfig.FileName} uses test-runner `{_config.TestRunner ?? "vstest (default)"}` with coverage-analysis "
-            + $"`{_config.CoverageAnalysis ?? "perTest (default)"}`: with xUnit v3 the vstest runner cannot capture per-test coverage "
-            + "(\"test coverage capture failed\", every mutant NoCoverage). Use `test-runner: mtp` or `coverage-analysis: off` (SPEC-0016 §3).");
+            + $"`{_config.CoverageAnalysis ?? "perTest (default)"}`: with xUnit v3 this combination cannot capture per-test coverage "
+            + "(\"test coverage capture failed\", every mutant NoCoverage). Change the runner or the coverage mode (e.g. `test-runner: mtp` "
+            + "or `coverage-analysis: off`, SPEC-0016 §3); the real evidence is the Nightly mutation test.");
     }
 }
