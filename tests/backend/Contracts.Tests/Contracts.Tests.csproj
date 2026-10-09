@@ -17,6 +17,11 @@
     <ProjectReference Include="../../../src/backend/Host/Host.csproj" />
   </ItemGroup>
 
+  <!-- Build order only: the hub-contract tests run the exporter from its own output (tools/contracts/HubContracts/bin). -->
+  <ItemGroup>
+    <ProjectReference Include="../../../tools/contracts/HubContracts/HubContracts.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
   <!-- Process runner and repository copy shared with Repository.Tests (SPEC-0002), compiled in rather than duplicated. -->
   <ItemGroup>
     <Compile Include="../Repository.Tests/Support/ProcessResult.cs" Link="Support/Shared/ProcessResult.cs" />

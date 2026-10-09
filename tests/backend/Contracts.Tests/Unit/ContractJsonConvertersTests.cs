@@ -39,4 +39,48 @@ public sealed class ContractJsonConvertersTests
         Assert.Equal(2.47m, roundTripped.FixtureCashout.Value);
         Assert.Equal(original, roundTripped);
     }
+
+    [Fact(DisplayName = "Dado uma data ISO-8601 sem offset, quando desserializada pelos conversores, então lança JsonException")]
+    [Trait("Spec", "SPEC-0006:UT-01")]
+    public void GivenTimestampWithoutOffsetWhenDeserializedThenJsonExceptionIsThrown()
+    {
+        var exception = Record.Exception(() => JsonSerializer.Deserialize<DateTimeOffset>("\"2026-10-07T22:00:00\"", ContractJson.Options));
+
+        Assert.True(
+            exception is JsonException,
+            $"A timestamp without 'Z' or an offset is ambiguous and must be rejected with JsonException (SPEC-0006 §6: ISO-8601 UTC); got {exception?.GetType().Name ?? "no exception"}.");
+    }
+
+    [Theory(DisplayName = "Dado uma data ISO-8601 com Z ou offset, quando desserializada pelos conversores, então preserva o instante")]
+    [Trait("Spec", "SPEC-0006:UT-01")]
+    [InlineData("\"2026-10-07T22:00:00.000Z\"")]
+    [InlineData("\"2026-10-08T01:00:00+03:00\"")]
+    public void GivenTimestampWithOffsetWhenDeserializedThenInstantIsPreserved(string json)
+    {
+        var value = JsonSerializer.Deserialize<DateTimeOffset>(json, ContractJson.Options);
+
+        Assert.Equal(new DateTimeOffset(2026, 10, 7, 22, 0, 0, TimeSpan.Zero), value);
+    }
+
+    [Fact(DisplayName = "Dado um DateTimeOffset com offset, quando serializado pelos conversores, então gera ISO-8601 UTC com milissegundos e Z")]
+    [Trait("Spec", "SPEC-0006:UT-01")]
+    public void GivenDateTimeOffsetWithOffsetWhenSerializedThenUtcWithMillisecondsAndZ()
+    {
+        var value = new DateTimeOffset(2026, 10, 8, 1, 0, 0, 120, TimeSpan.FromHours(3));
+
+        var json = JsonSerializer.Serialize(value, ContractJson.Options);
+
+        Assert.Equal("\"2026-10-07T22:00:00.120Z\"", json);
+    }
+
+    [Fact(DisplayName = "Dado um enum, quando serializado e desserializado pelos conversores, então viaja como string camelCase e rejeita número")]
+    [Trait("Spec", "SPEC-0006:UT-01")]
+    public void GivenEnumWhenSerializedThenCamelCaseStringAndIntegerIsRejected()
+    {
+        var json = JsonSerializer.Serialize(HubFixturePhase.InFlight, ContractJson.Options);
+
+        Assert.Equal("\"inFlight\"", json);
+        Assert.Equal(HubFixturePhase.InFlight, JsonSerializer.Deserialize<HubFixturePhase>("\"inFlight\"", ContractJson.Options));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<HubFixturePhase>("1", ContractJson.Options));
+    }
 }
