@@ -1,0 +1,94 @@
+# Nightly checks (SPEC-0004, ADR-0009, ADR-0012): long RTP simulations (tests marked Category=Nightly) and mutation
+# testing (Stryker, stryker-config.json) of the critical domain. 03:00 UTC, also runnable by hand.
+# Every action is pinned by full commit SHA (tag in the comment); tools/ci/check-workflows enforces it.
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  rtp-simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - name: Restore (lock files, locked mode)
+        run: dotnet restore Apogeu.slnx --locked-mode
+      - name: Build (warnings are errors)
+        run: dotnet build Apogeu.slnx -c Release --no-restore
+      - name: RTP simulation (Category=Nightly)
+        run: >-
+          dotnet test Apogeu.slnx -c Release --no-build
+          --filter "Category=Nightly"
+          --logger "trx"
+          --results-directory artifacts/nightly
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nightly-rtp
+          path: artifacts/nightly
+          retention-days: 14
+          if-no-files-found: ignore
+
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - name: Restore (lock files, locked mode, local tools)
+        run: |
+          dotnet restore Apogeu.slnx --locked-mode
+          dotnet tool restore
+      # stryker-config.json names the test projects of the critical domain (Fairness, Wallet); until those specs
+      # create them there is nothing to mutate, and the job says so instead of failing.
+      - name: Test projects of stryker-config.json
+        id: targets
+        run: |
+          missing=$(python3 -c 'import json,os; c=json.load(open("stryker-config.json"))["stryker-config"]; print(" ".join(p for p in c["test-projects"] if not os.path.isfile(p)))')
+          if [ -n "$missing" ]; then
+            echo "::notice::Mutation testing skipped: test projects not found yet: $missing"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Stryker (break below 80%)
+        if: steps.targets.outputs.ready == 'true'
+        run: dotnet stryker --config-file stryker-config.json --output artifacts/mutation
+      - name: Upload report
+        if: ${{ !cancelled() && steps.targets.outputs.ready == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mutation-report
+          path: artifacts/mutation
+          retention-days: 14
+          if-no-files-found: ignore
