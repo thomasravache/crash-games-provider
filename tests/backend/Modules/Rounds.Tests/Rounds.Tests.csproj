@@ -17,6 +17,8 @@
     <!-- Clears the shared Redis container between integration tests (leader locks and backplane, ADR-0005). -->
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="Npgsql" />
+    <!-- In-test readers and exporters on the Host's OpenTelemetry pipeline (ADR-0017, G4 review). -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>
