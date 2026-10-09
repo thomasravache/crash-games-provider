@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002, SPEC-0003]
 consumes_contract: [SPEC-0006@1]
-contract_version: 1
+contract_version: 2
 touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**"]
 adrs: [ADR-0011, ADR-0012, ADR-0013, ADR-0016]
 external: []
@@ -21,13 +21,13 @@ approved_at: 2026-10-07
 # SPEC-0004 — Pipeline de CI no GitHub Actions
 
 ## 1. Visão Geral
-Cria o pipeline no GitHub Actions que protege a branch principal: build, lint, testes (unitários, integração, arquitetura, E2E), segurança (Semgrep, gitleaks, auditoria de dependências), verificação de contratos gerados, imagens de container e o job SDD (`validate` + `pr-check`), com filtros por caminho. Inclui criar o repositório no GitHub e configurar a proteção da branch.
+Cria o pipeline no GitHub Actions que protege a branch principal: build, lint, testes (unitários, integração, arquitetura, E2E), segurança (Semgrep, gitleaks, auditoria de dependências), verificação de contratos gerados, imagens de container e o job SDD (`validate` + `pr-check`), com filtros por caminho. Inclui criar o repositório no GitHub. A proteção da branch no servidor fica para a SPEC-0015 (emenda v2).
 
 ## 2. Motivação & Escopo
 **Motivação:** a CI é o portão final que vale para humanos e agentes (mandatos 6 e 7); sem ela, nada garante que a main fique verde.
 
 **Objetivos (dentro do escopo):**
-- Repositório **privado** `thomasravache/crash-games-provider` criado e branch protection/ruleset na `main`: PR obrigatório, checks obrigatórios, sem push direto nem force-push, merge commit.
+- Repositório **privado** `thomasravache/crash-games-provider` criado. Proteção da `main` no servidor fora do escopo (emenda v2 → SPEC-0015): no GitHub Free privado ela é indisponível; o controle é de processo — CI em todo PR e merge só pelo Architect após G5 verde.
 - Workflows: `ci.yml` (jobs `backend`, `frontend`, `e2e`, `security`, `contracts`, `sdd`, com filtro de caminhos), `images.yml` (gera imagens via Aspire publish no merge, sem publicar em registro), `nightly.yml` (simulação de RTP e mutação).
 - Dependabot (NuGet, npm, GitHub Actions, Docker) semanal.
 - Comandos `ci` e `security_scan` no `sdd-config.yml`.
@@ -66,8 +66,10 @@ Cria o pipeline no GitHub Actions que protege a branch principal: build, lint, t
 **Interface:** checks obrigatórios do PR e comandos do sdd-config.
 
 ```text
-Checks obrigatórios na main: ci/backend, ci/frontend, ci/e2e, ci/security, ci/contracts, ci/sdd
+Checks de todo PR para a main (informativos; obrigatórios no servidor só com a SPEC-0015):
+  ci/backend, ci/frontend, ci/e2e, ci/security, ci/contracts, ci/sdd
   (jobs sem mudanças relevantes reportam sucesso "skipped" para não bloquear)
+Merge: só pelo Architect, com merge commit, depois de G5 com todos os checks verdes
 sdd-config:
   ci: "gh pr checks --watch"
   security_scan: "gitleaks detect --no-banner && semgrep scan --config .semgrep --error && dotnet list Apogeu.slnx package --vulnerable --include-transitive && pnpm -C src/frontend audit --audit-level high"
@@ -83,11 +85,10 @@ Gatilhos: pull_request (main), push (main), schedule (nightly 03:00 UTC)
 |---|---|---|---|
 | Workflows válidos e seguros | arquivos em `.github/workflows` | actionlint sem erros; ações fixadas por SHA; permissões mínimas | UT-01 |
 | PR só de front | mudança em `src/frontend/**` | jobs frontend, e2e, contracts e sdd executam; backend reporta skipped | IT-01 |
-| Teste quebrado | PR com teste falhando | check vermelho, merge bloqueado | IT-02 |
+| Teste quebrado | PR com teste falhando | check vermelho e PR com estado de merge não limpo (`mergeStateStatus` ≠ `CLEAN`) | IT-02 |
 | Segredo commitado | PR com chave falsa no código | job security falha (gitleaks) | IT-03 |
 | Contrato divergente | DTO alterado sem regenerar contratos | job contracts falha | IT-04, CT-01 |
 | Merge na main | merge de PR verde | imagens de container geradas como artefato | IT-05 |
-| Push direto na main | `git push origin main` | rejeitado pela proteção | IT-06 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
 ### 7.1 Testes de Caracterização
@@ -98,11 +99,10 @@ Gatilhos: pull_request (main), push (main), schedule (nightly 03:00 UTC)
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dado um PR de teste que altera só `src/frontend/**`, quando o CI roda, então os jobs frontend, e2e, contracts e sdd executam e o backend reporta skipped (evidência: link da execução).
-- **IT-02** — Dado um PR de teste com um teste unitário falhando, quando o CI roda, então o check fica vermelho e o botão de merge fica bloqueado.
+- **IT-02** — Dado um PR de teste com um teste unitário falhando, quando o CI roda, então o check fica vermelho e o PR reporta `mergeStateStatus` diferente de `CLEAN` (o bloqueio no servidor é da SPEC-0015).
 - **IT-03** — Dado um PR de teste com uma chave AWS de exemplo no código, quando o CI roda, então o job security falha no gitleaks.
 - **IT-04** — Dado um PR de teste que altera um DTO sem regenerar `packages/contracts`, quando o CI roda, então o job contracts falha.
 - **IT-05** — Dado o merge de um PR verde, quando o workflow `images` roda, então as imagens da API e dos apps são geradas e anexadas como artefato.
-- **IT-06** — Dada a proteção configurada, quando se tenta push direto na `main`, então o GitHub rejeita.
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dado o contrato SPEC-0006@1, quando o job contracts executa `pnpm -C src/frontend contracts:check` sobre contratos desatualizados, então recebe exit ≠ 0 e falha.
@@ -118,7 +118,7 @@ Gatilhos: pull_request (main), push (main), schedule (nightly 03:00 UTC)
 **Ambiente de execução:** GitHub Actions (runners ubuntu-latest).
 
 ## 8. Plano de Rollout
-- **Estratégia:** ativar workflows primeiro como não obrigatórios, validar IT-01..05, depois marcar como obrigatórios (IT-06).
+- **Estratégia:** ativar os workflows (informativos), validar IT-01..05; torná-los obrigatórios fica para a SPEC-0015.
 - **Dados/schema:** N/A
 - **Compatibilidade:** N/A
 - **Observabilidade:** histórico de execuções do Actions; tempo por job acompanhado.
@@ -146,7 +146,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, CT-01 com a tag `SPEC-0004:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0004:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -175,7 +175,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
-| IMP-01 | 2026-10-08 | G2 | decisão | Proteção de branch e rulesets indisponíveis: repositório privado no GitHub Free (API retorna 403 'Upgrade to GitHub Pro or make this repository public'). Sem isso IT-06 (push direto rejeitado) e a parte de bloqueio do IT-02 não podem passar, e os checks obrigatórios do contrato §6 não são aplicados. | Test-writer consultou branches/main/protection e rules/branches/main com o token do dono (admin) | thomas: (a) assinar GitHub Pro, (b) tornar o repositório público, ou (c) emenda: manter privado sem proteção no servidor, CI só informativa e merges só pelo Architect após G5 |  |  |
+| IMP-01 | 2026-10-08 | G2 | decisão | Proteção de branch e rulesets indisponíveis: repositório privado no GitHub Free (API retorna 403 'Upgrade to GitHub Pro or make this repository public'). Sem isso IT-06 (push direto rejeitado) e a parte de bloqueio do IT-02 não podem passar, e os checks obrigatórios do contrato §6 não são aplicados. | Test-writer consultou branches/main/protection e rules/branches/main com o token do dono (admin) | thomas: (a) assinar GitHub Pro, (b) tornar o repositório público, ou (c) emenda: manter privado sem proteção no servidor, CI só informativa e merges só pelo Architect após G5 | Emenda v2 — repositório segue privado; proteção da main e IT-06 movidos para SPEC-0015 (thomas, 2026-10-08) | 2026-10-08 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -218,3 +218,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0004`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 | 2026-10-08 | Proteção da `main` no servidor e IT-06 saem do escopo; IT-02 passa a verificar check vermelho e `mergeStateStatus` ≠ `CLEAN`; checks `ci/*` informativos, merge só pelo Architect após G5 | IMP-01: repositório privado no GitHub Free não tem branch protection nem rulesets (API 403); o humano escolheu manter privado | SPEC-0015 (nova, recebe a proteção e o IT-06); nenhum consumidor do contrato | thomas, 2026-10-08 (chat) |

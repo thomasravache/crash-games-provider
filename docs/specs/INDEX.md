@@ -4,9 +4,9 @@
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 2 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 4, in-progress 3, implemented 3
-- Impedimentos: **0 aberto(s)**, 2 resolvido(s)
+- Validação (G0): **2 erro(s), 3 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 4, approved 4, in-progress 3, implemented 3
+- Impedimentos: **0 aberto(s)**, 3 resolvido(s)
 
 ## Cobertura de Pilares
 
@@ -55,12 +55,13 @@ Perfil: **rigoroso**
 | 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
 | 3 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
 | 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 4 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/10 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/11 implementadas |
 
 ## Grafo de Dependências
 
@@ -82,6 +83,7 @@ flowchart LR
     S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::approved
     S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::approved
     S0011["SPEC-0011<br/>Animação da cena da Pipa"]:::approved
+    S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::proposed
   end
   S0002 --> S0003
   S0002 --> S0004
@@ -104,6 +106,7 @@ flowchart LR
   S0010 -. contrato v1 .-> S0011
   S0004 --> S0012
   S0010 --> S0012
+  S0004 --> S0015
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -129,6 +132,7 @@ flowchart LR
 | [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
 | [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | proposed | 2026-10-08 | — | — | — |
 | [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | proposed | 2026-10-08 | — | — | — |
+| [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | proposed | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
 
 ## ADRs
 
