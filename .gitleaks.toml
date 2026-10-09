@@ -1,0 +1,18 @@
+# gitleaks configuration (SPEC-0004, ADR-0012, ADR-0014). Default rule set of gitleaks, plus an allow-list limited to
+# the output roots of this repository's own builds (all ignored by .gitignore, never committed), which exist only in a
+# local `gitleaks dir .` after a build. Do not allow-list source paths: a secret in the code must fail the security job.
+title = "Apogeu gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Build outputs and installed dependencies (ignored by .gitignore)"
+paths = [
+  '''^(\./)?src/frontend/(.+/)?node_modules/''',            # pnpm install
+  '''^(\./)?src/frontend/(apps|packages)/[^/]+/dist/''',    # pnpm build
+  '''^(\./)?src/frontend/coverage/''',                      # pnpm test:coverage
+  '''^(\./)?(src|tests)/.+/bin/(Debug|Release)/''',         # dotnet build
+  '''^(\./)?(src|tests)/.+/obj/''',                         # dotnet restore/build
+  '''^(\./)?artifacts/''',                                  # coverage, e2e traces, images, mutation reports
+]
