@@ -1,0 +1,9 @@
+/* SPEC-0011 E2E-01: hides every element but the scene canvas in the keyframe captures (HUD, history and panels change
+   with the live round; the reference images are of the scene only). */
+body *:not(canvas) {
+  visibility: hidden !important;
+}
+
+body canvas {
+  visibility: visible !important;
+}
