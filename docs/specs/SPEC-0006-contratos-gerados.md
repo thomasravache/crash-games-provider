@@ -83,7 +83,7 @@ GET /api/v1/meta → 200 {"apiVersion":"1.0.0","serverTime":"2026-10-07T22:00:00
 ### 6.1 Mapa de Comportamentos
 | Cenário | Condição / Entrada | Resultado esperado | Testes |
 |---|---|---|---|
-| Dinheiro como string | DTO com `decimal Amount = 10.5m` | JSON `"10.50"`; TS `Money` | UT-01 |
+| Dinheiro como string | DTO com campo `Money Amount = 10.5m` (campos monetários do contrato usam `Money`, nunca `decimal` cru) | JSON `"10.50"`; TS `Money` | UT-01 |
 | Multiplicador como string | `Multiplier 2.47` | JSON `"2.47"`; TS `Multiplier` | UT-01 |
 | Anulável | propriedade `string?` | TS `string \| null` | UT-02 |
 | Geração completa | `contracts:generate` | arquivos REST e hubs gerados e compiláveis | IT-01 |
@@ -163,9 +163,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:35.89]     Dado o backend compilado, quando contracts:generate roda, entã) — 47f0252 | 2026-10-08 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 55ms); test exit 0 (Duration  1.15s (tests 98%, transform 1%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T22:37:01: Report generation took 0,1 seconds) — 92a9363 | 2026-10-08 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  781ms (tests 97%, transform 2%, import 1%)) — 92a9363 | 2026-10-08 |
+| G4 Review | FAIL | Reviewer CHANGES_REQUESTED: 2 major (gerador de hubs sem teste; JsonHubProtocolOptions sem ContractJson), 3 minor (timestamp sem offset aceito; CT-01 contra documento servido; decimal cru), 2 nit | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
@@ -218,3 +218,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
 | v1 (inalterado) | 2026-10-08 | Emenda de escopo: `touches` inclui `.gitignore`, `artifacts/openapi/**` e `Directory.Packages.props` | ADR-0008 versiona o documento OpenAPI (exceção no `.gitignore`) e a geração no build usa `Microsoft.Extensions.ApiDescription.Server`, par do `Microsoft.AspNetCore.OpenApi` previsto no ADR | Nenhuma (contrato inalterado) | Architect — correção de escopo sem mudança de contrato, coberta pela autorização do usuário para seguir sem paradas (2026-10-08) |
+| v1 (inalterado) | 2026-10-08 | Esclarecimento: o cenário "Dinheiro como string" usa o tipo `Money` (campos monetários do contrato nunca são `decimal` cru); achados do G4 (gerador de hubs testado, `JsonHubProtocolOptions` com `ContractJson`, data sem offset rejeitada, CT-01 também contra `artifacts/openapi/v1.json`) entram como correções dentro do contrato v1 | Review G4: texto citava `decimal`, a implementação e o ADR-0008 usam `Money`; hubs precisam seguir as mesmas convenções do REST | Nenhuma (contrato inalterado) | Architect — esclarecimento sem mudança de contrato, coberto pela autorização do usuário para seguir recomendações (2026-10-08) |

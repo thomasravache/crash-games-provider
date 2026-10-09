@@ -27,6 +27,9 @@ Leva a plataforma a ambientes reais: staging e produção como código, deploy p
 **Motivação:** a fundação valida tudo localmente por decisão do usuário; este é o passo que fecha o G6 (deploy) de todas as specs e reativa as regras de staging/produção do ADR-0013.
 
 **Objetivos (dentro do escopo):**
+- Chaves do ASP.NET Data Protection (cifra da cadeia de sementes, SPEC-0007) persistidas e protegidas fora do banco (KMS/Key Vault da nuvem escolhida), `SetApplicationName` fixo no Host e teste de recuperação após reinício/redeploy (ADR-0014; review G4 da SPEC-0007).
+- Alinhar `Microsoft.EntityFrameworkCore.Relational` à versão do EF Core em `Directory.Packages.props` (nit do G4 da SPEC-0007).
+- Modo publish do AppHost (Aspire) funcionando com o ambiente de computação escolhido, substituindo a geração de imagens provisória do `images.yml` (emenda da SPEC-0004, 2026-10-08).
 - Escolha da nuvem com estimativa de custo (atual, 2x e 10x) e comparação com o orçamento.
 - Staging e produção como código (IaC), deploy automático em staging e com confirmação humana em produção.
 - Banco gerenciado com backup e recuperação testada; segredos no gerenciador da nuvem; backend OTLP e alertas por SLO.

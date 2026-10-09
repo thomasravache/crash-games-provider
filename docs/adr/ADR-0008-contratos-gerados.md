@@ -55,3 +55,9 @@ Job `contracts-drift` no CI; CT nas specs que publicam ou consomem contrato.
 ## Mais Informações
 - OpenAPI nativo no ASP.NET Core — https://learn.microsoft.com/aspnet/core/fundamentals/openapi/overview — geradores específicos (cliente TS e hubs SignalR) **não verificados nesta sessão**, a decidir na spec de contratos.
 - Verificado em 2026-10-07.
+
+## Emendas
+| Data | Mudança | Origem |
+|---|---|---|
+| 2026-10-08 | Geradores escolhidos na SPEC-0006 (previsto neste ADR): REST com **openapi-typescript 7.13.0** + cliente **openapi-fetch 0.17.0** (MIT); documento no build com **Microsoft.Extensions.ApiDescription.Server 10.0.12** (MIT); hubs SignalR com **gerador próprio por reflexão** (`tools/contracts/HubContracts` + `hubs-to-ts.mjs`) em vez do TypedSignalR (compatível com .NET 10, mas exigiria atributos nos módulos, tool manifest e análise Roslyn lenta). Dinheiro/multiplicador com no mínimo 2 casas e sem arredondar. | Implementer da SPEC-0006, registrado pelo Architect |
+
