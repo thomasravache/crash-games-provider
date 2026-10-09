@@ -4,19 +4,15 @@
 // shapes that change every frame (line, tail, trail) are short polylines.
 
 import { GlowFilter } from "pixi-filters/glow";
-import { Container, FillGradient, Graphics, Sprite, type Renderer, type Texture } from "pixi.js";
+import { Container, Graphics, Sprite, type Renderer, type Texture } from "pixi.js";
 
 import { kiteGeometry, type SceneFrame } from "../kite/pipa-animator";
 import type { MotionProfile } from "../kite/motion-profile";
 import { maxParticles } from "../kite/effects";
 import type { Vec2 } from "../kite/kite-rig";
+import { createSkyTexture, type SkyGradients, type SkyTexture } from "./sky-texture";
 
-/** Colour stops (top → horizon) of the three skies, `#rrggbb`. */
-export interface SkyGradients {
-  readonly day: readonly string[];
-  readonly sunset: readonly string[];
-  readonly night: readonly string[];
-}
+export type { SkyGradients } from "./sky-texture";
 
 /** Colours of the Stitch design system "Pipa Crash". */
 const palette = {
@@ -67,6 +63,9 @@ function mixRgb(from: number, to: number, t: number): number {
   };
   return channel(16) | channel(8) | channel(0);
 }
+
+/** Crash shake amplitude the full-screen layers overflow by, px. */
+const shakeMargin = 10;
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
@@ -192,19 +191,6 @@ function drawGround(width: number): Container {
   return ground;
 }
 
-function skyGradient(stops: readonly string[]): FillGradient {
-  return new FillGradient({
-    type: "linear",
-    start: { x: 0, y: 0 },
-    end: { x: 0, y: 1 },
-    colorStops: stops.map((color, index) => ({
-      offset: index / Math.max(1, stops.length - 1),
-      color,
-    })),
-    textureSpace: "local",
-  });
-}
-
 function polyline(graphics: Graphics, points: readonly Vec2[]): Graphics {
   const [first, ...rest] = points;
   if (first === undefined) return graphics;
@@ -242,7 +228,8 @@ export function createPipaView(
     quality: 0.2,
   });
 
-  let skies: Graphics[] = [];
+  let skyTexture: SkyTexture | null = null;
+  let sky = new Sprite();
   let sun = new Graphics();
   let stars = new Graphics();
   let moon = new Container();
@@ -261,7 +248,6 @@ export function createPipaView(
   let height = 0;
   let kiteGlowOn = false;
   let framesDrawn = 0;
-  let skyFills: FillGradient[] = [];
 
   const clear = (): void => {
     // The layers that live as long as the view are only detached; the art of the layout is destroyed.
@@ -274,8 +260,8 @@ export function createPipaView(
     for (const sprite of particles.removeChildren()) sprite.destroy();
     dot?.destroy(true);
     dot = null;
-    for (const fill of skyFills) fill.destroy();
-    skyFills = [];
+    skyTexture?.destroy();
+    skyTexture = null;
     sprites = [];
     clouds = [];
   };
@@ -284,11 +270,11 @@ export function createPipaView(
     clear();
     width = nextWidth;
     height = nextHeight;
-    skies = [gradients.day, gradients.sunset, gradients.night].map((stops) => {
-      const fill = skyGradient(stops);
-      skyFills.push(fill);
-      return new Graphics().rect(0, 0, width, height).fill(fill);
-    });
+    skyTexture = createSkyTexture(gradients);
+    sky = new Sprite(skyTexture.texture);
+    // Larger than the screen by the crash shake on every side, so the shake never shows an edge.
+    sky.position.set(-shakeMargin, -shakeMargin);
+    sky.setSize(width + 2 * shakeMargin, height + 2 * shakeMargin);
 
     sun = new Graphics()
       .circle(0, 0, 70)
@@ -352,7 +338,7 @@ export function createPipaView(
     flash.clear().rect(0, 0, width, height).fill(palette.flash);
 
     const [far, middle, near] = cloudLayers;
-    world.addChild(...skies, sun, stars, moon);
+    world.addChild(sky, sun, stars, moon);
     if (far !== undefined) world.addChild(far);
     if (middle !== undefined) world.addChild(middle);
     world.addChild(ground, trail, line, tail, kite, pulse, particles);
@@ -384,10 +370,7 @@ export function createPipaView(
     if (dot === null) return;
     const progress = frame.sky.progress;
     world.position.set(frame.shake.x, frame.shake.y);
-    const [day, sunset, night] = skies;
-    if (day !== undefined) day.alpha = 1;
-    if (sunset !== undefined) sunset.alpha = clamp01(progress);
-    if (night !== undefined) night.alpha = clamp01(progress - 1);
+    skyTexture?.paint(progress);
 
     sun.alpha = 1 - clamp01((progress - 1.4) / 0.5);
     sun.visible = sun.alpha > 0;

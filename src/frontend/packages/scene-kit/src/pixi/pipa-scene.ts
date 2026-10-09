@@ -33,6 +33,8 @@ export interface PipaScene {
 
 /** Frames a recreated renderer draws before turning the filters on again (about 2 s at 60 fps). */
 const filterWarmUpFrames = 120;
+/** Textures per batch: sky, the white of the shapes, the particle dot and a spare. */
+const maxBatchTextures = 4;
 
 /** A renderer on its own canvas with the art of the scene. */
 interface Renderer {
@@ -62,6 +64,8 @@ export async function createPipaScene(
   let destroyed = false;
   const isDestroyed = (): boolean => destroyed;
   const ticker = new Ticker();
+  /** Frames presented since the scene froze (or since the last layout). */
+  let stillFrames = 0;
 
   const sync = (): void => {
     if (!hidden && !contextLost && current !== null) ticker.start();
@@ -73,13 +77,20 @@ export async function createPipaScene(
     await app.init({
       preference: "webgl",
       resizeTo: host,
-      backgroundAlpha: 0,
-      antialias: true,
+      // Opaque (the sky covers it) and without MSAA: the scene is fill-rate bound on software GL and mid-range phones.
+      background: 0x080b16,
+      antialias: false,
       autoDensity: true,
       autoStart: false,
       sharedTicker: false,
       resolution: sceneResolution(devicePixelRatio),
     });
+    // The scene uses a handful of textures: a short batch shader is much cheaper to compile (on a fresh context) and
+    // to run per pixel on software GL than the default one branching over every texture unit.
+    app.renderer.limits.maxBatchableTextures = Math.min(
+      maxBatchTextures,
+      app.renderer.limits.maxBatchableTextures,
+    );
     app.ticker.stop();
     const canvas = app.canvas;
     canvas.setAttribute("aria-hidden", "true");
@@ -94,6 +105,7 @@ export async function createPipaScene(
       recreated ? filterWarmUpFrames : 0,
     );
     const layout = (): void => {
+      stillFrames = 0;
       const { width, height } = app.renderer.screen;
       animator.resize(width, height);
       view.layout(width, height);
@@ -153,7 +165,15 @@ export async function createPipaScene(
   ticker.add(() => {
     if (current === null) return;
     const started = performance.now();
-    current.view.draw(animator.advance(ticker.deltaMS));
+    const frame = animator.advance(ticker.deltaMS);
+    // A frozen scene (test hook) is the same picture on every tick: drawn twice, then the GPU rests.
+    if (animator.isFrozen()) {
+      if (stillFrames >= 2) return;
+      stillFrames += 1;
+    } else {
+      stillFrames = 0;
+    }
+    current.view.draw(frame);
     current.app.renderer.render(current.app.stage);
     options.onFrame?.(performance.now() - started);
   });

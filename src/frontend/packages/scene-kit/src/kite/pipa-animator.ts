@@ -114,6 +114,8 @@ export interface PipaAnimator extends GameAnimator, Pausable {
    * and stops its clock; from then on the GameAnimator calls are ignored.
    */
   freeze(atMs: number, state: SceneFreezeState): void;
+  /** True once `freeze` stopped the clock: every following frame is the same. */
+  isFrozen(): boolean;
 }
 
 /** Shape of the kite drawn by the renderer, px from its centre. */
@@ -134,6 +136,8 @@ const pulseMs = 700;
 const growthPerMs = 0.00006;
 const freezeSeed = 20_261_009;
 const freezeFrameMs = 1000 / 60;
+/** Time `freeze` replays frame by frame before the frozen instant, ms (longer than any trace in the picture). */
+const freezeReplayMs = 4_000;
 
 const colors = {
   wind: 0xffffff,
@@ -744,6 +748,9 @@ export function createPipaAnimator(options: PipaAnimatorOptions): PipaAnimator {
       return frame();
     },
     frame,
+    isFrozen() {
+      return frozen;
+    },
     effectsLog() {
       return log;
     },
@@ -761,7 +768,15 @@ export function createPipaAnimator(options: PipaAnimatorOptions): PipaAnimator {
       random = seeded(freezeSeed);
       restore();
       const run = (durationMs: number, onFrame?: (elapsedMs: number) => void): void => {
-        for (let elapsed = 0; elapsed < durationMs; elapsed += freezeFrameMs) {
+        // Only the last seconds leave a mark on the picture (ropes, trail, particles, pulses): the time before them
+        // passes in one step, so a long flight is positioned quickly.
+        let start = 0;
+        if (durationMs > freezeReplayMs) {
+          start = durationMs - freezeReplayMs;
+          onFrame?.(start);
+          tick(start);
+        }
+        for (let elapsed = start; elapsed < durationMs; elapsed += freezeFrameMs) {
           onFrame?.(elapsed);
           tick(Math.min(freezeFrameMs, durationMs - elapsed));
         }
