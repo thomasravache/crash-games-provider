@@ -30,7 +30,8 @@ internal sealed class SnapshotQueryHarness : IDisposable
     private readonly object _views;
     private readonly List<CancellationTokenSource> _terms = [];
 
-    public SnapshotQueryHarness(IRoundStore store)
+    /// <param name="readTimeout">Deadline of each shared store read; the query's default when omitted.</param>
+    public SnapshotQueryHarness(IRoundStore store, TimeSpan? readTimeout = null)
     {
         Store = store;
         var options = new RoundsOptions();
@@ -41,7 +42,7 @@ internal sealed class SnapshotQueryHarness : IDisposable
             typeof(SalaSnapshotQuery),
             Instance,
             binder: null,
-            [new SalaCatalog(Options.Create(options)), _views, _provider.GetRequiredService<IServiceScopeFactory>()],
+            [new SalaCatalog(Options.Create(options)), _views, _provider.GetRequiredService<IServiceScopeFactory>(), readTimeout ?? SalaSnapshotQuery.DefaultReadTimeout],
             CultureInfo.InvariantCulture)!;
     }
 

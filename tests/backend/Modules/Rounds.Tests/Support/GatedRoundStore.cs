@@ -7,7 +7,8 @@ namespace Apogeu.Rounds.Tests.Support;
 /// <summary>
 /// An <see cref="IRoundStore"/> for the snapshot reads of a room (G4 delta review of IT-07): read <c>n</c> (one
 /// <c>FindLatestAsync</c>) answers a round whose number is <c>n</c>, so a snapshot tells which read produced it. When gated,
-/// read <c>n</c> waits until the test releases (or fails) it; otherwise every read answers at once.
+/// read <c>n</c> waits until the test releases (or fails) it, or until its token is cancelled, as a database read honours
+/// its deadline; otherwise every read answers at once.
 /// </summary>
 internal sealed class GatedRoundStore(bool gated = true) : IRoundStore
 {
@@ -45,7 +46,7 @@ internal sealed class GatedRoundStore(bool gated = true) : IRoundStore
         try
         {
             Started(read).TrySetResult();
-            var error = await Gate(read).Task.ConfigureAwait(false);
+            var error = await Gate(read).Task.WaitAsync(ct).ConfigureAwait(false);
             if (error is not null)
             {
                 throw error;

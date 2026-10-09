@@ -118,4 +118,68 @@ public sealed class CoalescedSalaReadTests
         Assert.Equal(2, (await staying).Current!.RoundNumber);
         Assert.Equal(2, store.Reads);
     }
+
+    // Revisão G4 do delta: prazo da leitura compartilhada.
+    [Fact(DisplayName = "Dada uma leitura do store que não termina, quando o prazo da leitura compartilhada vence, então todo JoinSala do lote recebe TimeoutException e o JoinSala seguinte dispara uma nova leitura que responde")]
+    [Trait("Spec", "SPEC-0008:UT-04")]
+    public async Task GivenAStalledReadWhenItsDeadlineExpiresThenTheBatchTimesOutAndTheNextCallerReadsAgain()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var store = new GatedRoundStore();
+        using var harness = new SnapshotQueryHarness(store, TimeSpan.FromMilliseconds(100));
+
+        var first = harness.GetAsync(ct);
+        await store.StartedAsync(1);
+        var batch = Enumerable.Range(0, Callers).Select(_ => harness.GetAsync(ct)).ToArray();
+        store.Release(1);
+        Assert.Equal(1, (await first).Current!.RoundNumber);
+        await store.StartedAsync(2);
+
+        foreach (var caller in batch)
+        {
+            await Assert.ThrowsAsync<TimeoutException>(() => caller.WaitAsync(TimeSpan.FromSeconds(10), ct));
+        }
+
+        Assert.True(store.TokenOf(2).IsCancellationRequested, "The deadline did not reach the stalled store read.");
+        Assert.Equal(2, store.Reads);
+
+        var after = harness.GetAsync(ct);
+        await store.StartedAsync(3);
+        store.Release(3);
+        Assert.Equal(3, (await after.WaitAsync(TimeSpan.FromSeconds(10), ct)).Current!.RoundNumber);
+        Assert.Equal(3, store.Reads);
+        Assert.Equal(1, store.MaxConcurrentReads);
+    }
+
+    // Revisão G4 do delta: prazo da leitura compartilhada.
+    [Fact(DisplayName = "Dado um lote cuja leitura não termina, quando um JoinSala cancela antes do prazo, então só ele recebe o cancelamento, a leitura compartilhada segue e os demais recebem o TimeoutException do lote")]
+    [Trait("Spec", "SPEC-0008:UT-04")]
+    public async Task GivenAStalledReadWhenOneCallerCancelsBeforeTheDeadlineThenOnlyItIsCancelledAndTheOthersTimeOut()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var store = new GatedRoundStore();
+        using var harness = new SnapshotQueryHarness(store, TimeSpan.FromSeconds(1));
+        using var leaving = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        var first = harness.GetAsync(ct);
+        await store.StartedAsync(1);
+        var cancelled = harness.GetAsync(leaving.Token);
+        var staying = Enumerable.Range(0, Callers).Select(_ => harness.GetAsync(ct)).ToArray();
+        store.Release(1);
+        await first;
+        await store.StartedAsync(2);
+
+        await leaving.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelled.WaitAsync(TimeSpan.FromSeconds(10), ct));
+        Assert.False(store.TokenOf(2).IsCancellationRequested, "The cancellation of one join reached the read shared by its batch.");
+        Assert.All(staying, caller => Assert.False(caller.IsCompleted, "The cancellation of one join completed the others."));
+
+        foreach (var caller in staying)
+        {
+            await Assert.ThrowsAsync<TimeoutException>(() => caller.WaitAsync(TimeSpan.FromSeconds(10), ct));
+        }
+
+        Assert.True(store.TokenOf(2).IsCancellationRequested, "The deadline did not reach the stalled store read.");
+        Assert.Equal(2, store.Reads);
+    }
 }
