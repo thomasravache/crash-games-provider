@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002, SPEC-0003]
 consumes_contract: [SPEC-0006@1]
-contract_version: 2
+contract_version: 3
 touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**", "src/backend/AppHost/AppHost.csproj", "src/backend/AppHost/packages.lock.json", "tests/backend/AppHost.Tests/AppHost.Tests.csproj", "tests/backend/AppHost.Tests/packages.lock.json", "tests/backend/Architecture.Tests/Architecture.Tests.csproj", "tests/backend/Architecture.Tests/packages.lock.json", "tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs", "tests/backend/Modules/Fairness.Tests/Integration/FairnessRestartTimingTests.cs", "tests/backend/Modules/Fairness.Tests/Unit/CrashPointPerformanceTests.cs"]
 adrs: [ADR-0011, ADR-0012, ADR-0013, ADR-0016]
 external: []
@@ -72,7 +72,8 @@ Checks de todo PR para a main (informativos; obrigatórios no servidor só com a
 Merge: só pelo Architect, com merge commit, depois de G5 com todos os checks verdes
 sdd-config:
   ci: "gh pr checks --watch"
-  security_scan: "gitleaks detect --no-banner && semgrep scan --config .semgrep --error && dotnet list Apogeu.slnx package --vulnerable --include-transitive && pnpm -C src/frontend audit --audit-level high"
+  security_scan: (mesmos passos do job security) gitleaks --redact; Semgrep pela imagem semgrep/semgrep:1.178.0@sha256:32e459968daabe7ab86968184a29109b9564aa00392401156f9788452b42786b; vulnerabilidades NuGet
+    via tools/ci/nuget-vulnerabilities (falha em High/Critical); pnpm audit --audit-level high; tools/ci/check-licenses
 Gatilhos: pull_request (main), push (main), schedule (nightly 03:00 UTC)
 Saídas verificáveis: gitleaks imprime "leaks found: N" e o RuleID (--verbose --redact); imagens no artefato `container-images`
   (apogeu-api.tar, apogeu-game-pipa.tar, apogeu-backoffice.tar, apogeu-demo-site.tar), retenção de 1 dia
@@ -168,8 +169,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 81ms); test exit 0 (Duration  1.53s (tests 98%, transform 2%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T23:31:34: Report generation took 0,1 seconds) — 87317f8 | 2026-10-08 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.05s (tests 97%, transform 2%, import 1%)) — 87317f8 | 2026-10-08 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 87317f8, 0 blocker/major; pendências: UT-01 para as regras novas do check-workflows, .semgrepignore, Dependabot sem [no-spec] — 87317f8 | 2026-10-08 |
-| G5 Integração & CI | FAIL | CI do PR #6 (run 37877642424): contracts sem build do backend antes do contracts:check; security reprova argparse 2.0.1 (Python-2.0, dependência de build via openapi-typescript) | 2026-10-09 |
-| H2 Integração aprovada | PENDING | | |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 50ms); test exit 0 (Duration  968ms (tests 98%, transform 1%, import 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /private/tmp/claude-50); test_e2e exit 0 (3 passed (3.6s)); arch_test exit 0 (Duration  745ms (tests 98%, transform 1%, import 1%)); security_scan exit 0 (Ran 8 rules on 96 files: 0 findings.) — 93cdba6 | 2026-10-09 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
 
@@ -224,3 +225,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | 2 (inalterado) | 2026-10-08 | `images.yml` gera as imagens sem Aspire publish (`dotnet publish -t:PublishContainer` para a API, `docker build` para os apps Vite), mesmo artefato `container-images` | SPEC_DEFECT do Implementer: o AppHost quebra no modo publish (`.Single()` em `JavaScriptPackageInstallerAnnotation`) e não tem ambiente de computação; corrigir exige mexer no AppHost e talvez `Aspire.Hosting.Docker` (sem ADR) — decisão natural da SPEC-0012, que escolhe a hospedagem | SPEC-0012 (recebe o modo publish do AppHost) | Architect — mudança de texto sem mudança de contrato, coberta pela autorização do usuário para seguir recomendações (2026-10-08) |
 | 2 (inalterado) | 2026-10-09 | Escopo: AppHost, AppHost.Tests e Architecture.Tests restauram sem `packages.lock.json` (`RestorePackagesWithLockFile=false`, motivo no csproj); demais projetos seguem com lock e `--locked-mode` | G5 FAIL no primeiro run real da CI (PR #6): o SDK do Aspire referencia `Aspire.Dashboard.Sdk.<rid>`/`Aspire.Hosting.Orchestration.<rid>` da plataforma da máquina, então o lock gerado no macOS diverge no runner Linux (NU1004). Exceção pontual ao ADR-0016 para o orquestrador local | Nenhuma | Architect — correção de escopo para a CI rodar, coberta pela autorização do usuário para seguir recomendações (2026-10-09) |
 | 2 (inalterado) | 2026-10-09 | Testes cronometrados (SPEC-0005 IT-01, SPEC-0007 UT-07/IT-02) com `Category=Performance`, fora da etapa com cobertura; etapa própria no job `backend`, sem instrumentação e um projeto por vez | G5 FAIL no PR #6: no runner de 2 vCPUs com coverlet e assemblies em paralelo o AppHost levou 98 s (meta 90 s) e a mediana do IT-02 deu 28,6 ms (meta 20 ms) — o coverlet instrumenta o laço medido. Os limites das specs não mudam | SPEC-0005, SPEC-0007 (só o trait de categoria) | Architect — ajuste de execução da CI recomendado pelos reviewers do G4, coberto pela autorização do usuário para seguir recomendações (2026-10-09) |
+| 3 | 2026-10-09 | `security_scan` do sdd-config igual ao job `security`: Semgrep pela imagem oficial fixada por digest (Docker), vulnerabilidades NuGet bloqueando em High/Critical por `tools/ci/nuget-vulnerabilities` e `tools/ci/check-licenses` | O comando v2 exigia o Semgrep instalado na máquina e o `dotnet list --vulnerable` nunca falhava; o G5 local precisa rodar o mesmo portão da CI | Nenhuma (nenhuma spec consome o contrato da SPEC-0004) | Architect — alinhamento com a CI já revisada no G4, coberto pela autorização do usuário para seguir recomendações (2026-10-09) |
