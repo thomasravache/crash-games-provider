@@ -201,9 +201,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:51.93]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — 7d311ce | 2026-10-09 |
-| G2 Green | PASS | build exit 0 (✓ built in 54ms); test exit 0 (Duration  1.57s (tests 99%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T09:48:10: Report generation took 0,3 seconds) — 40fe12d | 2026-10-09 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  841ms (tests 97%, transform 2%, import 1%)) — 40fe12d | 2026-10-09 |
-| G4 Review | FAIL | Reviewer: CHANGES_REQUESTED na revisão do delta (6a75505) — IT-07 só exercita o líder; leitura coalescida dos seguidores e limite do pool sem teste; leitura compartilhada sem prazo próprio | 2026-10-09 |
+| G2 Green | PASS | build exit 0 (✓ built in 51ms); test exit 0 (Duration  1.15s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T14:08:56: Report generation took 0,3 seconds) — 6ea453a | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  776ms (tests 98%, transform 2%, import 1%)) — 6ea453a | 2026-10-09 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED na revisão do delta em 05565e3 (+ teste de prazo 6ea453a pedido no review) — 0 blocker/major; minor restante: variante de arranque frio coberta pelo caminho do seguidor — 6ea453a | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Duration  1.20s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 2 m 50 s ); test_e2e exit 0 (3 passed (4.3s)); arch_test exit 0 (Duration  772ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 217 files: 0 findings.) — 3285825 | 2026-10-09 |
 | H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
 | G6 Deploy | N/A | Sem ambientes ainda: validação local por decisão do usuário (ADR-0013); deploy entra com a SPEC-0012 (hospedagem e deploy) | 2026-10-09 |
