@@ -39,6 +39,24 @@ public sealed class KeycloakRealm : IAsyncLifetime
             .WithRealm(RealmFile)
             .Build();
         await _container.StartAsync().ConfigureAwait(false);
+
+        // Keycloak requires HTTPS for requests that do not come from a private address; through Docker Desktop's port
+        // forwarding the test process is not seen as one, so the test container (plain HTTP only) drops the requirement
+        // for the master realm and the imported realm, with the admin credentials generated above.
+        const string Kcadm = "/opt/keycloak/bin/kcadm.sh";
+        await ExecAsync([Kcadm, "config", "credentials", "--server", "http://localhost:8080", "--realm", "master", "--user", "admin", "--password", _adminPassword]).ConfigureAwait(false);
+        await ExecAsync([Kcadm, "update", "realms/master", "-s", "sslRequired=NONE"]).ConfigureAwait(false);
+        await ExecAsync([Kcadm, "update", $"realms/{RealmName}", "-s", "sslRequired=NONE"]).ConfigureAwait(false);
+    }
+
+    private async Task ExecAsync(IList<string> command)
+    {
+        var result = await _container!.ExecAsync(command).ConfigureAwait(false);
+        if (result.ExitCode != 0)
+        {
+            // The command line holds the generated admin password: report only the subcommand.
+            throw new InvalidOperationException($"kcadm.sh {command[1]} failed in the Keycloak container (exit {result.ExitCode}): {result.Stderr}");
+        }
     }
 
     /// <summary>An access token of the <c>master</c> realm admin: a real Keycloak token, but from the wrong issuer.</summary>
