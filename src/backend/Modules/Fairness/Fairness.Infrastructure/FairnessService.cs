@@ -118,6 +118,11 @@ internal sealed class FairnessService(
         return new RevealedRound(seed, SeedChain.Next(seed), salt, crashPoint);
     }
 
+#pragma warning disable MA0025 // Scaffold of SPEC-0007 v2 (no logic yet): implemented in the green phase.
+    public Task<CrashPoint> GetCrashPointAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct) =>
+        throw new NotImplementedException();
+#pragma warning restore MA0025
+
     public CrashPoint ComputeCrashPoint(Seed seed, Salt salt, Rtp rtp, Multiplier cap) =>
         CrashPointCalculator.Compute(seed, salt, rtp, cap);
 
