@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0010]
 consumes_contract: [SPEC-0010@1]
 contract_version: 1
-touches: ["src/frontend/packages/scene-kit/**", "src/frontend/apps/game-pipa/src/scene/**", "tests/e2e/pipa-visual/**"]
+touches: ["src/frontend/packages/scene-kit/**", "src/frontend/apps/game-pipa/src/scene/**", "tests/e2e/pipa-visual/**", "tests/frontend/pipa/scene/**", "src/frontend/playwright.config.ts"]
 adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021]
 external: []
 size: M
@@ -173,7 +173,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, CT-01 com a tag `SPEC-0011:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, CT-01 com a tag `SPEC-0011:<ID>`, backend real e Chromium com WebGL no IT, suíte de contrato do `GameAnimator` no CT, e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -248,3 +248,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0011`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-09 | Escopo: `tests/frontend/pipa/scene/**` (UT e CT no Vitest, onde vivem os testes do front) e `src/frontend/playwright.config.ts` (WebGL e imagens de referência dos testes visuais) | Despacho da onda 6: o `touches` não tinha onde colocar os unitários | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
