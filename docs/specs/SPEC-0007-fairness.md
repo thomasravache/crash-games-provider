@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0003]
 consumes_contract: []
-contract_version: 1
+contract_version: 2
 touches: ["src/backend/Modules/Fairness/**", "tests/backend/Modules/Fairness.Tests/**", "tests/vectors/**", ".github/workflows/ci.yml", "tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs"]
 adrs: [ADR-0001, ADR-0006, ADR-0010, ADR-0014]
 external: []
@@ -79,7 +79,10 @@ Task<ChainInfo> CreateChainAsync(SalaId sala, int length, CancellationToken ct);
 Task<RoundSeedCommitment> NextRoundAsync(SalaId sala, CancellationToken ct);
   // (ChainId, RoundIndex, Commitment = SHA256(s_r)); erro ChainExhausted → cria nova cadeia
 Task<RevealedRound> RevealAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct);
-  // (Seed s_r, PreviousSeed s_{r-1}, Salt, CrashPoint); erro RoundNotFound
+  // (Seed s_r, PreviousSeed s_{r-1}, Salt, CrashPoint); erro RoundNotFound; chamado só depois do crash da rodada
+Task<CrashPoint> GetCrashPointAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct);
+  // v2: ponto de crash de uma rodada já emitida, SEM expor a semente (o motor agenda o crash; ADR-0014);
+  // erro RoundNotFound para rodada não emitida; não registra semente nem ponto em log
 CrashPoint ComputeCrashPoint(Seed seed, Salt salt, Rtp rtp, Multiplier cap);   // puro
 VerificationResult Verify(Seed seed, Seed previousSeed, Salt salt, Rtp rtp, Multiplier cap, CrashPoint claimed); // puro
   // Valid | ChainMismatch | CrashPointMismatch
@@ -103,6 +106,7 @@ Vetores (JSON): [{ seed, previousSeed, salt, rtp, cap, crashPoint }]  — hex mi
 | Entrada inválida | RTP 0,85 ou 1,00; limite 0,5; semente 31 bytes | erro de validação correspondente | UT-05 |
 | Distribuição correta | 1.000.000 de rodadas determinísticas | proporção com crash ≥ 2 ≈ RTP/2 (tolerância estatística) | UT-06 |
 | Desempenho do cálculo | 100.000 cálculos | média ≤ 1 ms | UT-07 |
+| Ponto de crash antes do crash (v2) | rodada emitida; rodada não emitida | mesmo `CrashPoint` que o `RevealAsync` posterior, sem semente no retorno nem nos logs; não emitida → `RoundNotFoundException` | IT-07 |
 | Rodadas concorrentes na mesma sala | 20 `NextRoundAsync` em paralelo | índices 1..20 distintos, sem repetir semente | IT-06 |
 | Tamanho de cadeia inválido | `length` < 1 ou > 1.000.000 | `ArgumentOutOfRangeException`, nada persistido | UT-08 |
 | Persistência cifrada | cadeia criada | banco só tem origem cifrada + checkpoints; revelar devolve a semente correta | IT-01 |
@@ -128,6 +132,7 @@ Vetores (JSON): [{ seed, previousSeed, salt, rtp, cap, crashPoint }]  — hex mi
 ### 7.3 Testes de Integração
 - **IT-01** — Dado PostgreSQL real, quando uma cadeia de 50.000 elos é criada, então o banco contém 1 linha de cadeia e só 5 elos cifrados (checkpoints a cada 10.000, `h_0` incluído; `h_50000` é o hash terminal público), e `RevealAsync` da rodada 12.345 devolve a semente que encadeia com a 12.344.
 - **IT-02** — Dado um processo que avança 3 rodadas e é reiniciado, quando `NextRoundAsync` é chamado, então o índice é 4 (sem repetir nem pular semente); e, após aquecimento, a mediana de 15 obtenções da semente a ~10.000 hashes do checkpoint (`RevealAsync` da rodada 4) é ≤ 20 ms, com as amostras na mensagem de falha. Testes cronometrados (IT-02, UT-07) rodam sem paralelismo com os demais.
+- **IT-07** — (v2) Dada uma cadeia de 50 elos com PostgreSQL real e a rodada 3 emitida, quando `GetCrashPointAsync(chain, 3, …)` é chamado, então devolve o mesmo `CrashPoint` que `RevealAsync(chain, 3, …)` devolve depois, nenhum log contém a semente (hex ou base64) e, para a rodada 4 não emitida, lança `RoundNotFoundException`.
 - **IT-06** — Dada uma cadeia de 50 elos, quando 20 chamadas de `NextRoundAsync` para a mesma sala rodam em paralelo, então os índices são exatamente 1..20, sem repetição, e os compromissos são distintos.
 - **IT-03** — Dada a captura de logs ativa, quando cadeia é criada, avançada e revelada, então nenhuma semente não revelada aparece em log.
 - **IT-04** — Dada uma cadeia de 3 elos já consumida, quando `NextRoundAsync`, então lança ChainExhausted.
@@ -249,3 +254,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | v1 (esclarecimento, sem mudança de versão) | 2026-10-08 | Codificação explicitada: HMAC com chave = 32 bytes crus da semente e mensagem = bytes crus do sal decodificado do hex; X = primeiros 52 bits de H em big-endian; vetores em hex minúsculo, `rtp`/`cap`/`crashPoint` como string decimal (2 casas para cap e crash) | O §4 não fixava a codificação do sal; o Test-writer escolheu a leitura de bytes crus, documentada em `tests/vectors/README.md` e reproduzida por gerador Python independente | SPEC-0008, SPEC-0010 (consomem os vetores; mesmo formato de array do §6) | Architect — esclarecimento dentro do contrato v1, coberto pela autorização do usuário para seguir sem paradas (2026-10-08) |
 | v1 (esclarecimento, sem mudança de versão) | 2026-10-08 | IT-02 mede a mediana de 15 obtenções da semente (não uma amostra de `NextRoundAsync`) e testes cronometrados rodam sem paralelismo; novos IT-06 (concorrência na mesma sala) e UT-08 (`length` fora de 1..1.000.000 → `ArgumentOutOfRangeException`); `IFairnessService.RevealAsync` documenta que só se revela após o crash | Review G4: amostra única instável na CI; serialização e limite de N sem teste | SPEC-0008 (deve revelar só após o crash — já previsto na rodada); persistência das chaves do Data Protection no Host vai para a SPEC-0012 | Architect — esclarecimento dentro do contrato v1, coberto pela autorização do usuário para seguir recomendações (2026-10-08) |
 | v1 (inalterado) | 2026-10-09 | Escopo: `.github/workflows/ci.yml` e `tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs` entram em `touches` só pelo commit b709b9d (testes cronometrados com `Category=Performance` numa etapa própria da CI, emenda da SPEC-0004) | pr-check confere cada spec citada no commit contra o próprio `touches` | Nenhuma | Architect — correção de escopo, coberta pela autorização do usuário para seguir recomendações (2026-10-09) |
+| v2 | 2026-10-09 | Novo `GetCrashPointAsync(chain, roundIndex, rtp, cap, ct)`: ponto de crash de rodada emitida sem expor a semente; `RevealAsync` passa a ser chamado só depois do crash; teste IT-07 | SPEC_DEFECT da SPEC-0008 (IMP-01/D1): o motor precisa agendar o crash em `t_c = ln(crash)/k` no início do voo, e o v1 só entregava o ponto junto com a semente (ADR-0014: só a Fairness lê semente não revelada) | SPEC-0008 (pin → @2), SPEC-0010 (vetores inalterados; pin → @2) | Architect — opção que preserva o ADR-0014, pela autorização do usuário para seguir recomendações (thomas, 2026-10-09); a confirmar no resumo da manhã |
