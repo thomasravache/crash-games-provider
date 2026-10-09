@@ -1,7 +1,7 @@
 ---
 id: ADR-0024
 title: Áudio dos jogos com Web Audio nativa e efeitos CC0
-status: proposed
+status: accepted
 origin: decision
 date: 2026-10-09
 pillars: []

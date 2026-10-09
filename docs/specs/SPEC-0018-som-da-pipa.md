@@ -4,7 +4,7 @@ title: "Som da Pipa"
 tier: full
 type: feature
 user_facing: true
-status: proposed
+status: approved
 created: 2026-10-09
 parent: SPEC-0001
 depends_on: [SPEC-0011]
@@ -14,8 +14,8 @@ touches: ["src/frontend/packages/scene-kit/src/audio/**", "src/frontend/apps/gam
 adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021, ADR-0024]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-09
 ---
 
 # SPEC-0018 — Som da Pipa
@@ -155,7 +155,7 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.audio.cueLog() | .state() 
 
 ## 9. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
-- [x] O som começa ligado (após o primeiro toque) ou desligado? — Ligado após o primeiro gesto, com botão de mudo visível e preferência lembrada; recomendação do Architect, aceita pela autorização do usuário para seguir as recomendações (thomas, 2026-10-09) — reavaliar no H1
+- [x] O som começa ligado (após o primeiro toque) ou desligado? — Ligado após o primeiro gesto, com botão de mudo visível e preferência lembrada; recomendação do Architect, aceita pela autorização do usuário para seguir as recomendações (thomas, 2026-10-09) — confirmado no H1 (thomas, 2026-10-09)
 
 ## 10. Aprovação (H1)
 Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado". O arquiteto nunca aprova a própria spec.
