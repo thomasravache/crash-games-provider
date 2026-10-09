@@ -13,6 +13,11 @@ public interface IFairnessService
     Task<RoundSeedCommitment> NextRoundAsync(SalaId sala, CancellationToken ct);
 
     /// <summary>Reveals the seed of an issued round with its crash point. Throws <see cref="RoundNotFoundException"/>.</summary>
+    /// <remarks>
+    /// Callers must reveal a round only after its crash. The service rejects rounds not issued yet, but it does reveal the
+    /// round currently issued (the one still in play), so the consumer that runs the round (SPEC-0008) is responsible for
+    /// calling this method only once the round has crashed.
+    /// </remarks>
     Task<RevealedRound> RevealAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct);
 
     /// <summary>Pure: the crash point of algorithm v1 for the seed, salt, RTP and cap.</summary>

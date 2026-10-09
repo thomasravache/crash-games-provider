@@ -19,9 +19,13 @@ internal sealed class FairnessService(
 {
     private const int SaltLength = 32;
 
+    /// <summary>The largest chain accepted by <see cref="CreateChainAsync"/>: the default N of SPEC-0007 §4.</summary>
+    private const int MaxChainLength = 1_000_000;
+
     public async Task<ChainInfo> CreateChainAsync(SalaId sala, int length, CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(length, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(length, MaxChainLength);
 
         var chainId = new ChainId(Guid.CreateVersion7());
         var salt = new Salt(RandomNumberGenerator.GetBytes(SaltLength));
