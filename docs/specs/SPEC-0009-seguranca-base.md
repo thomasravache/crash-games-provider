@@ -189,7 +189,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 55ms); test exit 0 (Duration  1.17s (tests 98%, transform 1%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T09:29:56: Report generation took 0,2 seconds) — 97cfdb8 | 2026-10-09 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  850ms (tests 98%, transform 1%, import 1%)) — 97cfdb8 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — d5428ae + correção do harness do Keycloak 97cfdb8 (minor do review), 0 blocker/major; minors como pendência: ForwardedHeaders antes do deploy, CloseOnAuthenticationExpiration no hub, frame-ancestors no host do jogo, escopo organization no backoffice, frame-ancestors só https fora de Development — 97cfdb8 | 2026-10-09 |
-| G5 Integração & CI | FAIL | Resultado integrado da onda 4 (aa75cfd): negação por padrão da SPEC-0009 bloqueia hub e REST do Rounds nos testes da SPEC-0008 (7 falhas); IT-05 da SPEC-0009 ainda usa o RoundsHubStandIn em /hubs/rounds, que agora colide com o hub real (3 falhas) | 2026-10-09 |
+| G5 Integração & CI | FAIL | build exit 0 (✓ built in 53ms); test exit 0 (Duration  1.14s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 3 m 47 s ); test_e2e exit 0 (3 passed (4.1s)); arch_test exit 0 (Duration  782ms (tests 98%, transform 2%, import 1%)); security_scan exit 1 (Ran 8 rules on 217 files: 1 finding.) — a297bfe | 2026-10-09 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
