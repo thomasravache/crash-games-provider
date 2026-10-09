@@ -12,7 +12,10 @@ function tierClass(crashPoint: string): string {
   return "text-hud-tier-low bg-hud-tier-low/10 border-hud-tier-low/30";
 }
 
-/** Recent crash points, newest first. Each item holds only the multiplier text. */
+/**
+ * Recent crash points, newest first. Each item holds only the multiplier text. The strip scrolls sideways on narrow
+ * screens, so it takes keyboard focus (WCAG 2.1.1: a scrollable region must be reachable without a pointer).
+ */
 export function HistoryStrip({
   history,
 }: {
@@ -21,7 +24,9 @@ export function HistoryStrip({
   return (
     <ul
       aria-label={hudText.historyLabel}
-      className="flex h-9 min-w-0 items-center gap-2 overflow-x-auto bg-hud-surface px-3"
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- scrollable region: focus is its keyboard access (axe scrollable-region-focusable)
+      tabIndex={0}
+      className="flex h-9 min-w-0 items-center gap-2 overflow-x-auto bg-hud-surface px-3 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-hud-accent"
     >
       {history.map((entry) => (
         <li
