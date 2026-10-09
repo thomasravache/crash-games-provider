@@ -181,8 +181,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/45]⎯) — 90d03d6 | 2026-10-09 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 158ms); test exit 0 (Duration  1.23s (tests 81%, transform 13%, import 5%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T12:13:44: Report generation took 0,3 seconds) — 6dce3a1 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  788ms (tests 97%, transform 2%, import 1%)) — 6dce3a1 | 2026-10-09 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
