@@ -8,7 +8,7 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0005, SPEC-0006]
-consumes_contract: [SPEC-0007@2, SPEC-0008@2, SPEC-0009@1]
+consumes_contract: [SPEC-0007@2, SPEC-0008@3, SPEC-0009@1]
 contract_version: 1
 touches: ["src/frontend/apps/game-pipa/**", "src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/packages/scene-kit/**", "tests/e2e/pipa/**", "tests/frontend/pipa/**", "tests/frontend/integration/pipa/**", "tests/frontend/arch/pipa-*", "src/frontend/package.json", "src/frontend/vitest.workspace.ts", "src/backend/AppHost/Program.cs", "src/backend/Host/Program.cs"]
 adrs: [ADR-0004, ADR-0006, ADR-0008, ADR-0019, ADR-0020]
@@ -39,7 +39,7 @@ Entrega o cliente do jogo Pipa em modo demo de ponta a ponta: o jogador entra pe
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0005 (apps servidos pelo Aspire) e SPEC-0006 (pacote `contracts`).
-- **Contratos consumidos:** SPEC-0007@2 (algoritmo e vetores para o verificador TS); SPEC-0008@2 (hub e REST de rodadas); SPEC-0009@1 (lançamento e sessão).
+- **Contratos consumidos:** SPEC-0007@2 (algoritmo e vetores para o verificador TS); SPEC-0008@3 (hub e REST de rodadas); SPEC-0009@1 (lançamento e sessão).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -114,7 +114,7 @@ Gancho de teste:  window.__APOGEU_TEST__ = { state(): RoundState }  (somente bui
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dado o contrato SPEC-0007@2 (vetores), quando o verificador TS recalcula todos os vetores, então os resultados são idênticos aos do C#.
-- **CT-02** — Dados os tipos gerados do hub (SPEC-0008@2), quando as mensagens reais de IT-01 são validadas em tempo de execução, então conferem.
+- **CT-02** — Dados os tipos gerados do hub (SPEC-0008@3), quando as mensagens reais de IT-01 são validadas em tempo de execução, então conferem.
 - **CT-03** — Dados os tipos gerados de lançamento e sessão (SPEC-0009@1), quando o fluxo de IT-01 roda, então requisições e respostas conferem.
 
 ### 7.5 Testes E2E
@@ -135,7 +135,7 @@ Gancho de teste:  window.__APOGEU_TEST__ = { state(): RoundState }  (somente bui
 - **Estratégia:** merge direto (somente local/demo).
 - **Dados/schema:** N/A
 - **Compatibilidade:** consome contratos v1 das SPEC-0007/0008/0009.
-- **Observabilidade:** erros do cliente registrados no console de desenvolvimento; telemetria de navegador fica para a spec de hospedagem.
+- **Observabilidade:** sem log no console (regra `no-console` do ADR-0012); erros visíveis ao jogador pelas telas de sessão expirada, falha de conexão e "Reconectando…"; telemetria de navegador fica para a spec de hospedagem.
 - **Rollback:** reverter o merge commit.
 - **Etapas de migração/coexistência:** N/A
 
@@ -181,9 +181,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/45]⎯) — 90d03d6 | 2026-10-09 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 158ms); test exit 0 (Duration  1.23s (tests 81%, transform 13%, import 5%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T12:13:44: Report generation took 0,3 seconds) — 6dce3a1 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  788ms (tests 97%, transform 2%, import 1%)) — 6dce3a1 | 2026-10-09 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 6dce3a1 — 0 blocker/major; minors: resposta de verificação sem o tipo gerado, verificador não liga ao compromisso exibido ao vivo (follow-up prioritário), axe em todos os estados do HUD, teste .NET da política CORS, referências ao pin @3 — 6dce3a1 | 2026-10-09 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
@@ -235,5 +235,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0010`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (inalterado) | 2026-10-09 | Pin atualizado para SPEC-0008@3: o REST de rodadas (verificação) exige a sessão do jogador; o cliente envia o Bearer e o auxiliar dos E2E também (6dce3a1) | Emenda v3 da SPEC-0008 (lacuna de contrato encontrada na integração) | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 | v1 (inalterado) | 2026-10-09 | Emenda de escopo: `touches` inclui os testes do front (`tests/frontend/pipa/**`, `tests/frontend/integration/pipa/**`, `tests/frontend/arch/pipa-*`), `src/frontend/package.json`, `src/frontend/vitest.workspace.ts`, `src/backend/AppHost/Program.cs` (URL da API para o jogo) e `src/backend/Host/Program.cs` (CORS para a origem do jogo) | Os testes vivem onde o Vitest e o TestKit esperam; o esqueleto andante só funciona no Aspire com a URL da API injetada no jogo e CORS liberado | Nenhuma (contrato inalterado) | Architect — correção de escopo sem mudança de contrato, coberta pela autorização do usuário para seguir pelo recomendado (2026-10-09) |
 | v1 (inalterado) | 2026-10-09 | Pins revistos: SPEC-0007@2 (só acrescenta `GetCrashPointAsync`; vetores e algoritmo inalterados) e SPEC-0008@2 (`RoundSnapshot.current` definido; `crashPoint`/`revealedSeed` nulos até o crash; erros em ProblemDetails `code`; `rtp`/`growthK` como string decimal) | Emendas v2 das SPEC-0007 e SPEC-0008 | Nenhuma | Architect — revisão de consumidor, pela autorização do usuário (2026-10-09) |
+| v1 (inalterado) | 2026-10-09 | Observabilidade do rollout: sem log no console (regra de lint `no-console`), erros mostrados nas telas do jogo; `@microsoft/signalr` como cliente JS do hub (emenda do ADR-0005) | Relato do Implementer: o texto pedia log no console, proibido pelas regras de código | Nenhuma | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
