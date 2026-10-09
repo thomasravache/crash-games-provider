@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using StackExchange.Redis;
 
 namespace Apogeu.Rounds.Features;
@@ -36,6 +38,10 @@ public static class RoundsModule
         services.AddSingleton<SalaCatalog>();
         services.AddMetrics();
         services.AddSingleton<RoundsMetrics>();
+
+        // The module's meter and activity source reach the Host's OpenTelemetry pipeline (ADR-0017, SPEC-0008 §8).
+        services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter(RoundsMetrics.MeterName));
+        services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddSource(RoundsMetrics.MeterName));
 
         services.AddRoundsInfrastructure(provider =>
             provider.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionName)

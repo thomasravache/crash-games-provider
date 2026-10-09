@@ -117,8 +117,9 @@ internal sealed class RoundsLeadershipService(
         RoundsLog.LeadershipAcquired(_logger, sala.Id);
 
         using var term = CancellationTokenSource.CreateLinkedTokenSource(stopping);
-        var renewing = RenewAsync(sala.Id, db, acquiredAt, term.Token);
-        var conducting = ConductAsync(sala, lastSeen, term.Token);
+        var lease = new LeaderLease(LeaseEnd(acquiredAt), time, term);
+        var renewing = RenewAsync(sala.Id, db, lease, term.Token);
+        var conducting = ConductAsync(sala, lastSeen, lease, term.Token);
 
         // A plain array: a params span would make the compiler emit a global-namespace inline-array helper type.
         Task[] tasks = [renewing, conducting];
@@ -143,9 +144,8 @@ internal sealed class RoundsLeadershipService(
     /// Renews the lock every second; returns when it is lost, when the lease runs out without a renewal answering in time,
     /// or when the term ends.
     /// </summary>
-    private async Task RenewAsync(string salaId, IDatabase db, DateTimeOffset acquiredAt, CancellationToken term)
+    private async Task RenewAsync(string salaId, IDatabase db, LeaderLease lease, CancellationToken term)
     {
-        var renewedAt = acquiredAt;
         while (!term.IsCancellationRequested)
         {
             if (!await DelayAsync(RenewInterval, term).ConfigureAwait(false))
@@ -154,7 +154,7 @@ internal sealed class RoundsLeadershipService(
             }
 
             var now = time.GetUtcNow();
-            var remaining = LeaseEnd(renewedAt) - now;
+            var remaining = lease.End - now;
             if (remaining <= TimeSpan.Zero)
             {
                 return;
@@ -174,7 +174,7 @@ internal sealed class RoundsLeadershipService(
                     return;
                 }
 
-                renewedAt = now;
+                lease.Extend(LeaseEnd(now));
             }
             catch (OperationCanceledException) when (term.IsCancellationRequested)
             {
@@ -185,7 +185,7 @@ internal sealed class RoundsLeadershipService(
                 RoundsLog.LeadershipUnavailable(_logger, salaId, exception);
 
                 // Without a renewal the lock expires: stop before another instance can take it.
-                if (time.GetUtcNow() >= LeaseEnd(renewedAt))
+                if (time.GetUtcNow() >= lease.End)
                 {
                     return;
                 }
@@ -200,8 +200,10 @@ internal sealed class RoundsLeadershipService(
     private static DateTimeOffset LeaseEnd(DateTimeOffset renewedAt) => renewedAt + LockTtl - RenewInterval;
 
     /// <summary>Runs the conductor of the room until the term ends; a failed conductor resumes from the store.</summary>
-    private async Task ConductAsync(SalaConfig sala, DateTimeOffset? lastSeen, CancellationToken term)
+    private async Task ConductAsync(SalaConfig sala, DateTimeOffset? lastSeen, LeaderLease lease, CancellationToken term)
     {
+        // Every message of the term is fenced by its lease.
+        var fenced = lease.Fence(broadcaster);
         while (!term.IsCancellationRequested)
         {
             var scope = scopes.CreateAsyncScope();
@@ -212,7 +214,7 @@ internal sealed class RoundsLeadershipService(
                     sala,
                     services.GetRequiredService<IFairnessService>(),
                     services.GetRequiredService<IRoundStore>(),
-                    broadcaster,
+                    fenced,
                     metrics,
                     time,
                     loggers.CreateLogger<SalaConductor>(),
@@ -222,6 +224,7 @@ internal sealed class RoundsLeadershipService(
                 {
                     while (true)
                     {
+                        lease.Ensure();
                         var next = await conductor.StepAsync(term).ConfigureAwait(false);
                         var wait = next - time.GetUtcNow();
                         if (wait > TimeSpan.Zero && !await DelayAsync(wait, term).ConfigureAwait(false))

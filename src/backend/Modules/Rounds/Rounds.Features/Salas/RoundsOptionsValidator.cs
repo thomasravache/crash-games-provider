@@ -31,6 +31,17 @@ internal sealed class RoundsOptionsValidator : IValidateOptions<RoundsOptions>
                 failures.Add($"{key}:Cap must be at least 1.00.");
             }
 
+            // Published with 2 decimal places (SPEC-0008 §6): more places would diverge from the crash points computed.
+            if (decimal.Round(sala.Rtp, 2) != sala.Rtp)
+            {
+                failures.Add($"{key}:Rtp must have at most 2 decimal places.");
+            }
+
+            if (decimal.Round(sala.Cap, 2) != sala.Cap)
+            {
+                failures.Add($"{key}:Cap must have at most 2 decimal places.");
+            }
+
             if (!double.IsFinite(sala.GrowthK) || sala.GrowthK <= 0)
             {
                 failures.Add($"{key}:GrowthK must be a positive number.");

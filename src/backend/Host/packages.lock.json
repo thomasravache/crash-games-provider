@@ -275,6 +275,7 @@
           "Apogeu.Rounds.Infrastructure": "[1.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.12, )",
           "Microsoft.AspNetCore.SignalR.StackExchangeRedis": "[10.0.12, )",
+          "OpenTelemetry.Extensions.Hosting": "[1.19.1, )",
           "StackExchange.Redis": "[3.3.1, )"
         }
       },
