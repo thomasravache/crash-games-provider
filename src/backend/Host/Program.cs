@@ -1,6 +1,7 @@
 using Apogeu.Backoffice.Features;
 using Apogeu.Betting.Features;
 using Apogeu.Fairness.Features;
+using Apogeu.Host.OpenApi;
 using Apogeu.Operators.Features;
 using Apogeu.Rounds.Features;
 using Apogeu.ServiceDefaults;
@@ -8,11 +9,17 @@ using Apogeu.Wallet.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Build-time OpenAPI generation starts the Host without deployment configuration (no-op in a real run).
+builder.UseBuildTimeDocumentConfiguration();
+
 // ADR-0003/ADR-0017: OpenTelemetry, health checks and resilience; the connection strings are required at startup
 // (validated without connecting) and each dependency shows up in /health.
 builder.AddServiceDefaults();
 builder.AddPostgresDependency(connectionName: "apogeu", healthCheckName: "postgres");
 builder.AddRedisDependency(connectionName: "redis", healthCheckName: "redis");
+
+// ADR-0008: contract JSON conventions on the HTTP APIs and the OpenAPI document the TypeScript contracts come from.
+builder.Services.AddContractOpenApi();
 
 builder.Services.AddBackofficeModule();
 builder.Services.AddBettingModule();
@@ -24,6 +31,7 @@ builder.Services.AddWalletModule();
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
+app.MapContractOpenApi();
 
 app.MapBackofficeEndpoints();
 app.MapBettingEndpoints();
