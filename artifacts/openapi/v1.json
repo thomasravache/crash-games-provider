@@ -24,6 +24,118 @@
           }
         }
       }
+    },
+    "/api/v1/salas/{salaId}/rounds": {
+      "get": {
+        "tags": [
+          "Rounds"
+        ],
+        "operationId": "GetSalaRounds",
+        "parameters": [
+          {
+            "name": "salaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoundHistoryItem"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rounds/{roundId}/verification": {
+      "get": {
+        "tags": [
+          "Rounds"
+        ],
+        "operationId": "GetRoundVerification",
+        "parameters": [
+          {
+            "name": "roundId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoundVerificationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -43,12 +155,117 @@
             "format": "date-time"
           }
         }
+      },
+      "Multiplier": {
+        "pattern": "^-?\\d+\\.\\d{2,}$",
+        "type": "string",
+        "format": "multiplier"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RoundHistoryItem": {
+        "required": [
+          "roundId",
+          "roundNumber",
+          "crashPoint",
+          "crashedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "roundId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roundNumber": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "crashPoint": {
+            "$ref": "#/components/schemas/Multiplier"
+          },
+          "crashedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RoundVerificationResponse": {
+        "required": [
+          "seed",
+          "previousSeed",
+          "salt",
+          "rtp",
+          "cap",
+          "crashPoint",
+          "terminalHash"
+        ],
+        "type": "object",
+        "properties": {
+          "seed": {
+            "type": "string"
+          },
+          "previousSeed": {
+            "type": "string"
+          },
+          "salt": {
+            "type": "string"
+          },
+          "rtp": {
+            "type": "string"
+          },
+          "cap": {
+            "$ref": "#/components/schemas/Multiplier"
+          },
+          "crashPoint": {
+            "$ref": "#/components/schemas/Multiplier"
+          },
+          "terminalHash": {
+            "type": "string"
+          }
+        }
       }
     }
   },
   "tags": [
     {
       "name": "Meta"
+    },
+    {
+      "name": "Rounds"
     }
   ]
 }

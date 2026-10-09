@@ -5,6 +5,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Leader lock per room and SignalR backplane in Redis (ADR-0005, ADR-0010). -->
+    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Rounds.Contracts/Rounds.Contracts.csproj" />
     <ProjectReference Include="../Rounds.Domain/Rounds.Domain.csproj" />
     <ProjectReference Include="../Rounds.Infrastructure/Rounds.Infrastructure.csproj" />
