@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0010, SPEC-0024]
 consumes_contract: [SPEC-0020@1, SPEC-0021@2, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1]
-contract_version: 2
+contract_version: 3
 touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021]
 external: []
@@ -30,6 +30,7 @@ Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com val
 - `game-sdk`: cliente do hub `/hubs/bets` e da API de carteira/histórico, store das apostas e do saldo (servidor como fonte da verdade; valores sempre como `Money` em string).
 - `game-ui`: dois painéis conforme o design "Pipa Crash" do Stitch, com estados por fase, validação local pelos limites (o servidor decide), mensagens de erro em pt-BR, saldo e recarga (abas de apostas: SPEC-0031).
 - Integração no HUD do `game-pipa`, substituindo o painel desabilitado da SPEC-0010.
+- No crash, o texto "PIPA CORTADA!" do HUD treme por ≤ 300 ms (exceto com movimento reduzido) — vindo da SPEC-0011 (Emenda v3).
 - Acessibilidade WCAG 2.2 AA no painel (rótulos, foco, anúncios `aria-live` de aposta aceita, retirada e perda).
 
 **Não-objetivos (fora do escopo):**
@@ -90,6 +91,7 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 | Reconexão | conexão volta | saldo e apostas relidos do servidor | UT-03 |
 | Formatação de dinheiro | "2990.5", "24.70" | "R$ 2.990,50", "R$ 24,70"; envio como string, sem float | UT-04 |
 | Mensagens de erro | cada código do contrato | mensagem pt-BR correspondente | UT-05 |
+| Tremor do texto no crash | RoundCrashed; movimento normal e reduzido | "PIPA CORTADA!" treme ≤ 300 ms; sem tremor com movimento reduzido | UT-07 |
 | Recarga | saldo abaixo/acima do mínimo | botão visível/oculto; recarga atualiza saldo | UT-06 |
 | SDK de apostas contra servidor real | backend do Aspire | aposta, retira, saldo atualizado | IT-01 |
 | Tipos do hub e REST | mensagens reais | conferem com os tipos gerados | CT-01 |
@@ -110,6 +112,7 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 - **UT-04** — Dados "2990.5" e "24.70", quando formatados e enviados, então aparecem como "R$ 2.990,50" e "R$ 24,70" e trafegam como string, sem `Number`.
 - **UT-05** — Dado cada código de erro do contrato, quando recebido, então a mensagem pt-BR correspondente aparece no painel.
 - **UT-06** — Dado saldo 0,50 com mínimo 1,00 e depois saldo 10,00, quando o painel renderiza, então "Recarregar demo" aparece e some; a recarga atualiza o saldo.
+- **UT-07** — Dado o HUD em voo, quando chega RoundCrashed, então o texto "PIPA CORTADA!" recebe a animação de tremor de ≤ 300 ms; com `prefers-reduced-motion: reduce`, não treme.
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dado o backend real do Aspire, quando o `game-sdk` (Node) aposta 10,00, retira no voo e relê o saldo, então recebe BetAccepted e CashedOut e o saldo é 3.000 − 10 + pagamento.
@@ -154,7 +157,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06 com a tag `SPEC-0026:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07 com a tag `SPEC-0026:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar, seguindo os ADRs
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
@@ -235,4 +238,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0026`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v3 | 2026-10-09 | Tremor do texto "PIPA CORTADA!" no HUD no crash (≤ 300 ms, sem tremor com movimento reduzido), com UT-07 | Saiu do escopo da SPEC-0011 (texto pertence ao HUD) | Nenhuma | thomas, 2026-10-09 (chat: "ok nas 3") |
 | v2 | 2026-10-09 | As abas "Todas as apostas" e "Minhas apostas" saem do escopo (vão para a SPEC-0031); IT-01, CT-01, E2E-01 e E2E-02 deixam de verificar o histórico; `depends_on` passa a incluir a SPEC-0024, cujos cash-out e liquidação reais os E2E exigem | Jogar com apostas uma onda antes: sem o histórico da SPEC-0025, o painel roda na mesma onda que ela | SPEC-0031 (nova); nenhuma outra (consome SPEC-0025@1 só para a releitura na reconexão, com dublês) | thomas (2026-10-09) |
