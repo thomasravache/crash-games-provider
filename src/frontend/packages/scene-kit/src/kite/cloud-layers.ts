@@ -2,7 +2,6 @@
 // camera; no parallax with the reduced MotionProfile.
 
 import type { MotionProfile } from "./motion-profile";
-import { notImplemented } from "./not-implemented";
 
 export interface CloudLayerState {
   /** Parallax factor of the layer relative to the camera (0 = no parallax). */
@@ -11,11 +10,23 @@ export interface CloudLayerState {
   readonly offsetY: number;
 }
 
+/** Parallax of the far, middle and near layers. */
+const parallaxFactors: readonly number[] = [0.35, 0.65, 1.1];
+
+/** Screen height the offsets are computed for when the renderer does not give one, px. */
+const referenceScreenHeight = 844;
+
 /** The three layers at the camera altitude (screens) and scene time. */
 export function cloudLayers(
   altitude: number,
   timeMs: number,
   profile: MotionProfile,
+  screenHeight = referenceScreenHeight,
 ): readonly CloudLayerState[] {
-  return notImplemented(altitude, timeMs, profile);
+  return parallaxFactors.map((factor, index) => {
+    if (profile === "reduced") return { parallax: 0, offsetY: 0 };
+    // A slow vertical breathing keeps the far layers alive while the camera stands still.
+    const drift = Math.sin(timeMs / (9_000 + 2_000 * index)) * 4;
+    return { parallax: factor, offsetY: altitude * screenHeight * factor + drift };
+  });
 }

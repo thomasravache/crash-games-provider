@@ -2,7 +2,6 @@
 // filters, pixel density ≤ 2), and the log of the effects the scene played (read by the tests through the test hook).
 
 import type { TransitionKind, TransitionStyle } from "./timeline";
-import { notImplemented } from "./not-implemented";
 
 /** An effect the scene started, at `atMs` of the scene clock. */
 export type EffectEntry =
@@ -35,7 +34,13 @@ export type EffectEntry =
 
 export type EffectName = EffectEntry["name"];
 
+/** Ceilings of SPEC-0011 §5 (ADR-0019, ADR-0021). */
+export const maxParticles = 300;
+export const maxActiveFilters = 3;
+export const maxResolution = 2;
+
 /** Resolution the renderer uses for the device pixel ratio (never above 2). */
 export function sceneResolution(devicePixelRatio: number): number {
-  return notImplemented(devicePixelRatio);
+  if (!(devicePixelRatio > 0)) return 1;
+  return Math.min(maxResolution, devicePixelRatio);
 }

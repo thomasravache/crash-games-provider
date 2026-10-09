@@ -4,7 +4,6 @@
 // 300 ms crossfades.
 
 import type { MotionProfile } from "./motion-profile";
-import { notImplemented } from "./not-implemented";
 
 export type CrashStepName = "snap" | "flash" | "shake" | "tumble" | "fade";
 
@@ -30,11 +29,41 @@ export interface Transition {
   readonly ease: string;
 }
 
+/** Red flash of the crash: rgba(239, 68, 68, 0.25) of the design, at most 25% opaque (WCAG 2.3.1). */
+export const crashFlashOpacity = 0.25;
+/** Screen shake of the crash, px. */
+export const crashShakePx = 8;
+/** Crossfade of every transition with the reduced MotionProfile, ms. */
+export const crossfadeMs = 300;
+
+const fullCrash: readonly CrashStep[] = [
+  { name: "snap", startMs: 0, endMs: 0, intensity: 1 },
+  { name: "flash", startMs: 0, endMs: 120, intensity: crashFlashOpacity },
+  { name: "shake", startMs: 0, endMs: 300, intensity: crashShakePx },
+  { name: "tumble", startMs: 300, endMs: 1_800, intensity: 1 },
+  { name: "fade", startMs: 1_800, endMs: 2_300, intensity: 1 },
+];
+
+// Reduced: the line is cut and the kite crossfades out; no flash, shake nor tumble.
+const reducedCrash: readonly CrashStep[] = [
+  { name: "snap", startMs: 0, endMs: 0, intensity: 1 },
+  { name: "fade", startMs: 0, endMs: crossfadeMs, intensity: 1 },
+];
+
 /** The crash script, in order. */
 export function crashTimeline(profile: MotionProfile): readonly CrashStep[] {
-  return notImplemented(profile);
+  return profile === "reduced" ? reducedCrash : fullCrash;
+}
+
+/** Time after crash() when the crash script is over, ms. */
+export function crashScriptEndMs(profile: MotionProfile): number {
+  return Math.max(...crashTimeline(profile).map((step) => step.endMs));
 }
 
 export function phaseTransition(kind: TransitionKind, profile: MotionProfile): Transition {
-  return notImplemented(kind, profile);
+  if (profile === "reduced")
+    return { kind, style: "crossfade", durationMs: crossfadeMs, ease: "none" };
+  return kind === "takeoff"
+    ? { kind, style: "tween", durationMs: 600, ease: "power3.out" }
+    : { kind, style: "tween", durationMs: 600, ease: "sine.inOut" };
 }

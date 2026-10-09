@@ -1,8 +1,6 @@
 // Hidden tab (SPEC-0011 §5, ADR-0021): the scene pauses while the document is hidden and, when it is visible again,
 // goes straight to the current state without replaying the animations it missed.
 
-import { notImplemented } from "./not-implemented";
-
 export interface VisibilitySource {
   readonly visibilityState: DocumentVisibilityState;
   addEventListener(type: "visibilitychange", listener: () => void): void;
@@ -25,5 +23,22 @@ export function pauseWhenHidden(
   ticker: PausableTicker,
   scene: Pausable,
 ): () => void {
-  return notImplemented(source, ticker, scene);
+  let hidden = false;
+  const sync = (): void => {
+    const nowHidden = source.visibilityState === "hidden";
+    if (nowHidden === hidden) return;
+    hidden = nowHidden;
+    if (hidden) {
+      ticker.stop();
+      scene.pause();
+    } else {
+      scene.resume();
+      ticker.start();
+    }
+  };
+  source.addEventListener("visibilitychange", sync);
+  sync();
+  return () => {
+    source.removeEventListener("visibilitychange", sync);
+  };
 }
