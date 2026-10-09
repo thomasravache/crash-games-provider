@@ -9,7 +9,7 @@ created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
 consumes_contract: []
-touches: ["tests/Directory.Build.props", "tests/**/packages.lock.json", "tools/contracts/HubContracts/packages.lock.json", "tests/backend/Contracts.Tests/**", "tests/ci/**", "tools/contracts/**", ".semgrepignore", "src/frontend/eslint.config.js", "src/frontend/package.json", ".github/workflows/ci.yml"]
+touches: ["tests/Directory.Build.props", "tests/**/packages.lock.json", "tools/contracts/HubContracts/packages.lock.json", "tests/backend/Contracts.Tests/**", "tests/ci/**", "tools/contracts/**", ".semgrepignore", "src/frontend/eslint.config.js", "src/frontend/package.json", ".github/workflows/ci.yml", ".github/workflows/nightly.yml", "stryker-config.json"]
 adrs: [ADR-0008, ADR-0011]
 external: []
 size: S
@@ -42,6 +42,7 @@ Coleção xUnit única sem paralelismo (ou fixture compartilhada) para os testes
 - **UT-01** — Dado um workflow com `pull_request_target` ou `permissions: write-all`, quando `tools/ci/check-workflows` roda, então falha (novos casos do UT-01); dado um hub de fixture com método de cliente recebendo objeto com `Money`, `Multiplier`, data e enum, quando o contrato é gerado, então o TS tem `{ stake: Money; cashout: Multiplier; startedAt: string; phase: "betting" | "inFlight" }`.
 - **UT-02** — Dado `.github/workflows/ci.yml`, quando o job `backend` é lido, então tem as etapas unitários+arquitetura, integração e performance nessa ordem, cada uma com o filtro do §3, e a união dos filtros cobre todo teste fora de `Nightly` e `CiLive` (nenhum teste fica sem etapa).
 - **UT-03** — Dados todos os projetos de teste da solução (`IsTestProject=true`), quando suas referências de pacote são avaliadas, então todos têm `coverlet.collector`; e dado o comando `coverage` do sdd-config, quando roda, então a saída não contém "Unable to find a datacollector" e o relatório inclui os assemblies cobertos por Contracts.Tests, ServiceDefaults.Tests e AppHost.Tests.
+- **UT-04** — Dados `stryker-config.json` e `.github/workflows/nightly.yml`, quando lidos, então a concorrência do Stryker é 1 na configuração, a variável `STRYKER_MUTANT_ID_CONTROL_VAR` é definida no job `mutation` (não dentro do teste) e o job publica o relatório HTML do Stryker como artefato.
 - Integração/E2E: N/A — mudanças de harness e CI cobertas pelos unitários e pelo próximo PR.
 
 ## 5. Questões em Aberto
@@ -55,7 +56,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-09). -->
 
 **Fase 1: Regressão**
-- [ ] Red: escrever UT-01 com a tag `SPEC-0017:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0017:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: corrigir a causa seguindo o padrão existente
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -118,5 +119,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 | 2026-10-09 | Escopo: minors do review (G4) da SPEC-0016 — concorrência 1 verificada estaticamente, variável de controle do Stryker no job e não no teste, relatório HTML no artefato do nightly — com UT-04; `touches` inclui `nightly.yml` e `stryker-config.json` | Fechamento (G7) da SPEC-0016: pendências do review sem spec | SPEC-0016 (pendências) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09); a confirmar no resumo |
 | 1 | 2026-10-09 | Escopo: job `backend` em etapas (unitários+arquitetura → integração → performance) num único job, com UT-02 | Feedback mais rápido e falhas legíveis sem gastar minutos extras (pergunta do usuário sobre a CI do backend) | Nenhuma | thomas, 2026-10-09 (chat) |
 | 1 | 2026-10-09 | Escopo: `coverlet.collector` para todo projeto de teste via `tests/Directory.Build.props`, com UT-03 | Projetos sem o coletor não mediam cobertura (aviso "Unable to find a datacollector"), deixando o G2 subestimado no Contracts, ServiceDefaults e AppHost | Nenhuma | thomas, 2026-10-09 (chat) |

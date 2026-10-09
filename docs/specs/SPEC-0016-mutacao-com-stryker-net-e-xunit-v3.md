@@ -54,16 +54,16 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-09). -->
 
 **Fase 1: Regressão**
-- [ ] Red: escrever UT-01 com a tag `SPEC-0016:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: corrigir a causa seguindo o padrão existente
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever UT-01 com a tag `SPEC-0016:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: corrigir a causa seguindo o padrão existente
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -89,30 +89,38 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
 
 ### O que foi entregue
+O teste de mutação do `Fairness.Domain` voltou a funcionar e a medir: o Stryker.NET 5 roda com xUnit v3, o score real é 91,89% (meta 85%) e o job `mutation` do nightly falha se cair abaixo da meta.
 
 ### Como foi feito
+O runner do Stryker passou a usar o modo VSTest do xUnit v3 com a variável de controle de mutante (`STRYKER_MUTANT_ID_CONTROL_VAR`), e o teste `Category=Mutation` em `tests/ci/Ci.Tests` executa o Stryker e lê o relatório JSON. Emenda 1: escopo (`tests/ci/**`, `nightly.yml`), Stryker uma vez por noite. Emenda 2 (IMP-01): mutantes `Ignored` pelo filtro de bloco não contam, e o score inicial de 37,84% foi corrigido com testes unitários novos do domínio em `Fairness.Tests/Mutation/` (guardas e cadeia de sementes), mantendo a meta de 85%.
 
 ### Prova de Correção
 <!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+- **Antes:** o UT-01 falhou nos commits red b4a8ce4/aa62e89 — primeiro o runner incompatível com xUnit v3, depois, já rodando, "The final mutation score is 37.84 %" abaixo do limite de 85%.
+- **Depois:** correção em e39a949 (fix) e testes do UT-02 em 30fc52f; no código integrado (1868480, após o merge 0a33c92) `dotnet test tests/ci/Ci.Tests --filter Category=Mutation` passou: "The final mutation score is 91.89 %" (74 mutantes testados, 18 ignorados pelo filtro de bloco), 9,3 min.
 
 ### Verificação
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Stryker em Fairness.Domain com score ≥ 85% (Ignored fora do score) | PASS | local em 1868480: score 91,89%, Passed 1; G2 a75c4df; CI 37971276684 |
+| UT-02 | testes unitários das guardas e da cadeia do Fairness.Domain | PASS | CI 37971276684 (PR #20); G5 local 7392d3f |
 
 ### Definição de Pronto
-- [ ] Teste de regressão falhou antes e passa depois da correção
-- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão existente mantido
-- [ ] Disponível no ambiente-alvo via pipeline (G6)
-- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
-- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Teste de regressão falhou antes e passa depois da correção — UT-01 vermelho em b4a8ce4/aa62e89 (37,84%), verde em 1868480 (91,89%)
+- [x] Suíte completa, arquitetura e CI verdes (G2, G3, G5) — G2 a75c4df, G3, G5 7392d3f e CI 37971276684 verdes
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão existente mantido
+- [x] Disponível no ambiente-alvo via pipeline (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A)
+- [x] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [x] Outras ocorrências registradas como novas specs (ou nenhuma) — minors do review na SPEC-0017
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks sem achados (CI 37971276684)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; sem supressões novas
 
 ### Deploy
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado na `main` pelo PR #20 (merge 0a33c92); roda no nightly às 03:00 UTC.
 
 ### Pendências
+Minors do review (G4) incluídos na SPEC-0017 (Emenda de escopo, UT-04), que ainda não começou: variável do Stryker definida dentro do teste, concorrência 1 sem teste estático, relatório HTML no artefato do nightly.
 
 ## 11. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
