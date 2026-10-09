@@ -57,7 +57,9 @@ internal sealed class OperatorSignatureAuthenticationHandler(
             return Reject(code, key.Id);
         }
 
-        Context.Features.Set(new OperatorSignedBody(body, signature));
+        // Hex is case-insensitive, so the same signature has several spellings: the replay check must see one canonical
+        // form (lowercase hex of the verified bytes), or re-sending it in another case would bypass it.
+        Context.Features.Set(new OperatorSignedBody(body, Convert.ToHexStringLower(Convert.FromHexString(signature))));
         var identity = new ClaimsIdentity(
             [
                 new Claim(OperatorsAuthentication.OperatorClaim, key.OperatorId),
