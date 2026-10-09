@@ -16,4 +16,7 @@ internal static partial class FairnessLog
 
     [LoggerMessage(EventId = 4, Level = LogLevel.Information, Message = "Round {RoundIndex} of seed chain {ChainId} revealed")]
     public static partial void RoundRevealed(ILogger logger, int roundIndex, Guid chainId);
+
+    [LoggerMessage(EventId = 5, Level = LogLevel.Information, Message = "Crash point of round {RoundIndex} of seed chain {ChainId} computed")]
+    public static partial void CrashPointRead(ILogger logger, int roundIndex, Guid chainId);
 }
