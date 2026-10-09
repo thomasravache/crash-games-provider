@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0003, SPEC-0005]
 consumes_contract: [SPEC-0007@2]
 contract_version: 2
-touches: ["src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "tests/load/rounds/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "Directory.Packages.props"]
+touches: ["src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "tests/load/rounds/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "Directory.Packages.props", "tools/contracts/frontend-modules.mjs"]
 adrs: [ADR-0001, ADR-0005, ADR-0010, ADR-0017, ADR-0018, ADR-0019]
 external: []
 size: M
@@ -254,3 +254,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
 | v2 | 2026-10-09 | (D1) ponto de crash via `GetCrashPointAsync` da SPEC-0007@2, só em memória até o crash; `RevealAsync` só depois; (D2) UT-02 corrigido com a regra `t ≥ t_c ⇒ m = crash`; (D3) `touches` com os contratos gerados e `Directory.Packages.props`; (D4) `RoundSnapshot.current`, tipos de `rtp`/`growthK`, id da sala (texto + UUID v5) e erros (ProblemDetails `code`) definidos; (D5) cliente `Microsoft.AspNetCore.SignalR.Client` só nos testes (emenda do ADR-0005); (D6) carga por imagem k6 após a SPEC-0009 | IMP-01 (SPEC_DEFECT do Test-writer, 2026-10-09) | SPEC-0010 (pin → SPEC-0008@2, SPEC-0007@2) | Architect — recomendações aplicadas pela autorização do usuário (thomas, 2026-10-09); a confirmar no resumo da manhã |
+| v2 (inalterado) | 2026-10-09 | Escopo: `tools/contracts/frontend-modules.mjs` — `formatTypeScript` roda o Prettier até a saída estabilizar (uma passada não é idempotente para assinaturas longas do hub); a regressão é o IT-02 da SPEC-0006 (`contracts:check` no estado versionado), que falha no scaffold desta spec | D7 do Test-writer: o contrato gerado não satisfazia ao mesmo tempo `contracts:check` e `format:check` | SPEC-0006 (só a correção do gerador; contrato inalterado) | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
