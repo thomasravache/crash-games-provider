@@ -4,7 +4,7 @@ title: "Pipa demo: esqueleto andante do cliente"
 tier: full
 type: foundation
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0005, SPEC-0006]
