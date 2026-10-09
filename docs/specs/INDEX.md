@@ -121,7 +121,7 @@ flowchart LR
   S0005 --> S0010
   S0006 --> S0010
   S0007 -. contrato v2 .-> S0010
-  S0008 -. contrato v2 .-> S0010
+  S0008 -. contrato v3 .-> S0010
   S0009 -. contrato v1 .-> S0010
   S0010 --> S0011
   S0010 -. contrato v1 .-> S0011
@@ -170,7 +170,7 @@ flowchart LR
 | [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
 | [SPEC-0008](SPEC-0008-motor-rodada.md) | Motor de rodada e salas em tempo real | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | SPEC-0007@2 |
 | [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
-| [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@2, SPEC-0008@2, SPEC-0009@1 |
+| [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@2, SPEC-0008@3, SPEC-0009@1 |
 | [SPEC-0011](SPEC-0011-animacao-pipa.md) | Animação da cena da Pipa | full | feature | approved | 2026-10-07 | SPEC-0001 | SPEC-0010 | SPEC-0010@1 |
 | [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
 | [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | proposed | 2026-10-08 | — | — | — |

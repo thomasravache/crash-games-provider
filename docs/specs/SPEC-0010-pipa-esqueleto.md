@@ -8,7 +8,7 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0005, SPEC-0006]
-consumes_contract: [SPEC-0007@2, SPEC-0008@2, SPEC-0009@1]
+consumes_contract: [SPEC-0007@2, SPEC-0008@3, SPEC-0009@1]
 contract_version: 1
 touches: ["src/frontend/apps/game-pipa/**", "src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/packages/scene-kit/**", "tests/e2e/pipa/**", "tests/frontend/pipa/**", "tests/frontend/integration/pipa/**", "tests/frontend/arch/pipa-*", "src/frontend/package.json", "src/frontend/vitest.workspace.ts", "src/backend/AppHost/Program.cs", "src/backend/Host/Program.cs"]
 adrs: [ADR-0004, ADR-0006, ADR-0008, ADR-0019, ADR-0020]
