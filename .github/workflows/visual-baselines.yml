@@ -1,0 +1,84 @@
+# Reference images of the visual regression of the Pipa scene (SPEC-0011 E2E-01, ADR-0021). They must come from the
+# same Linux runner as the `ci / e2e` job (fonts and rendering differ on other systems), so this workflow runs the
+# pipa-visual suite there with `--update-snapshots=missing` and publishes the images as the artifact
+# "pipa-visual-baselines". The user approves them and the Architect commits them; nothing is pushed from here.
+# Same setup as the `e2e` job of ci.yml; every action is pinned by full commit SHA (tools/ci/check-workflows).
+name: visual-baselines
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["sdd/**"]
+    paths:
+      - tests/e2e/pipa-visual/**
+      - src/frontend/packages/scene-kit/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-baselines-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  pipa-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: src/frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - name: Install
+        run: pnpm -C src/frontend install --frozen-lockfile
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm -C src/frontend exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install browsers (Chromium, WebKit, Firefox)
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm -C src/frontend exec playwright install --with-deps chromium webkit firefox
+      - name: Install browser system dependencies
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm -C src/frontend exec playwright install-deps chromium webkit firefox
+      - name: Scene E2E writing the missing reference images (against the Aspire AppHost)
+        run: tools/ci/run-e2e.sh pipa-visual --project=chromium --update-snapshots=missing
+      - name: Upload reference images
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pipa-visual-baselines
+          path: tests/e2e/pipa-visual/__screenshots__/
+          retention-days: 7
+          if-no-files-found: warn
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pipa-visual-traces
+          path: artifacts/e2e
+          retention-days: 3
+          if-no-files-found: ignore
