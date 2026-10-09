@@ -132,9 +132,32 @@ export async function hudMultiplier(page: Page): Promise<number> {
   return shownMultiplier(await page.getByTestId(testId.multiplier).innerText());
 }
 
-/** Crash point the server persisted for a finished round (GET /api/v1/rounds/{roundId}/verification, SPEC-0008@2). */
+let cachedSession: { readonly token: string; readonly expiresAtMs: number } | undefined;
+
+/**
+ * A player session token obtained the way a client does (SPEC-0009): GET /dev/launch-demo → `lt` of the launch URL →
+ * POST /api/v1/sessions {launchToken}. Cached for the worker while it is valid for at least another minute.
+ */
+export async function playerSessionToken(request: APIRequestContext): Promise<string> {
+  if (cachedSession !== undefined && cachedSession.expiresAtMs - Date.now() > 60_000) return cachedSession.token;
+  const launchToken = new URL(await newLaunchUrl(request)).searchParams.get("lt") ?? "";
+  const response = await request.post(`${apiBaseUrl()}/api/v1/sessions`, { data: { launchToken } });
+  expect(response.status(), "POST /api/v1/sessions must open the player session").toBe(200);
+  const body = (await response.json()) as { sessionToken: string; expiresAt: string };
+  const expiresAtMs = Date.parse(body.expiresAt);
+  cachedSession = { token: body.sessionToken, expiresAtMs: Number.isNaN(expiresAtMs) ? 0 : expiresAtMs };
+  return body.sessionToken;
+}
+
+/**
+ * Crash point the server persisted for a finished round (GET /api/v1/rounds/{roundId}/verification with the player
+ * session, SPEC-0008@3).
+ */
 export async function serverCrashPoint(request: APIRequestContext, roundId: string): Promise<string> {
-  const response = await request.get(`${apiBaseUrl()}/api/v1/rounds/${encodeURIComponent(roundId)}/verification`);
+  const sessionToken = await playerSessionToken(request);
+  const response = await request.get(`${apiBaseUrl()}/api/v1/rounds/${encodeURIComponent(roundId)}/verification`, {
+    headers: { Authorization: `Bearer ${sessionToken}` },
+  });
   expect(response.status(), `verification data of round ${roundId}`).toBe(200);
   const body = (await response.json()) as { crashPoint: string };
   return body.crashPoint;
