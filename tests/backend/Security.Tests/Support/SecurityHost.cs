@@ -19,7 +19,8 @@ namespace Apogeu.Security.Tests.Support;
 /// so tokens validated against the wall clock stay valid while the tests move the fake clock forward and expected
 /// expirations compare exactly with the serialized ones.
 /// Hosted services of the other modules are removed (they would run their own work); the Operators module's stay, so the
-/// Development seed of the demo operator happens through the real path.
+/// Development seed of the demo operator happens through the real path, and so do the Rounds module's when the test uses
+/// the real rounds hub (<see cref="SecurityHostOptions.WithRoundsHub"/>).
 /// </summary>
 internal sealed class SecurityHost : IAsyncDisposable
 {
@@ -122,17 +123,12 @@ internal sealed class SecurityHost : IAsyncDisposable
                 .Where(d => d.ServiceType == typeof(IHostedService)
                     && d.ImplementationType?.Assembly.GetName().Name is { } assembly
                     && assembly.StartsWith("Apogeu.", StringComparison.Ordinal)
-                    && !assembly.StartsWith("Apogeu.Operators.", StringComparison.Ordinal))
+                    && !assembly.StartsWith("Apogeu.Operators.", StringComparison.Ordinal)
+                    && !(options.WithRoundsHub && assembly.StartsWith("Apogeu.Rounds.", StringComparison.Ordinal)))
                 .ToList();
             foreach (var descriptor in otherModules)
             {
                 services.Remove(descriptor);
-            }
-
-            if (options.WithRoundsHubStandIn)
-            {
-                services.AddSignalR();
-                services.AddSingleton<IStartupFilter, RoundsHubStandInStartupFilter>();
             }
         });
     }

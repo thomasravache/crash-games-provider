@@ -1,13 +1,15 @@
+using Apogeu.BuildingBlocks.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Apogeu.Rounds.Features.Live;
 
 /// <summary>
-/// Hub <c>/hubs/rounds</c> (SPEC-0008 §6, ADR-0005): only translates messages; requires an authenticated user. Errors are
+/// Hub <c>/hubs/rounds</c> (SPEC-0008 §6, ADR-0005): only translates messages; requires a player session (SPEC-0009), whose
+/// <c>sala</c> claim the global hub filter of SPEC-0009 checks against the <c>salaId</c> of <c>JoinSala</c>. Errors are
 /// <see cref="HubException"/> whose message is the code (e.g. <c>SALA_NOT_FOUND</c>).
 /// </summary>
-[Authorize]
+[Authorize(Policy = SecurityPolicies.PlayerSession)]
 public sealed class RoundsHub : Hub<IRoundsClient>
 {
     public const string Path = "/hubs/rounds";

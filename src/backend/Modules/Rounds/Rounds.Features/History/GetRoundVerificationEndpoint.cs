@@ -1,3 +1,4 @@
+using Apogeu.BuildingBlocks.Security;
 using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Domain;
 using Apogeu.Rounds.Features.Live;
@@ -24,6 +25,7 @@ internal static class GetRoundVerificationEndpoint
             .MapGet(Route, HandleAsync)
             .WithName("GetRoundVerification")
             .WithTags("Rounds")
+            .RequireAuthorization(SecurityPolicies.PlayerSession)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict);
 
