@@ -34,4 +34,7 @@ internal static partial class OperatorsLog
 
     [LoggerMessage(EventId = 9, Level = LogLevel.Information, Message = "Operator {OperatorId} ensured in sala {SalaId} (Development seed)")]
     public static partial void DemoOperatorSeeded(ILogger logger, string operatorId, string salaId);
+
+    [LoggerMessage(EventId = 10, Level = LogLevel.Information, Message = "Game {GameCode} and default limits ensured for operator {OperatorId} (Development seed)")]
+    public static partial void CatalogSeeded(ILogger logger, string operatorId, string gameCode);
 }

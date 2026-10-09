@@ -4,16 +4,24 @@ using Apogeu.Operators.Infrastructure.Catalog;
 
 namespace Apogeu.Operators.Features.Catalog;
 
-#pragma warning disable MA0025 // Scaffold of SPEC-0020 (no logic yet): implemented in the green phase.
-
 /// <summary>
 /// <see cref="IOperatorLimits"/> over the <see cref="ICatalogStore"/>, with an in-memory cache invalidated when the store
-/// version changes (SPEC-0020 §5: a read in at most 1 ms; scaffold).
+/// version changes (SPEC-0020 §5: a read in at most 1 ms).
 /// </summary>
 public sealed class OperatorLimits : IOperatorLimits
 {
-    public OperatorLimits(ICatalogStore store) => ArgumentNullException.ThrowIfNull(store);
+    private readonly CatalogCache<IReadOnlyDictionary<(OperatorId Operator, Currency Currency), BetLimits>> _cache;
 
-    public BetLimits Get(OperatorId op, Currency currency) => throw new NotImplementedException();
+    public OperatorLimits(ICatalogStore store)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        _cache = new CatalogCache<IReadOnlyDictionary<(OperatorId Operator, Currency Currency), BetLimits>>(
+            store,
+            snapshot => snapshot.Limits.ToDictionary(entry => (entry.Operator, entry.Limits.Currency), entry => entry.Limits));
+    }
+
+    public BetLimits Get(OperatorId op, Currency currency) =>
+        _cache.Current.TryGetValue((op, currency), out var limits)
+            ? limits
+            : throw new CurrencyNotEnabledException(op, currency);
 }
-#pragma warning restore MA0025

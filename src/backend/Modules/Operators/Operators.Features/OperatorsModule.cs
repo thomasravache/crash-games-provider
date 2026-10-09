@@ -36,8 +36,8 @@ public static class OperatorsModule
     /// <summary>
     /// Registers the three identities of ADR-0015: the HMAC signature of operator systems, the player session (also on the
     /// hubs, with the sala policy as a global hub filter) and the backoffice bearer of Keycloak, their policies, and the
-    /// launch and session stores. In Development the schema <c>operators</c> is migrated and the demo operator seeded at
-    /// startup. Secrets and endpoints come from <c>Operators</c>, <c>Security:PlayerSession</c> and <c>Security:Backoffice</c>.
+    /// launch and session stores, and the game catalog and limits (SPEC-0020). In Development the schema <c>operators</c> is
+    /// migrated and the demo operator, its catalog and its limits seeded at startup. Secrets and endpoints come from <c>Operators</c>, <c>Security:PlayerSession</c> and <c>Security:Backoffice</c>.
     /// </summary>
     public static IServiceCollection AddOperatorsModule(this IServiceCollection services)
     {
@@ -55,6 +55,9 @@ public static class OperatorsModule
         services.AddSingleton<OperatorApiKeys>();
         services.AddSingleton(provider => new OperatorRequestVerifier(provider.GetRequiredService<TimeProvider>()));
         services.AddSingleton<IOperatorFrameAncestors, OperatorFrameAncestors>();
+        services.AddSingleton<GameCatalog>();
+        services.AddSingleton<IGameCatalog>(provider => provider.GetRequiredService<GameCatalog>());
+        services.AddSingleton<IOperatorLimits, OperatorLimits>();
         services.AddSingleton<PlayerSessionSigningKey>();
         services.AddSingleton<PlayerSessionTokens>();
         services.AddScoped<LaunchIssuer>();

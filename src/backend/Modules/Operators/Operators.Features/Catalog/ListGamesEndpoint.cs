@@ -1,14 +1,14 @@
+using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.BuildingBlocks.Security;
 using Apogeu.Operators.Features.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
 
 namespace Apogeu.Operators.Features.Catalog;
 
-#pragma warning disable MA0025 // Scaffold of SPEC-0020 (no logic yet): implemented in the green phase.
-
-/// <summary><c>GET /api/v1/games</c> (HMAC): the games enabled for the calling operator (SPEC-0020 §6; scaffold).</summary>
+/// <summary><c>GET /api/v1/games</c> (HMAC): the games enabled for the calling operator (SPEC-0020 §6).</summary>
 internal static class ListGamesEndpoint
 {
     public const string Route = "/api/v1/games";
@@ -27,6 +27,14 @@ internal static class ListGamesEndpoint
         return endpoints;
     }
 
-    private static IResult Handle(HttpContext http) => throw new NotImplementedException();
+    private static Ok<IReadOnlyList<GameSummaryResponse>> Handle(HttpContext http, GameCatalog catalog)
+    {
+        var operatorId = new OperatorId(http.User.FindFirst(OperatorsAuthentication.OperatorClaim)!.Value);
+        IReadOnlyList<GameSummaryResponse> games =
+        [
+            .. catalog.EnabledFor(operatorId)
+                .Select(game => new GameSummaryResponse(game.Code.Value, game.Name, [.. game.Currencies.Select(c => c.Code)])),
+        ];
+        return TypedResults.Ok(games);
+    }
 }
-#pragma warning restore MA0025
