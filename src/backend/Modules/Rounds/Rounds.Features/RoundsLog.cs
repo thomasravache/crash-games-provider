@@ -1,3 +1,4 @@
+using Apogeu.Rounds.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Apogeu.Rounds.Features;
@@ -21,7 +22,7 @@ internal static partial class RoundsLog
     public static partial void Annulled(ILogger logger, string salaId, long roundNumber, Guid roundId, string reason);
 
     [LoggerMessage(EventId = 5, Level = LogLevel.Information, Message = "Round {RoundNumber} ({RoundId}) of room {SalaId} resumed in state {State}")]
-    public static partial void Resumed(ILogger logger, string salaId, long roundNumber, Guid roundId, string state);
+    public static partial void Resumed(ILogger logger, string salaId, long roundNumber, Guid roundId, RoundState state);
 
     [LoggerMessage(EventId = 6, Level = LogLevel.Information, Message = "Seed chain {ChainId} created for room {SalaId} with {Length} rounds")]
     public static partial void ChainCreated(ILogger logger, string salaId, Guid chainId, int length);

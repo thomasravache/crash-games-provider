@@ -331,7 +331,7 @@ public sealed class SalaConductor
                 return;
         }
 
-        RoundsLog.Resumed(_logger, _sala.Id, latest.Number, latest.Id.Value, latest.State.ToString());
+        RoundsLog.Resumed(_logger, _sala.Id, latest.Number, latest.Id.Value, latest.State);
 
         // The previous leader was alive at least when it last moved the round (bets opened or flight started).
         var lastLeaderActivity = latest.StartedAt ?? (latest.BettingEndsAt - _sala.BettingDuration);
