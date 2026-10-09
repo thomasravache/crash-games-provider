@@ -201,7 +201,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 54ms); test exit 0 (Duration  1.57s (tests 99%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T09:48:10: Report generation took 0,3 seconds) — 40fe12d | 2026-10-09 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  841ms (tests 97%, transform 2%, import 1%)) — 40fe12d | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 40fe12d, 0 blocker/major; pendências: teste unitário do LeaderLease, RoundCrashed reenviado na retomada logo após o crash, snapshot com growthK atual da sala — 40fe12d | 2026-10-09 |
-| G5 Integração & CI | FAIL | build exit 0 (✓ built in 54ms); test exit 0 (Duration  1.13s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 3 m 21 s ); test_e2e exit 0 (3 passed (4.5s)); arch_test exit 0 (Duration  782ms (tests 97%, transform 2%, import 1%)); security_scan exit 1 (Ran 8 rules on 217 files: 1 finding.) — a10fea9 | 2026-10-09 |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Duration  1.20s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 2 m 50 s ); test_e2e exit 0 (3 passed (4.3s)); arch_test exit 0 (Duration  772ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 217 files: 0 findings.) — 3285825 | 2026-10-09 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
