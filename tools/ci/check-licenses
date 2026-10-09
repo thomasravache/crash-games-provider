@@ -25,8 +25,9 @@ ALLOWED = {
     "MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MPL-2.0",
     "PostgreSQL", "BlueOak-1.0.0", "CC0-1.0", "0BSD", "Unlicense",
 }
-# ADR-0022: CC-BY-4.0 only for data used at build time, never a production (runtime) dependency.
-BUILD_DATA_ONLY = {"CC-BY-4.0": {"caniuse-lite"}}
+# ADR-0022: licences accepted only for build-time packages, never for a production (runtime) dependency:
+# CC-BY-4.0 for build data; Python-2.0 (PSF) for argparse, via openapi-typescript → js-yaml (ADR-0008 generator).
+BUILD_DATA_ONLY = {"CC-BY-4.0": {"caniuse-lite"}, "Python-2.0": {"argparse"}}
 # Packages whose metadata carries no SPDX expression; licence identified by reading the shipped licence file.
 # Keyed by exact version, so an update is reviewed again.
 REVIEWED = {

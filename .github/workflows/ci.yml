@@ -305,6 +305,9 @@ jobs:
             echo "::error::src/frontend/package.json has no \"contracts:check\" script (SPEC-0006@1); the generated contracts cannot be verified."
             exit 1
           fi
+      # contracts:check reads the OpenAPI document and the hub manifest produced by the .NET build (SPEC-0006).
+      - name: Build backend
+        run: dotnet build Apogeu.slnx --no-restore
       - name: pnpm -C src/frontend contracts:check
         run: pnpm -C src/frontend contracts:check
 

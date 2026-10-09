@@ -168,7 +168,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 81ms); test exit 0 (Duration  1.53s (tests 98%, transform 2%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T23:31:34: Report generation took 0,1 seconds) — 87317f8 | 2026-10-08 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.05s (tests 97%, transform 2%, import 1%)) — 87317f8 | 2026-10-08 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 87317f8, 0 blocker/major; pendências: UT-01 para as regras novas do check-workflows, .semgrepignore, Dependabot sem [no-spec] — 87317f8 | 2026-10-08 |
-| G5 Integração & CI | FAIL | CI do PR #6 (run 37876953623): backend, contracts e security falham no dotnet restore --locked-mode (NU1004 — pacotes Aspire por plataforma no lock do AppHost gerado no macOS) | 2026-10-09 |
+| G5 Integração & CI | FAIL | CI do PR #6 (run 37877642424): contracts sem build do backend antes do contracts:check; security reprova argparse 2.0.1 (Python-2.0, dependência de build via openapi-typescript) | 2026-10-09 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
