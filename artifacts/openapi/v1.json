@@ -184,6 +184,40 @@
         }
       }
     },
+    "/api/v1/games": {
+      "get": {
+        "tags": [
+          "Operator"
+        ],
+        "summary": "The games enabled for the calling operator, with their currencies.",
+        "operationId": "ListGames",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GameSummaryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/salas/{salaId}/rounds": {
       "get": {
         "tags": [
@@ -341,6 +375,28 @@
               "items": {
                 "type": "string"
               }
+            }
+          }
+        }
+      },
+      "GameSummaryResponse": {
+        "required": [
+          "code",
+          "name",
+          "currencies"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "currencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         }

@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Unit tests of the Operators module (SPEC-0009, ADR-0009): launch tokens and launch validation. -->
+  <!--
+    Tests of the Operators module: launch tokens and launch validation (SPEC-0009, ADR-0009) and the game catalog and bet
+    limits per operator and currency (SPEC-0020): unit tests, and on real PostgreSQL and Redis (Testcontainers) the catalog
+    persistence and, on the real Host (WebApplicationFactory), the launch rejections, GET /api/v1/games and their contract.
+  -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
@@ -11,11 +15,25 @@
     <PackageReference Include="xunit.v3.mtp-off" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Npgsql" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../TestKit/TestKit.csproj" />
+    <ProjectReference Include="../../../../src/backend/BuildingBlocks/BuildingBlocks.csproj" />
     <ProjectReference Include="../../../../src/backend/Modules/Operators/Operators.Features/Operators.Features.csproj" />
+    <ProjectReference Include="../../../../src/backend/Host/Host.csproj" />
+  </ItemGroup>
+
+  <!-- OpenAPI navigation and schema validation (SPEC-0006) and the independent HMAC helpers of SPEC-0009, compiled in rather than duplicated. -->
+  <ItemGroup>
+    <Compile Include="../../Contracts.Tests/Support/OpenApiDocument.cs" Link="Support/Shared/OpenApiDocument.cs" />
+    <Compile Include="../../Contracts.Tests/Support/OpenApiSchemaValidator.cs" Link="Support/Shared/OpenApiSchemaValidator.cs" />
+    <Compile Include="../../Security.Tests/Support/TestApiKey.cs" Link="Support/Shared/TestApiKey.cs" />
+    <Compile Include="../../Security.Tests/Support/ReferenceSignature.cs" Link="Support/Shared/ReferenceSignature.cs" />
+    <Compile Include="../../Security.Tests/Support/ErrorBodies.cs" Link="Support/Shared/ErrorBodies.cs" />
+    <Compile Include="../../Security.Tests/Support/TestDatabase.cs" Link="Support/Shared/TestDatabase.cs" />
   </ItemGroup>
 
 </Project>
