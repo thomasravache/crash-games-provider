@@ -81,28 +81,44 @@ public sealed class BackofficeAccessTests(KeycloakRealm keycloak, PostgreSqlCont
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact(DisplayName = "Dado o Keycloak real, quando GET /backoffice/me com token provider-admin, então 200 com userId e papéis")]
+    [Fact(DisplayName = "Dado o Keycloak real, quando GET /backoffice/me com token válido do realm sem nenhum papel Apogeu, então 403")]
     [Trait("Spec", "SPEC-0009:IT-06")]
     [Trait("Category", "Integration")]
-    public async Task GivenProviderAdminTokenWhenGettingMeThenOk()
+    public async Task GivenValidRealmTokenWithoutApogeuRoleWhenGettingMeThenForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
         await using var host = await StartAsync(ct);
         using var client = host.CreateClient();
-        var token = await keycloak.ServiceAccountTokenAsync(Audience, ["provider-admin"], ct);
+        var token = await keycloak.ServiceAccountTokenAsync(Audience, [], ct);
+
+        using var response = await SendMeAsync(client, token, ct);
+
+        Assert.True(
+            response.StatusCode == HttpStatusCode.Forbidden,
+            $"Expected 403 for a valid realm token without any Apogeu role, got {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync(ct)}");
+    }
+
+    [Theory(DisplayName = "Dado o Keycloak real, quando GET /backoffice/me com token de operator-viewer, operator-admin ou provider-admin, então 200 com userId e o papel")]
+    [Trait("Spec", "SPEC-0009:IT-06")]
+    [Trait("Category", "Integration")]
+    [InlineData("operator-viewer")]
+    [InlineData("operator-admin")]
+    [InlineData("provider-admin")]
+    public async Task GivenApogeuRoleTokenWhenGettingMeThenOkWithRoles(string role)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var host = await StartAsync(ct);
+        using var client = host.CreateClient();
+        var token = await keycloak.ServiceAccountTokenAsync(Audience, [role], ct);
 
         using var response = await SendMeAsync(client, token, ct);
         var text = await response.Content.ReadAsStringAsync(ct);
 
-        Assert.True(response.StatusCode == HttpStatusCode.OK, $"Expected 200 for a provider-admin, got {(int)response.StatusCode}: {text}");
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"Expected 200 for {role}, got {(int)response.StatusCode}: {text}");
         using var json = JsonDocument.Parse(text);
         Assert.Equal(JwtParts.Payload(token).GetProperty("sub").GetString(), json.RootElement.GetProperty("userId").GetString());
         var roles = json.RootElement.GetProperty("roles").EnumerateArray().Select(r => r.GetString()).ToList();
-        Assert.Contains("provider-admin", roles, StringComparer.Ordinal);
-        if (json.RootElement.TryGetProperty("operatorId", out var operatorId))
-        {
-            Assert.Equal(JsonValueKind.Null, operatorId.ValueKind);
-        }
+        Assert.Contains(role, roles, StringComparer.Ordinal);
     }
 
     private static async Task<HttpResponseMessage> SendMeAsync(HttpClient client, string token, CancellationToken ct)
