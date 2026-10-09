@@ -1,0 +1,87 @@
+# Container images of every merge to main (SPEC-0004, ADR-0013): API + front-end apps, attached to the run as the
+# `container-images` artifact. Nothing is pushed to a registry (publishing belongs to the hosting spec).
+# The images are the compute resources of the Aspire AppHost (src/backend/AppHost): `api` (Host project) and the Vite
+# apps `game-pipa`, `backoffice` and `demo-site`. The API image comes from the .NET SDK container publish; each Vite
+# app is built once by pnpm and served by the unprivileged nginx image of tools/ci/images.
+# Every action is pinned by full commit SHA (tag in the comment); tools/ci/check-workflows enforces it.
+name: images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGES_DIR: ${{ github.workspace }}/artifacts/images
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: src/frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - name: Restore (lock files, locked mode)
+        run: |
+          dotnet restore Apogeu.slnx --locked-mode
+          pnpm -C src/frontend install --frozen-lockfile
+      - name: API image (SDK container publish)
+        run: |
+          mkdir -p "$IMAGES_DIR"
+          dotnet publish src/backend/Host/Host.csproj -c Release --no-restore \
+            -t:PublishContainer \
+            -p:ContainerRuntimeIdentifier=linux-x64 \
+            -p:ContainerRepository=apogeu-api \
+            -p:ContainerImageTag="$IMAGE_TAG" \
+            -p:ContainerArchiveOutputPath="$IMAGES_DIR/apogeu-api.tar.gz"
+      - name: Build the front-end apps
+        run: pnpm -C src/frontend build
+      - name: Front-end app images (nginx, static dist)
+        run: |
+          for app in game-pipa backoffice demo-site; do
+            dist="src/frontend/apps/$app/dist"
+            test -f "$dist/index.html" || { echo "::error::$dist/index.html not found (pnpm build)"; exit 1; }
+            docker build \
+              --file tools/ci/images/vite-app.Dockerfile \
+              --build-context config=tools/ci/images \
+              --tag "apogeu-$app:$IMAGE_TAG" \
+              "$dist"
+            docker save "apogeu-$app:$IMAGE_TAG" | gzip > "$IMAGES_DIR/apogeu-$app.tar.gz"
+          done
+      - name: List images
+        run: ls -l "$IMAGES_DIR"
+      - name: Upload images
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: container-images
+          path: artifacts/images/*.tar.gz
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0 # archives are already gzip-compressed
