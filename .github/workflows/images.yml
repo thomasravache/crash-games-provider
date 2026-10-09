@@ -1,5 +1,7 @@
 # Container images of every merge to main (SPEC-0004, ADR-0013): API + front-end apps, attached to the run as the
-# `container-images` artifact. Nothing is pushed to a registry (publishing belongs to the hosting spec).
+# `container-images` artifact (apogeu-api.tar, apogeu-game-pipa.tar, apogeu-backoffice.tar, apogeu-demo-site.tar;
+# plain `docker load`-able tar archives, kept for 1 day). Nothing is pushed to a registry (publishing belongs to the
+# hosting spec).
 # The images are the compute resources of the Aspire AppHost (src/backend/AppHost): `api` (Host project) and the Vite
 # apps `game-pipa`, `backoffice` and `demo-site`. The API image comes from the .NET SDK container publish; each Vite
 # app is built once by pnpm and served by the unprivileged nginx image of tools/ci/images.
@@ -60,7 +62,7 @@ jobs:
             -p:ContainerRuntimeIdentifier=linux-x64 \
             -p:ContainerRepository=apogeu-api \
             -p:ContainerImageTag="$IMAGE_TAG" \
-            -p:ContainerArchiveOutputPath="$IMAGES_DIR/apogeu-api.tar.gz"
+            -p:ContainerArchiveOutputPath="$IMAGES_DIR/apogeu-api.tar"
       - name: Build the front-end apps
         run: pnpm -C src/frontend build
       - name: Front-end app images (nginx, static dist)
@@ -73,7 +75,7 @@ jobs:
               --build-context config=tools/ci/images \
               --tag "apogeu-$app:$IMAGE_TAG" \
               "$dist"
-            docker save "apogeu-$app:$IMAGE_TAG" | gzip > "$IMAGES_DIR/apogeu-$app.tar.gz"
+            docker save --output "$IMAGES_DIR/apogeu-$app.tar" "apogeu-$app:$IMAGE_TAG"
           done
       - name: List images
         run: ls -l "$IMAGES_DIR"
@@ -81,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: container-images
-          path: artifacts/images/*.tar.gz
-          retention-days: 7
+          path: artifacts/images/*.tar
+          # GitHub Free private: 500 MB of artifact storage; the images only need to survive the run's checks.
+          retention-days: 1
           if-no-files-found: error
-          compression-level: 0 # archives are already gzip-compressed
