@@ -186,7 +186,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:02.77]     Dado um DTO com string?, quando o esquema é gerado, então a pr) — 07e1e4f | 2026-10-09 |
-| G2 Green | FAIL | build exit 0 (✓ built in 53ms); test exit 0 (Duration  1.34s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:03:26.05]     Dado um processo que avança 3 rodadas e é reiniciado, quando N) — d5428ae | 2026-10-09 |
+| G2 Green | FAIL | build exit 0 (✓ built in 54ms); test exit 0 (Duration  2.34s (tests 91%, transform 6%, import 2%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:00:37.35]     Dado o Keycloak real, quando GET /backoffice/me com token de o) — d5428ae | 2026-10-09 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
