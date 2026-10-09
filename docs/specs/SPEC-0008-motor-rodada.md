@@ -200,7 +200,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:51.93]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — 7d311ce | 2026-10-09 |
 | G2 Green | PASS | build exit 0 (✓ built in 125ms); test exit 0 (Duration  2.24s (tests 98%, transform 2%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T09:12:27: Writing report file 'artifacts/coverage/Summary.txt') — 6e3baa1 | 2026-10-09 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.00s (tests 98%, transform 1%, import 1%)) — 6e3baa1 | 2026-10-09 |
-| G4 Review | FAIL | Reviewer CHANGES_REQUESTED: 1 major (meter/ActivitySource Apogeu.Rounds não registrados no OpenTelemetry — métricas e traces do §8 nunca exportados), minors: RTP/cap sem precisão de 2 casas validada (verificação divergiria), sem cerca de liderança antes de cada passo, snapshot com growthK atual da sala | 2026-10-09 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 40fe12d, 0 blocker/major; pendências: teste unitário do LeaderLease, RoundCrashed reenviado na retomada logo após o crash, snapshot com growthK atual da sala — 40fe12d | 2026-10-09 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
