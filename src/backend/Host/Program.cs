@@ -32,7 +32,18 @@ builder.Services.AddOperatorsModule();
 builder.Services.AddRoundsModule();
 builder.Services.AddWalletModule();
 
+// SPEC-0010: the game runs on another origin (its own Vite app under Aspire, an operator domain later) and calls the
+// REST API and the RoundsHub negotiation from the browser. Only the configured origins; no credentials, since the
+// player session travels as a bearer/access_token, never as a cookie (SPEC-0009).
+const string GameCorsPolicy = "game";
+var gameOrigins = builder.Configuration.GetSection("Cors:GameOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options => options.AddPolicy(
+    GameCorsPolicy,
+    policy => policy.WithOrigins(gameOrigins).AllowAnyHeader().AllowAnyMethod()));
+
 var app = builder.Build();
+
+app.UseCors(GameCorsPolicy);
 
 app.MapDefaultEndpoints();
 app.MapContractOpenApi();
