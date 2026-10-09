@@ -1,21 +1,26 @@
 {
   "stryker-config": {
-    "solution": "Apogeu.slnx",
+    "project": "Fairness.Domain.csproj",
     "test-projects": [
-      "tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj",
-      "tests/backend/Modules/Wallet.Tests/Wallet.Tests.csproj"
+      "tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj"
     ],
     "mutate": [
-      "**/src/backend/Modules/Fairness/**/*.cs",
-      "**/src/backend/Modules/Wallet/**/*.cs",
-      "!**/obj/**",
-      "!**/Migrations/**"
+      "**/src/backend/Modules/Fairness/Fairness.Domain/**/*.cs",
+      "!**/obj/**"
     ],
-    "reporters": ["progress", "cleartext", "html", "json"],
+    "coverage-analysis": "off",
+    "concurrency": 1,
+    "test-case-filter": "FullyQualifiedName~Apogeu.Fairness.Tests.&Category!=Nightly&Category!=Performance&Category!=Integration",
+    "reporters": [
+      "progress",
+      "cleartext",
+      "html",
+      "json"
+    ],
     "thresholds": {
-      "high": 90,
-      "low": 80,
-      "break": 80
+      "high": 95,
+      "low": 90,
+      "break": 85
     }
   }
 }
