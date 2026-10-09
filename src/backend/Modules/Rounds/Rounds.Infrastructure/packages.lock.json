@@ -12,7 +12,10 @@
         "type": "Project"
       },
       "Apogeu.Rounds.Domain": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Rounds.Contracts": "[1.0.0, )"
+        }
       }
     }
   }

@@ -8,6 +8,10 @@
     <ProjectReference Include="../Rounds.Contracts/Rounds.Contracts.csproj" />
     <ProjectReference Include="../Rounds.Domain/Rounds.Domain.csproj" />
     <ProjectReference Include="../Rounds.Infrastructure/Rounds.Infrastructure.csproj" />
+    <!-- SPEC-0007@2: commitment, crash point and reveal of each round (ADR-0001: only the Contracts of another module). -->
+    <ProjectReference Include="../../Fairness/Fairness.Contracts/Fairness.Contracts.csproj" />
+    <!-- Contract scalars (Multiplier) of the hub and REST messages (ADR-0008). -->
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
   </ItemGroup>
 
 </Project>

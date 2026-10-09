@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests of the Rounds module (SPEC-0008, ADR-0005, ADR-0009, ADR-0018). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <!-- Clears the shared Redis container between integration tests (leader locks and backplane, ADR-0005). -->
+    <PackageReference Include="StackExchange.Redis" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../TestKit/TestKit.csproj" />
+    <ProjectReference Include="../../../../src/backend/Host/Host.csproj" />
+    <ProjectReference Include="../../../../src/backend/BuildingBlocks/BuildingBlocks.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Domain/Rounds.Domain.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Infrastructure/Rounds.Infrastructure.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Features/Rounds.Features.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Contracts/Fairness.Contracts.csproj" />
+    <!-- The real crash-point calculation and verification of SPEC-0007 behind the vector double (CT-02). -->
+    <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Domain/Fairness.Domain.csproj" />
+  </ItemGroup>
+
+  <!-- Build order only: CT-01 runs the hub-contract exporter (SPEC-0006) from its own output. -->
+  <ItemGroup>
+    <ProjectReference Include="../../../../tools/contracts/HubContracts/HubContracts.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The public vectors v1 of SPEC-0007 (CT-02). -->
+    <None Include="../../../vectors/fairness-v1.json" Link="vectors/fairness-v1.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

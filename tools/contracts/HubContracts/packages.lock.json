@@ -454,11 +454,16 @@
         "type": "Project"
       },
       "Apogeu.Rounds.Domain": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Rounds.Contracts": "[1.0.0, )"
+        }
       },
       "Apogeu.Rounds.Features": {
         "type": "Project",
         "dependencies": {
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
+          "Apogeu.Fairness.Contracts": "[1.0.0, )",
           "Apogeu.Rounds.Contracts": "[1.0.0, )",
           "Apogeu.Rounds.Domain": "[1.0.0, )",
           "Apogeu.Rounds.Infrastructure": "[1.0.0, )"
