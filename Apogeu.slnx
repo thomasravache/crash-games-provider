@@ -40,6 +40,9 @@
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Infrastructure/Backoffice.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/contracts/HubContracts/HubContracts.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/backend/AppHost.Tests/AppHost.Tests.csproj" />
     <Project Path="tests/backend/Architecture.Tests/Architecture.Tests.csproj" />
