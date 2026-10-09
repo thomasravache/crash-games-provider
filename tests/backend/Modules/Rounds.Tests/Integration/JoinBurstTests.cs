@@ -77,6 +77,100 @@ public sealed class JoinBurstTests(RoundsContainers containers)
         }
     }
 
+    // From the G4 delta review of 6a75505: the leader answers JoinSala from its conductor's live view, so the test above never
+    // reaches the store. Here the burst hits a second instance that does not lead the room (and never published a view): its
+    // joins go through the coalesced store read, which must keep the burst within the pool and below max_connections too.
+    [Fact(DisplayName = "Dado o Host real com PostgreSQL limitado a max_connections 30 e duas instâncias, quando 300 clientes chamam JoinSala ao mesmo tempo na seguidora (sem visão publicada), então todos recebem o snapshot sem erro, pela leitura coalescida do store, e o servidor não esgota")]
+    [Trait("Spec", "SPEC-0008:IT-07")]
+    [Trait("Category", "Integration")]
+    [Trait("Category", "Performance")]
+    public async Task GivenPostgresWithLowMaxConnectionsWhenThreeHundredClientsJoinTheFollowerAtOnceThenAllReceiveTheSnapshotFromOneCoalescedRead()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var postgres = PostgreSqlContainerFixture.WithMaxConnections(MaxConnections);
+        await postgres.InitializeAsync();
+
+        var monitor = new NpgsqlConnection(new NpgsqlConnectionStringBuilder(postgres.ConnectionString) { Pooling = false }.ConnectionString);
+        await using var monitorScope = monitor;
+        await monitor.OpenAsync(ct);
+        Assert.Equal(MaxConnections, await ScalarIntAsync(monitor, "SELECT current_setting('max_connections')::int", ct));
+
+        await using var cluster = await RoundsCluster.CreateAsync(containers, postgres.ConnectionString, sala: null, ct);
+        using var logs = new LogCapture();
+        var salas = new Dictionary<string, SalaSettings>(StringComparer.Ordinal) { [SalaSettings.SalaId] = cluster.Sala };
+        var leader = cluster.StartHost(new RoundsHostSetup { Salas = salas });
+        await Leaders.SingleAsync([leader], TimeSpan.FromSeconds(30));
+
+        // Started once the leader holds the room: the follower never conducts it, so it never publishes a view.
+        var reads = new RoundStoreReads();
+        var follower = cluster.StartHost(new RoundsHostSetup
+        {
+            Salas = salas,
+            Services = services =>
+            {
+                services.AddSingleton<ILoggerProvider>(logs);
+                reads.Decorate(services);
+            },
+        });
+
+        var connections = new HubConnection[Clients];
+        try
+        {
+            await ConnectAsync(follower, connections, ct);
+            Assert.False(follower.IsLeading, "The follower took the room over before the burst.");
+            Assert.False(HasLiveView(follower), "The follower has a live view of the room before the burst.");
+            var readsBefore = reads.Reads;
+
+            using var sampling = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var peak = SamplePeakClientBackendsAsync(monitor, sampling.Token);
+            var failures = await JoinAllAtOnceAsync(connections, ct);
+            await sampling.CancelAsync();
+            var observed = await peak;
+            var burstReads = reads.Reads - readsBefore;
+
+            var described = string.Join(Environment.NewLine, failures.Take(10));
+            Assert.True(
+                failures.Count == 0,
+                $"{failures.Count} of {Clients} JoinSala on the follower failed (max_connections = {MaxConnections}, peak client backends = {observed.Peak}, store reads = {burstReads}). Server errors: {ServerErrors(logs)}. First failures:{Environment.NewLine}{described}");
+            Assert.True(
+                observed.Peak < MaxConnections,
+                $"PostgreSQL reached {observed.Peak} client backends during the burst on the follower (max_connections = {MaxConnections}).");
+
+            AssertServedByCoalescedRead(follower, reads, burstReads);
+        }
+        finally
+        {
+            foreach (var connection in connections.Where(c => c is not null))
+            {
+                await connection.DisposeAsync();
+            }
+        }
+    }
+
+    /// <summary>
+    /// The snapshots came from the store, through the coalesced read: no view on the follower, at least one read, never two
+    /// at a time and fewer reads than joins.
+    /// </summary>
+    private static void AssertServedByCoalescedRead(RoundsHost follower, RoundStoreReads reads, int burstReads)
+    {
+        Assert.False(follower.IsLeading, "The follower took the room over during the burst: the store path is not what was exercised.");
+        Assert.False(HasLiveView(follower), "The follower served the burst from a live view instead of the store.");
+        Assert.True(burstReads >= 1, "The follower answered the burst without reading the store.");
+        Assert.True(reads.MaxConcurrent == 1, $"The follower ran {reads.MaxConcurrent} snapshot reads at the same time; the coalesced read runs one at a time.");
+        Assert.True(burstReads < Clients, $"The follower read the store {burstReads} times for {Clients} joins: the reads are not shared.");
+        TestContext.Current.SendDiagnosticMessage($"Follower burst: {burstReads} store reads for {Clients} joins.");
+    }
+
+    /// <summary>Whether the instance holds a live view of <c>demo</c> (internal <c>SalaLiveViews.TryGet</c>).</summary>
+    private static bool HasLiveView(RoundsHost host)
+    {
+        var viewsType = typeof(Apogeu.Rounds.Features.Live.SalaSnapshotQuery).Assembly
+            .GetType("Apogeu.Rounds.Features.Live.SalaLiveViews", throwOnError: true)!;
+        var views = host.Services.GetRequiredService(viewsType);
+        object?[] arguments = [SalaSettings.SalaId, null];
+        return (bool)viewsType.GetMethod("TryGet")!.Invoke(views, arguments)!;
+    }
+
     private static Task ConnectAsync(RoundsHost host, HubConnection[] connections, CancellationToken ct) =>
         Parallel.ForAsync(0, connections.Length, new ParallelOptions { MaxDegreeOfParallelism = ConnectParallelism, CancellationToken = ct }, async (i, token) =>
         {
