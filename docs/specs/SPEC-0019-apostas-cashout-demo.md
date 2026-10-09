@@ -3,13 +3,13 @@ id: SPEC-0019
 title: Apostas e cash-out em demo
 tier: epic
 type: feature
-status: proposed
+status: approved
 created: 2026-10-09
 depends_on: [SPEC-0001]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0014, ADR-0015, ADR-0018, ADR-0019, ADR-0020]
 external: []
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-09
 ---
 
 # SPEC-0019 — Apostas e cash-out em demo (Épico)
