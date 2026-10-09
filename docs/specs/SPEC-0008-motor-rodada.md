@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0003, SPEC-0005]
 consumes_contract: [SPEC-0007@2]
 contract_version: 3
-touches: ["src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "tests/load/rounds/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "Directory.Packages.props", "tools/contracts/frontend-modules.mjs"]
+touches: ["src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "tests/load/rounds/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "Directory.Packages.props", "tools/contracts/frontend-modules.mjs", "tests/backend/TestKit/Containers/PostgreSqlContainerFixture.cs", "tests/e2e/pipa/support/pipa.ts"]
 adrs: [ADR-0001, ADR-0005, ADR-0010, ADR-0017, ADR-0018, ADR-0019]
 external: []
 size: M
@@ -118,6 +118,7 @@ Antes do crash nenhuma mensagem, snapshot ou resposta REST contém `crashPoint` 
 | Retomada impossível | sem líder por > 30 s | rodada `Annulled` + métrica de alerta | IT-05 |
 | Sala inexistente | JoinSala / histórico com id desconhecido | SALA_NOT_FOUND / 404 | IT-06 |
 | Limite inválido | `limit=0` ou `101` | 400 INVALID_LIMIT | IT-06 |
+| Rajada de entradas | 300 JoinSala simultâneos com Postgres limitado | todos recebem snapshot; pool respeitado | IT-07 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
 ### 7.1 Testes de Caracterização
@@ -136,6 +137,8 @@ Antes do crash nenhuma mensagem, snapshot ou resposta REST contém `crashPoint` 
 - **IT-04** — Dado o líder derrubado no meio do voo, quando outra instância assume, então a rodada termina no mesmo `crashPoint` e em `startedAt + t_c` (± 250 ms).
 - **IT-05** — Dado nenhum líder disponível por 31 s com rodada em voo, quando um líder assume, então a rodada fica `Annulled` com motivo e a métrica `rounds.annulled` incrementa.
 - **IT-06** — Dados id de sala desconhecido e `limit` 0/101, quando chamados hub e REST, então SALA_NOT_FOUND/404 e 400 INVALID_LIMIT.
+
+- **IT-07** — Dado o Host real com PostgreSQL configurado com `max_connections` baixo (ex.: 30), quando 300 clientes chamam `JoinSala` ao mesmo tempo, então todos recebem o snapshot sem erro e nenhuma conexão além do pool configurado é aberta (`Category=Performance`; regressão do teste de carga k6).
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dado o contrato do hub v1 gerado (SPEC-0006), quando as mensagens reais de IT-03 são validadas contra o esquema gerado, então todas conferem (contrato consumido pela SPEC-0010).
@@ -198,12 +201,12 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:51.93]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — 7d311ce | 2026-10-09 |
-| G2 Green | PASS | build exit 0 (✓ built in 54ms); test exit 0 (Duration  1.57s (tests 99%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T09:48:10: Report generation took 0,3 seconds) — 40fe12d | 2026-10-09 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  841ms (tests 97%, transform 2%, import 1%)) — 40fe12d | 2026-10-09 |
-| G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 40fe12d, 0 blocker/major; pendências: teste unitário do LeaderLease, RoundCrashed reenviado na retomada logo após o crash, snapshot com growthK atual da sala — 40fe12d | 2026-10-09 |
-| G5 Integração & CI | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Duration  1.20s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 2 m 50 s ); test_e2e exit 0 (3 passed (4.3s)); arch_test exit 0 (Duration  772ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 217 files: 0 findings.) — 3285825 | 2026-10-09 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 51ms); test exit 0 (Duration  1.15s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T14:08:56: Report generation took 0,3 seconds) — 6ea453a | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  776ms (tests 98%, transform 2%, import 1%)) — 6ea453a | 2026-10-09 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED na revisão do delta em 05565e3 (+ teste de prazo 6ea453a pedido no review) — 0 blocker/major; minor restante: variante de arranque frio coberta pelo caminho do seguidor — 6ea453a | 2026-10-09 |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 338ms); test exit 0 (Duration  1.26s (tests 81%, transform 13%, import 5%, worker 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 3 m 50 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  823ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 250 files: 0 findings.) — 48966d1 | 2026-10-09 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
+| G6 Deploy | N/A | Sem ambientes ainda: validação local por decisão do usuário (ADR-0013); deploy entra com a SPEC-0012 (hospedagem e deploy) | 2026-10-09 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
@@ -211,6 +214,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
 | IMP-01 | 2026-10-09 | G1 | spec | D1: contrato SPEC-0007@1 não dá o ponto de crash antes do crash sem revelar a semente (ADR-0014); D2: UT-02 contraditório (m(11.552)=1,99); D3: arquivos gerados fora de touches; D4: RoundSnapshot.current, envelope de erro, tipo do RTP, growthK e id da sala indefinidos; D5: cliente SignalR fora dos ADRs; D6: teste de carga sem token antes da SPEC-0009 e sem k6 | Test-writer leu SPEC-0008, SPEC-0007, ADRs e o código; parou antes do scaffold | Architect (emenda) + thomas (autorização para seguir recomendações) | Emenda v2 da SPEC-0008 (D1–D6) + emenda v2 da SPEC-0007 (GetCrashPointAsync) + emenda do ADR-0005 (cliente SignalR nos testes) | 2026-10-09 |
+| IMP-02 | 2026-10-09 | G7 | spec | Carga k6 (§7.6): 8 de 1.000 JoinSala falharam com Npgsql 53300 'too many clients' — cada entrada lê o Postgres (SalaSnapshotQuery) e a rajada esgota max_connections; entrega do crash p99 134 ms passou | Repetido com 1.000 VUs/1 rodada (10 falhas) e 500 VUs/10 rodadas (6 falhas): independe do volume | Architect: emenda com teste de regressão (IT-07) e correção no Rounds (snapshot em memória, pool limitado) | Emenda (2026-10-09) — IT-07 e correção em 6a75505: snapshot da sala servido da memória do líder com leitura coalescida nos seguidores, pool de 10 conexões no Rounds; k6 1.000 VUs × 10 rodadas: 0 falhas de entrada, crash p99 118 ms | 2026-10-09 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -255,5 +259,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|---|---|
 | v2 | 2026-10-09 | (D1) ponto de crash via `GetCrashPointAsync` da SPEC-0007@2, só em memória até o crash; `RevealAsync` só depois; (D2) UT-02 corrigido com a regra `t ≥ t_c ⇒ m = crash`; (D3) `touches` com os contratos gerados e `Directory.Packages.props`; (D4) `RoundSnapshot.current`, tipos de `rtp`/`growthK`, id da sala (texto + UUID v5) e erros (ProblemDetails `code`) definidos; (D5) cliente `Microsoft.AspNetCore.SignalR.Client` só nos testes (emenda do ADR-0005); (D6) carga por imagem k6 após a SPEC-0009 | IMP-01 (SPEC_DEFECT do Test-writer, 2026-10-09) | SPEC-0010 (pin → SPEC-0008@2, SPEC-0007@2) | Architect — recomendações aplicadas pela autorização do usuário (thomas, 2026-10-09); a confirmar no resumo da manhã |
 | v2 (inalterado) | 2026-10-09 | Escopo: `tools/contracts/frontend-modules.mjs` — `formatTypeScript` roda o Prettier até a saída estabilizar (uma passada não é idempotente para assinaturas longas do hub); a regressão é o IT-02 da SPEC-0006 (`contracts:check` no estado versionado), que falha no scaffold desta spec | D7 do Test-writer: o contrato gerado não satisfazia ao mesmo tempo `contracts:check` e `format:check` | SPEC-0006 (só a correção do gerador; contrato inalterado) | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
+| v3 (inalterado) | 2026-10-09 | Novo IT-07 (rajada de JoinSala sem esgotar o Postgres); correção: snapshot da sala servido da memória do líder (vinculado ao lease) e, nos seguidores e no arranque, por uma leitura coalescida do PostgreSQL por sala, em vez de consulta por entrada, e pool de conexões limitado por DbContext | Teste de carga k6 do §7.6 (IMP-02): 8/1.000 entradas falharam com "too many clients" | Nenhuma (contrato inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
+| v3 (inalterado) | 2026-10-09 | Escopo: `tests/e2e/pipa/support/pipa.ts` entra em `touches` — o auxiliar dos E2E do Pipa passou a enviar a sessão de jogador exigida pelo contrato v3 (commit 6dce3a1, da SPEC-0010, cita a SPEC-0008 no assunto como causa) | `pr-check` do PR da onda 5 atribuiu o arquivo à SPEC-0008 pelo assunto do commit | Nenhuma (só escopo; o arquivo continua de propriedade da SPEC-0010) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 
 | v3 | 2026-10-09 | REST de rodadas (histórico e verificação) passa a exigir a sessão do jogador (Bearer) e responde 401 sem ela; o hub já exigia | Correção de integração da onda 4 (3050067) aplicou a política de sessão ao REST; o contrato não registrava — lacuna encontrada pelo Implementer da SPEC-0010. Mantido por negação por padrão (ADR-0015); verificador público fica para spec futura | SPEC-0010 (cliente já envia a sessão; pin → @3) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09); a confirmar no resumo |

@@ -28,11 +28,18 @@ internal sealed class RoundsCluster : IAsyncDisposable
     /// <summary>The shared Redis (leader locks and SignalR backplane).</summary>
     public string RedisConnectionString => _containers.Redis.ConnectionString;
 
-    public static async Task<RoundsCluster> CreateAsync(RoundsContainers containers, SalaSettings? sala, CancellationToken ct)
+    public static Task<RoundsCluster> CreateAsync(RoundsContainers containers, SalaSettings? sala, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(containers);
+        return CreateAsync(containers, containers.Postgres.ConnectionString, sala, ct);
+    }
+
+    /// <summary>A cluster whose database lives on another PostgreSQL server (e.g. one with a low <c>max_connections</c>).</summary>
+    public static async Task<RoundsCluster> CreateAsync(RoundsContainers containers, string postgresServerConnectionString, SalaSettings? sala, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(containers);
         await FlushRedisAsync(containers.Redis.ConnectionString).ConfigureAwait(false);
-        var database = await CreateDatabaseAsync(containers.Postgres.ConnectionString, ct).ConfigureAwait(false);
+        var database = await CreateDatabaseAsync(postgresServerConnectionString, ct).ConfigureAwait(false);
         return new RoundsCluster(containers, database, sala ?? new SalaSettings());
     }
 

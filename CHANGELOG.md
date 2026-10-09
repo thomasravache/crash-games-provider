@@ -9,6 +9,7 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 ## [Unreleased]
 
 ### Added
+- Segurança base: requisições de operador assinadas com HMAC e proteção contra reenvio, lançamento demo com token de uso único, sessão do jogador, backoffice com Keycloak, negação por padrão e trava de dinheiro real (SPEC-0009)
 - Justiça do resultado provably fair: cadeia de sementes SHA-256, ponto de crash em aritmética exata, verificação pública e vetores v1 reproduzíveis (SPEC-0007)
 - Pipeline de CI no GitHub Actions: build, testes (unitários, integração, arquitetura, performance e E2E), segurança (gitleaks, Semgrep, vulnerabilidades e licenças), verificação de contratos e job SDD; imagens de container no merge; nightly com RTP e mutação; Dependabot semanal (SPEC-0004)
 - Contratos gerados do backend para o front-end: OpenAPI versionado, tipos e clientes TypeScript de REST e hubs em `packages/contracts`, verificação de divergência (`contracts:check`) e convenções de JSON (dinheiro e multiplicador como string decimal, datas UTC) também nos hubs (SPEC-0006)

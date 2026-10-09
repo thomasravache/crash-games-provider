@@ -1,5 +1,6 @@
 # Nightly checks (SPEC-0004, ADR-0009, ADR-0012): long RTP simulations (tests marked Category=Nightly) and mutation
-# testing (Stryker, stryker-config.json) of the critical domain. 03:00 UTC, also runnable by hand.
+# testing of Fairness.Domain (SPEC-0016: the Category=Mutation test runs Stryker with stryker-config.json once and
+# asserts the score). 03:00 UTC, also runnable by hand.
 # To save Actions minutes, the scheduled run does nothing when main had no commit in the last 24 hours (the code was
 # already checked by the previous night); a manual run always executes.
 # Every action is pinned by full commit SHA (tag in the comment); tools/ci/check-workflows enforces it.
@@ -66,10 +67,11 @@ jobs:
         run: dotnet restore Apogeu.slnx --locked-mode
       - name: Build (warnings are errors)
         run: dotnet build Apogeu.slnx -c Release --no-restore
-      - name: RTP simulation (Category=Nightly)
+      # The mutation test is also Category=Nightly; it runs only in the `mutation` job (SPEC-0016 amendment 1).
+      - name: RTP simulation (Category=Nightly, without Mutation)
         run: >-
           dotnet test Apogeu.slnx -c Release --no-build
-          --filter "Category=Nightly"
+          --filter "Category=Nightly&Category!=Mutation"
           --logger "trx"
           --results-directory artifacts/nightly
       - name: Upload results
@@ -90,31 +92,36 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # stryker-config.json names the test projects of the critical domain (Fairness, Wallet). Checked before any
-      # setup: with none of them created yet there is nothing to mutate and the job stops here. With some of them,
-      # Stryker runs on those and on the code of their modules only (tools/ci/stryker-targets).
-      - name: Stryker targets
-        id: targets
-        run: tools/ci/stryker-targets stryker-config.json stryker-config.nightly.json
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        if: steps.targets.outputs.ready == 'true'
         with:
           global-json-file: global.json
           cache: true
           cache-dependency-path: "**/packages.lock.json"
       - name: Restore (lock files, locked mode, local tools)
-        if: steps.targets.outputs.ready == 'true'
         run: |
           dotnet restore Apogeu.slnx --locked-mode
           dotnet tool restore
-      - name: Stryker (break below 80%)
-        if: steps.targets.outputs.ready == 'true'
-        run: dotnet stryker --config-file stryker-config.nightly.json --output artifacts/mutation/report
-      - name: Upload report
-        if: ${{ !cancelled() && steps.targets.outputs.ready == 'true' }}
+      - name: Build the CI tests (warnings are errors)
+        run: dotnet build tests/ci/Ci.Tests/Ci.Tests.csproj -c Release --no-restore
+      # stryker-config.json mutates Fairness.Domain with Fairness.Tests and breaks below 85% (SPEC-0007 §7.6); the
+      # Category=Mutation test runs Stryker on it and fails on a low score or uncovered SeedChain.cs mutants. The
+      # Stryker output (statuses per mutant) is in the test log of the trx.
+      # xUnit v3 runs the tests in a child process of the vstest host, out of reach of Stryker's in-process data
+      # collector, so the mutant is activated through the environment instead: STRYKER_MUTANT_ID_CONTROL_VAR names
+      # the variable the single vstest runner (concurrency 1 in stryker-config.json) sets per mutant (SPEC-0016).
+      - name: Mutation (Category=Mutation, Stryker, break below 85%)
+        env:
+          STRYKER_MUTANT_ID_CONTROL_VAR: ACTIVE_MUTATION_0
+        run: >-
+          dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj -c Release --no-build
+          --filter "Category=Mutation"
+          --logger "trx"
+          --results-directory artifacts/mutation
+      - name: Upload results
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: mutation-report
-          path: artifacts/mutation/report
+          name: mutation-results
+          path: artifacts/mutation
           retention-days: 7
           if-no-files-found: ignore

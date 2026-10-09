@@ -26,6 +26,7 @@ internal sealed class RoundsLeadershipService(
     RoundsRedis redis,
     IServiceScopeFactory scopes,
     IRoundBroadcaster broadcaster,
+    SalaLiveViews views,
     RoundsMetrics metrics,
     TimeProvider time,
     ILoggerFactory loggers) : BackgroundService, IRoundsLeadership
@@ -206,8 +207,11 @@ internal sealed class RoundsLeadershipService(
         var fenced = lease.Fence(broadcaster);
         while (!term.IsCancellationRequested)
         {
+            // The state this conductor publishes is served to the joins only while it runs and the lease holds.
+            var snapshots = views.Open(sala.Id, lease);
             var scope = scopes.CreateAsyncScope();
             await using (scope.ConfigureAwait(false))
+            using (snapshots)
             {
                 var services = scope.ServiceProvider;
                 var conductor = new SalaConductor(
@@ -219,7 +223,8 @@ internal sealed class RoundsLeadershipService(
                     time,
                     loggers.CreateLogger<SalaConductor>(),
                     services.GetRequiredService<IRoundChainStore>(),
-                    lastSeen);
+                    lastSeen,
+                    snapshots);
                 try
                 {
                     while (true)
