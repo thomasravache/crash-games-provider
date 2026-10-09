@@ -1,11 +1,14 @@
 using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Text.Json;
+using Apogeu.Fairness.Contracts;
 using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Features;
 using Apogeu.Rounds.Tests.Support;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using FairnessMultiplier = Apogeu.Fairness.Contracts.Multiplier;
 
 namespace Apogeu.Rounds.Tests.Integration;
 
@@ -76,6 +79,65 @@ public sealed class ResumeTests(RoundsContainers containers)
         Assert.Fail($"No round outlived the takeover in 6 attempts. Samples: {string.Join("; ", samples)}");
     }
 
+    // From the G4 review of SPEC-0008: the room's configuration changes between leader A and leader B while a round flies.
+    // The round keeps the parameters it started with: the crash point A read (original RTP/cap) and t_c with the original k.
+    [Fact(DisplayName = "Dada uma rodada em voo e a configuração da sala alterada entre o líder A e o líder B, quando B assume, então a rodada termina no crashPoint original e em startedAt + t_c com o growthK original (± 250 ms)")]
+    [Trait("Spec", "SPEC-0008:IT-04")]
+    [Trait("Category", "Integration")]
+    [Trait("Category", "Performance")]
+    public async Task GivenConfigurationChangedBetweenLeadersWhenRoundResumesThenItKeepsOriginalCrashPointAndInstant()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var changed = new SalaSettings(Rtp: "0.92", Cap: "1.50", GrowthK: "0.00004");
+        var samples = new List<string>();
+
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            await using var cluster = await RoundsCluster.CreateAsync(containers, LongFlights, ct);
+            var leader = cluster.StartHost();
+            await Eventually.HoldsAsync(() => leader.IsLeading, TimeSpan.FromSeconds(30), () => $"{leader.Name} leading");
+            var successor = cluster.StartHost(new RoundsHostSetup
+            {
+                Salas = new Dictionary<string, SalaSettings>(StringComparer.Ordinal) { [SalaSettings.SalaId] = changed },
+            });
+            await using var connection = successor.CreateHubConnection();
+            var recorder = new HubRecorder(connection);
+            await connection.StartAsync(ct);
+            await connection.InvokeAsync<JsonElement>("JoinSala", SalaSettings.SalaId, ct);
+
+            var flying = await recorder.WaitForAsync("RoundFlying", RoundTimeout);
+            await leader.DisposeAsync();
+            await Eventually.HoldsAsync(() => successor.IsLeading, TimeSpan.FromSeconds(30), () => $"{successor.Name} taking over");
+            var takeoverAt = DateTimeOffset.UtcNow;
+
+            var crashed = await recorder.WaitForAsync("RoundCrashed", e => e.RoundId == flying.RoundId, RoundTimeout);
+            var expectedPoint = await OriginalCrashPointAsync(successor, crashed, ct);
+            var startedAt = Json.Instant(flying.Payload, "startedAt");
+            var expectedAt = startedAt + TimeSpan.FromMilliseconds(Math.Log((double)expectedPoint) / LongFlights.K);
+            var crashPoint = Json.Decimal(crashed.Payload, "crashPoint");
+            var crashedAt = Json.Instant(crashed.Payload, "crashedAt");
+            samples.Add(string.Create(
+                CultureInfo.InvariantCulture,
+                $"crash {crashPoint} (original {expectedPoint}) crashedAt {crashedAt:O} expected {expectedAt:O} takeover {takeoverAt:O}"));
+
+            if (expectedAt <= takeoverAt + TimeSpan.FromMilliseconds(500))
+            {
+                // The original crash instant passed before the new leader could act: not a mid-flight takeover.
+                continue;
+            }
+
+            Assert.True(
+                crashPoint == expectedPoint,
+                $"The resumed round crashed at {crashPoint}, expected its original crash point {expectedPoint} (RTP {LongFlights.Rtp}, cap {LongFlights.Cap}). Samples: {string.Join("; ", samples)}");
+            Assert.True(
+                (crashedAt - expectedAt).Duration() <= CrashTolerance,
+                $"The resumed round crashed at {crashedAt:O}, expected startedAt + t_c with the original k = {expectedAt:O} (± {CrashTolerance.TotalMilliseconds} ms). Samples: {string.Join("; ", samples)}");
+            return;
+        }
+
+        Assert.Fail($"No round outlived the takeover in 4 attempts. Samples: {string.Join("; ", samples)}");
+    }
+
     [Fact(DisplayName = "Dado nenhum líder disponível por 31 s com rodada em voo, quando um líder assume, então a rodada fica Annulled com motivo e a métrica rounds.annulled incrementa")]
     [Trait("Spec", "SPEC-0008:IT-05")]
     [Trait("Category", "Integration")]
@@ -102,6 +164,21 @@ public sealed class ResumeTests(RoundsContainers containers)
             () => listener.Total(successor.MeterFactory) >= 1,
             TimeSpan.FromSeconds(10),
             () => $"{RoundsMetrics.Annulled} incremented by {successor.Name} (got {listener.Total(successor.MeterFactory)})");
+    }
+
+    /// <summary>The crash point of the round's revealed seed under the parameters it started with (<see cref="LongFlights"/>).</summary>
+    private static async Task<decimal> OriginalCrashPointAsync(RoundsHost host, HubEvent crashed, CancellationToken ct)
+    {
+        using var http = host.CreateClient();
+        var verification = await Json.ReadAsync(
+            await http.GetAsync(new Uri($"/api/v1/rounds/{crashed.RoundId}/verification", UriKind.Relative), ct).ConfigureAwait(false),
+            ct).ConfigureAwait(false);
+        using var scope = host.Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<IFairnessService>().ComputeCrashPoint(
+            Seed.FromHex(Json.Text(crashed.Payload, "revealedSeed")),
+            Salt.FromHex(Json.Text(verification, "salt")),
+            new Rtp(decimal.Parse(LongFlights.Rtp, CultureInfo.InvariantCulture)),
+            new FairnessMultiplier(decimal.Parse(LongFlights.Cap, CultureInfo.InvariantCulture))).Value;
     }
 
     /// <summary>Kills the only instance while a round flies, and returns that round (still Flying in the store).</summary>

@@ -1,3 +1,5 @@
+using Apogeu.Fairness.Contracts;
+using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Features.Live;
 using Apogeu.Rounds.Tests.Support;
 using Xunit;
@@ -31,6 +33,33 @@ public sealed class SalaConductorTests
         Assert.True(
             order.IndexOf(flying) < order.IndexOf(crashed),
             $"RoundFlying must precede RoundCrashed. Messages:{Environment.NewLine}{messages}");
+    }
+
+    // From the G4 review of SPEC-0008: a reveal whose crash point differs from the one read at the start of the flight is
+    // never published as a normal crash; the round is annulled with the reason CRASH_POINT_MISMATCH.
+    [Fact(DisplayName = "Dado o crashPoint revelado diferente do lido no início do voo, quando a rodada encerra, então o condutor não publica RoundCrashed e anula a rodada com motivo CRASH_POINT_MISMATCH")]
+    [Trait("Spec", "SPEC-0008:UT-03")]
+    public async Task GivenRevealedCrashPointDiffersWhenRoundEndsThenConductorAnnulsWithCrashPointMismatch()
+    {
+        using var harness = new ConductorHarness(clock => new MismatchedRevealFairness(new ScriptedFairness(clock, 1.50m, 2.00m)));
+
+        await harness.RunUntilAsync(
+            () => harness.Broadcaster.Of<RoundCrashedMessage>().Count + harness.Broadcaster.Of<RoundAnnulledMessage>().Count >= 1,
+            "the end of round 1");
+
+        var betting = Assert.Single(harness.Broadcaster.Of<RoundBettingMessage>(), m => m.RoundNumber == 1);
+        var messages = harness.Broadcaster.Describe();
+        Assert.True(
+            !harness.Broadcaster.Of<RoundCrashedMessage>().Any(m => m.RoundId == betting.RoundId),
+            $"A round whose revealed crash point diverges must not be published as crashed. Messages:{Environment.NewLine}{messages}");
+        var annulled = Assert.Single(harness.Broadcaster.Of<RoundAnnulledMessage>(), m => m.RoundId == betting.RoundId);
+        Assert.Equal("CRASH_POINT_MISMATCH", annulled.Reason);
+
+        var stored = await harness.Store.FindAsync(new RoundId(betting.RoundId), TestContext.Current.CancellationToken);
+        Assert.NotNull(stored);
+        Assert.Equal(RoundState.Annulled, stored.State);
+        Assert.Equal("CRASH_POINT_MISMATCH", stored.AnnulReason);
+        Assert.Null(stored.CrashPoint);
     }
 
     [Fact(DisplayName = "Dado FakeTimeProvider em t = 5.000 ms de voo, quando o sync é emitido, então o multiplicador é floor(e^(0,3)·100)/100 = 1.34")]
@@ -68,5 +97,27 @@ public sealed class SalaConductorTests
         }
 
         Assert.True(syncs.Count >= 25, $"Expected the 25 syncs of the first 5 s of flight, got {syncs.Count}.");
+    }
+
+    /// <summary>The scripted chain, except that <c>RevealAsync</c> returns a crash point 1.00 above the one read at flight start.</summary>
+    private sealed class MismatchedRevealFairness(ScriptedFairness inner) : IFairnessService
+    {
+        public Task<ChainInfo> CreateChainAsync(SalaId sala, int length, CancellationToken ct) => inner.CreateChainAsync(sala, length, ct);
+
+        public Task<RoundSeedCommitment> NextRoundAsync(SalaId sala, CancellationToken ct) => inner.NextRoundAsync(sala, ct);
+
+        public Task<CrashPoint> GetCrashPointAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct) =>
+            inner.GetCrashPointAsync(chain, roundIndex, rtp, cap, ct);
+
+        public async Task<RevealedRound> RevealAsync(ChainId chain, int roundIndex, Rtp rtp, Multiplier cap, CancellationToken ct)
+        {
+            var revealed = await inner.RevealAsync(chain, roundIndex, rtp, cap, ct).ConfigureAwait(false);
+            return revealed with { CrashPoint = new CrashPoint(revealed.CrashPoint.Value + 1.00m) };
+        }
+
+        public CrashPoint ComputeCrashPoint(Seed seed, Salt salt, Rtp rtp, Multiplier cap) => inner.ComputeCrashPoint(seed, salt, rtp, cap);
+
+        public VerificationResult Verify(Seed seed, Seed previousSeed, Salt salt, Rtp rtp, Multiplier cap, CrashPoint claimed) =>
+            inner.Verify(seed, previousSeed, salt, rtp, cap, claimed);
     }
 }

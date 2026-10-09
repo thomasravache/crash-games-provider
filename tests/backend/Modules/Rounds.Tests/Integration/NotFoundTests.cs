@@ -37,6 +37,20 @@ public sealed class NotFoundTests(RoundsContainers containers)
         Assert.Contains("SALA_NOT_FOUND", error.Message, StringComparison.Ordinal);
     }
 
+    // From the G4 review of SPEC-0008: a non-numeric limit is the same contract error as an out-of-range one.
+    [Fact(DisplayName = "Dado limit não numérico (limit=abc), quando GET /salas/{id}/rounds, então 400 ProblemDetails com code INVALID_LIMIT")]
+    [Trait("Spec", "SPEC-0008:IT-06")]
+    [Trait("Category", "Integration")]
+    public async Task GivenNonNumericLimitWhenHistoryIsRequestedThenInvalidLimit()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var cluster = await RoundsCluster.CreateAsync(containers, sala: null, ct);
+        var host = cluster.StartHost();
+        using var http = host.CreateClient();
+
+        await AssertProblemAsync(http, "/api/v1/salas/demo/rounds?limit=abc", HttpStatusCode.BadRequest, "INVALID_LIMIT", ct);
+    }
+
     private static async Task AssertProblemAsync(HttpClient http, string path, HttpStatusCode status, string code, CancellationToken ct)
     {
         var response = await http.GetAsync(new Uri(path, UriKind.Relative), ct).ConfigureAwait(false);

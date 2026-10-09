@@ -14,6 +14,9 @@ public sealed class LeadershipTests(RoundsContainers containers)
     private const int Rounds = 5;
     private const int TakeoverSamples = 3;
 
+    // Long flights (up to ln(2)/0.00002 ≈ 34.7 s): the old leader is flying, sending RoundSync every 200 ms, when it loses Redis.
+    private static readonly SalaSettings LongFlights = new(GrowthK: "0.00002", Cap: "2.00");
+
     [Fact(DisplayName = "Dadas duas instâncias do condutor com Redis real, quando rodam 5 rodadas, então só uma conduz e os números de rodada são 1..5 sem repetição; ao matar a líder, a outra assume em ≤ 6 s")]
     [Trait("Spec", "SPEC-0008:IT-01")]
     [Trait("Category", "Integration")]
@@ -54,10 +57,63 @@ public sealed class LeadershipTests(RoundsContainers containers)
             numbers.Distinct().Count() == numbers.Count && numbers.Take(Rounds).SequenceEqual([1, 2, 3, 4, 5]),
             $"Expected the round numbers 1..5 without repetition, got [{string.Join(", ", numbers)}].");
 
+        // G4 review: every takeover, not only the median, meets the NFR (≤ 6 s).
         var samples = await MeasureTakeoversAsync(cluster, hosts, numbers.Max(), ct);
-        var median = samples.Order().ElementAt(samples.Count / 2);
+        var slowest = samples.Max();
         var described = string.Join(", ", samples.Select(s => s.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms"));
-        Assert.True(median <= TakeoverLimit, $"Median takeover {median.TotalMilliseconds:F0} ms > {TakeoverLimit.TotalSeconds} s. Samples: {described}");
+        Assert.True(slowest <= TakeoverLimit, $"A takeover took {slowest.TotalMilliseconds:F0} ms > {TakeoverLimit.TotalSeconds} s. Samples: {described}");
+    }
+
+    // From the G4 review of SPEC-0008: the leader loses Redis the ungraceful way (its lock connection hangs; no release, no
+    // DisposeAsync). The other instance takes over within 6 s and the old leader conducts nothing once it does.
+    [Fact(DisplayName = "Dado o líder que perde o Redis sem liberar o lock (conexão travada), quando a outra instância assume, então assume em ≤ 6 s e o líder antigo não transiciona nem transmite nada depois disso")]
+    [Trait("Spec", "SPEC-0008:IT-01")]
+    [Trait("Category", "Integration")]
+    [Trait("Category", "Performance")]
+    public async Task GivenLeaderLosingRedisUngracefullyWhenAnotherTakesOverThenWithinSixSecondsAndWithoutOverlap()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var cluster = await RoundsCluster.CreateAsync(containers, LongFlights, ct);
+        await using var proxy = FreezableTcpProxy.Start(cluster.RedisConnectionString);
+        AttributedBroadcaster? sentByOld = null;
+        var old = cluster.StartHost(new RoundsHostSetup
+        {
+            Salas = new Dictionary<string, SalaSettings>(StringComparer.Ordinal) { [SalaSettings.SalaId] = LongFlights },
+            LeaderRedis = proxy.ConnectionString,
+            Services = services => AttributedBroadcaster.Decorate(services, b => sentByOld = b),
+        });
+        await Eventually.HoldsAsync(() => old.IsLeading, TimeSpan.FromSeconds(30), () => $"{old.Name} leading");
+        var successor = cluster.StartHost();
+        IReadOnlyList<RoundsHost> hosts = [old, successor];
+
+        await using var connection = successor.CreateHubConnection();
+        var recorder = new HubRecorder(connection);
+        await connection.StartAsync(ct);
+        await connection.InvokeAsync<System.Text.Json.JsonElement>("JoinSala", SalaSettings.SalaId, ct);
+        await recorder.WaitForAsync("RoundFlying", RoundTimeout);
+
+        var overlaps = new List<string>();
+        using var sampling = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var sampler = SampleLeadershipAsync(hosts, overlaps, sampling.Token);
+
+        var watch = Stopwatch.StartNew();
+        proxy.Freeze();
+        await Eventually.HoldsAsync(() => successor.IsLeading, TimeSpan.FromSeconds(30), () => $"{successor.Name} taking over");
+        var takeover = watch.Elapsed;
+        var successorLeadsAt = DateTimeOffset.UtcNow;
+
+        // Leave the old leader time to (wrongly) keep conducting: its renewal hangs until the Redis client times out.
+        await Task.Delay(TimeSpan.FromSeconds(4), ct);
+        await sampling.CancelAsync();
+        await sampler;
+
+        Assert.True(takeover <= TakeoverLimit, $"Takeover after an ungraceful loss took {takeover.TotalMilliseconds:F0} ms > {TakeoverLimit.TotalSeconds} s.");
+        Assert.True(overlaps.Count == 0, $"Two instances led the room at the same time: {string.Join("; ", overlaps)}");
+        Assert.NotNull(sentByOld);
+        var late = sentByOld.Sent.Where(m => m.SentAt >= successorLeadsAt).ToList();
+        Assert.True(
+            late.Count == 0,
+            $"The old leader {old.Name} kept conducting after {successor.Name} took over at {successorLeadsAt:O}:{Environment.NewLine}{string.Join(Environment.NewLine, late)}");
     }
 
     /// <summary>Kills the leader <see cref="TakeoverSamples"/> times (a fresh follower each time) and measures each takeover.</summary>

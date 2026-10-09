@@ -25,6 +25,9 @@ internal sealed class RoundsCluster : IAsyncDisposable
 
     public SalaSettings Sala { get; }
 
+    /// <summary>The shared Redis (leader locks and SignalR backplane).</summary>
+    public string RedisConnectionString => _containers.Redis.ConnectionString;
+
     public static async Task<RoundsCluster> CreateAsync(RoundsContainers containers, SalaSettings? sala, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(containers);
@@ -34,14 +37,17 @@ internal sealed class RoundsCluster : IAsyncDisposable
     }
 
     /// <summary>Starts a new instance of the Host.</summary>
-    public RoundsHost StartHost()
+    public RoundsHost StartHost() => StartHost(new RoundsHostSetup { Salas = new Dictionary<string, SalaSettings>(StringComparer.Ordinal) { [SalaSettings.SalaId] = Sala } });
+
+    /// <summary>Starts a new instance of the Host with its own <paramref name="setup"/>.</summary>
+    public RoundsHost StartHost(RoundsHostSetup setup)
     {
         var host = new RoundsHost(
             $"host-{Interlocked.Increment(ref _started)}",
             DatabaseConnectionString,
             _containers.Redis.ConnectionString,
             _keys,
-            Sala);
+            setup);
         _hosts.Add(host);
         host.Start();
         return host;

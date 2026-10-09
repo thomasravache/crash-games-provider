@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.SignalR.StackExchangeRedis;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace Apogeu.Rounds.Tests.Support;
 
@@ -20,26 +22,46 @@ internal sealed class RoundsHost : IAsyncDisposable
     private readonly WebApplicationFactory<Program> _factory;
     private bool _disposed;
 
-    public RoundsHost(string name, string databaseConnectionString, string redisConnectionString, DirectoryInfo keys, SalaSettings sala)
+    public RoundsHost(string name, string databaseConnectionString, string redisConnectionString, DirectoryInfo keys, RoundsHostSetup setup)
     {
+        ArgumentNullException.ThrowIfNull(setup);
         Name = name;
+        var salas = setup.Salas ?? Demo(new SalaSettings());
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
         {
             host.UseEnvironment("Development");
             host.UseSetting("ConnectionStrings:apogeu", databaseConnectionString);
-            host.UseSetting("ConnectionStrings:redis", redisConnectionString);
-            var section = $"Rounds:Salas:{SalaSettings.SalaId}:";
-            host.UseSetting(section + "Rtp", sala.Rtp);
-            host.UseSetting(section + "Cap", sala.Cap);
-            host.UseSetting(section + "GrowthK", sala.GrowthK);
-            host.UseSetting(section + "BettingDuration", sala.BettingDuration);
-            host.UseSetting(section + "CooldownDuration", sala.CooldownDuration);
-            host.UseSetting(section + "ChainLength", sala.ChainLength.ToString(CultureInfo.InvariantCulture));
+            host.UseSetting("ConnectionStrings:redis", setup.LeaderRedis ?? redisConnectionString);
+            foreach (var (salaId, sala) in salas)
+            {
+                var section = $"Rounds:Salas:{salaId}:";
+                host.UseSetting(section + "Rtp", sala.Rtp);
+                host.UseSetting(section + "Cap", sala.Cap);
+                host.UseSetting(section + "GrowthK", sala.GrowthK);
+                host.UseSetting(section + "BettingDuration", sala.BettingDuration);
+                host.UseSetting(section + "CooldownDuration", sala.CooldownDuration);
+                host.UseSetting(section + "ChainLength", sala.ChainLength.ToString(CultureInfo.InvariantCulture));
+            }
+
             host.ConfigureServices(services =>
             {
                 services.AddAuthentication(TestAuthHandler.SchemeName)
                     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
                 services.AddDataProtection().SetApplicationName("Apogeu.Rounds.Tests").PersistKeysToFileSystem(keys);
+                if (setup.LeaderRedis is not null)
+                {
+                    // Only the leader lock goes through the given Redis: the SignalR backplane stays on the shared one.
+                    services.PostConfigure<RedisOptions>(options =>
+                    {
+                        options.Configuration.EndPoints.Clear();
+                        foreach (var endpoint in ConfigurationOptions.Parse(redisConnectionString).EndPoints)
+                        {
+                            options.Configuration.EndPoints.Add(endpoint);
+                        }
+                    });
+                }
+
+                setup.Services?.Invoke(services);
             });
         });
     }
@@ -70,6 +92,9 @@ internal sealed class RoundsHost : IAsyncDisposable
             })
             .Build();
     }
+
+    private static Dictionary<string, SalaSettings> Demo(SalaSettings sala) =>
+        new(StringComparer.Ordinal) { [SalaSettings.SalaId] = sala };
 
     public async ValueTask DisposeAsync()
     {
