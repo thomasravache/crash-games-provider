@@ -130,6 +130,9 @@ importers:
 
   apps/game-pipa:
     dependencies:
+      '@apogeu/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
       '@apogeu/game-ui':
         specifier: workspace:*
         version: link:../../packages/game-ui
@@ -184,7 +187,13 @@ importers:
       '@apogeu/game-sdk':
         specifier: workspace:*
         version: link:../game-sdk
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
     devDependencies:
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

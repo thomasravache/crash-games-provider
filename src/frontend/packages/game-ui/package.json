@@ -11,9 +11,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@apogeu/game-sdk": "workspace:*"
+    "@apogeu/game-sdk": "workspace:*",
+    "react": "catalog:"
   },
   "devDependencies": {
+    "@types/react": "catalog:",
     "typescript": "catalog:"
   }
 }
