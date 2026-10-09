@@ -19,7 +19,7 @@ enforced_by: "Revisão no G4 da spec de arte final (licença do plano e origem d
 A SPEC-0011 desenha a cena da Pipa em vetor no próprio código (pipa, nuvens, orla do Rio com morros). O resultado é limpo, mas não chega a uma ilustração pintada. A arte final ilustrada fica para a spec futura "Arte, som e animação final da Pipa". Falta decidir com que ferramenta gerar essa arte sem ilustrador, mantendo o motor de animação do ADR-0021 (PixiJS + GSAP).
 
 ## Direcionadores da Decisão
-- Decisão do usuário (2026-10-09): usar o Recraft.
+- Decisão do usuário (2026-10-09): usar o Recraft na arte final, antes do lançamento; custo zero na fase de testes.
 - A cena já é vetorial: o asset ideal é SVG, que entra no lugar do desenho em código sem trocar o motor e mantém o pacote leve (ADR-0019, ≤ 1,5 MB).
 - Produto comercial B2B: o asset precisa de direito de uso comercial claro.
 
@@ -30,6 +30,7 @@ A SPEC-0011 desenha a cena da Pipa em vetor no próprio código (pipa, nuvens, o
 **Opção escolhida:** **Recraft** para gerar a arte vetorial (SVG) dos jogos, começando pela Pipa.
 
 **Regras (verificáveis):**
+- **Só antes do lançamento.** Na fase de testes a cena usa a arte vetorial desenhada em código da SPEC-0011, com custo zero (GSAP gratuito, pixi-filters MIT, física própria); nenhuma assinatura do Recraft é feita até a spec de arte final ser aprovada (thomas, 2026-10-09).
 - Só assets gerados em **plano pago** do Recraft entram no repositório: no plano gratuito as imagens são públicas e sem licença comercial.
 - Cada asset gerado é versionado em SVG com um registro de origem (ferramenta, modelo, data, plano, prompt) ao lado do arquivo.
 - O SVG passa por otimização (ex.: SVGO) e entra pela cena via `GameAnimator` (ADR-0004, ADR-0021); a animação continua procedural.
