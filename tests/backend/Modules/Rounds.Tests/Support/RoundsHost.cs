@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 using System.Globalization;
+using System.Net.Http.Headers;
 using Apogeu.Rounds.Features.Conductor;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -14,12 +15,14 @@ namespace Apogeu.Rounds.Tests.Support;
 
 /// <summary>
 /// One instance of the real Host (WebApplicationFactory) in Development, on the test's PostgreSQL database and the shared
-/// Redis, with the test authentication scheme and a Data Protection key ring shared by every instance of the test (the
-/// Fairness seeds encrypted by one instance are read by the next leader). Disposing it is "killing" the instance.
+/// Redis, with a player-session signing key of its own (the hub and the REST endpoints are authenticated with real
+/// SPEC-0009 sessions, <see cref="PlayerSessions"/>) and a Data Protection key ring shared by every instance of the test
+/// (the Fairness seeds encrypted by one instance are read by the next leader). Disposing it is "killing" the instance.
 /// </summary>
 internal sealed class RoundsHost : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
+    private readonly string _sessionSigningKey = PlayerSessions.NewSigningKey();
     private bool _disposed;
 
     public RoundsHost(string name, string databaseConnectionString, string redisConnectionString, DirectoryInfo keys, RoundsHostSetup setup)
@@ -32,6 +35,7 @@ internal sealed class RoundsHost : IAsyncDisposable
             host.UseEnvironment("Development");
             host.UseSetting("ConnectionStrings:apogeu", databaseConnectionString);
             host.UseSetting("ConnectionStrings:redis", setup.LeaderRedis ?? redisConnectionString);
+            host.UseSetting(PlayerSessions.SettingName, _sessionSigningKey);
             foreach (var (salaId, sala) in salas)
             {
                 var section = $"Rounds:Salas:{salaId}:";
@@ -45,8 +49,6 @@ internal sealed class RoundsHost : IAsyncDisposable
 
             host.ConfigureServices(services =>
             {
-                services.AddAuthentication(TestAuthHandler.SchemeName)
-                    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
                 services.AddDataProtection().SetApplicationName("Apogeu.Rounds.Tests").PersistKeysToFileSystem(keys);
                 if (setup.LeaderRedis is not null)
                 {
@@ -77,18 +79,28 @@ internal sealed class RoundsHost : IAsyncDisposable
     /// <summary>Starts the host (and its hosted services: migrations, leader election, conductor).</summary>
     public void Start() => _ = _factory.Server;
 
-    public HttpClient CreateClient() => _factory.CreateClient();
+    /// <summary>An HTTP client with the session of <paramref name="player"/> in <paramref name="salaId"/> as bearer.</summary>
+    public HttpClient CreateClient(string player = "player-1", string salaId = SalaSettings.SalaId)
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", PlayerSessions.Issue(_sessionSigningKey, player, salaId));
+        return client;
+    }
 
-    /// <summary>A real SignalR client (long polling over the in-memory server) authenticated as <paramref name="player"/>.</summary>
-    public HubConnection CreateHubConnection(string player = "player-1")
+    /// <summary>
+    /// A real SignalR client (long polling over the in-memory server) with the session of <paramref name="player"/> in
+    /// <paramref name="salaId"/>: <c>JoinSala</c> of another room is refused by the sala policy of SPEC-0009.
+    /// </summary>
+    public HubConnection CreateHubConnection(string player = "player-1", string salaId = SalaSettings.SalaId)
     {
         var server = _factory.Server;
+        var session = PlayerSessions.Issue(_sessionSigningKey, player, salaId);
         return new HubConnectionBuilder()
             .WithUrl(new Uri(server.BaseAddress, "hubs/rounds"), options =>
             {
                 options.Transports = HttpTransportType.LongPolling;
                 options.HttpMessageHandlerFactory = _ => server.CreateHandler();
-                options.Headers["Authorization"] = $"{TestAuthHandler.SchemeName} {player}";
+                options.AccessTokenProvider = () => Task.FromResult<string?>(session);
             })
             .Build();
     }
