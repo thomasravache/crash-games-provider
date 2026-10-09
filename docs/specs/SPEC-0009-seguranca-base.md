@@ -186,10 +186,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:02.77]     Dado um DTO com string?, quando o esquema é gerado, então a pr) — 07e1e4f | 2026-10-09 |
-| G2 Green | FAIL | build exit 0 (✓ built in 54ms); test exit 0 (Duration  2.34s (tests 91%, transform 6%, import 2%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:00:37.35]     Dado o Keycloak real, quando GET /backoffice/me com token de o) — d5428ae | 2026-10-09 |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 55ms); test exit 0 (Duration  1.17s (tests 98%, transform 1%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T09:29:56: Report generation took 0,2 seconds) — 97cfdb8 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  850ms (tests 98%, transform 1%, import 1%)) — 97cfdb8 | 2026-10-09 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — d5428ae + correção do harness do Keycloak 97cfdb8 (minor do review), 0 blocker/major; minors como pendência: ForwardedHeaders antes do deploy, CloseOnAuthenticationExpiration no hub, frame-ancestors no host do jogo, escopo organization no backoffice, frame-ancestors só https fora de Development — 97cfdb8 | 2026-10-09 |
+| G5 Integração & CI | FAIL | build exit 0 (✓ built in 53ms); test exit 0 (Duration  1.14s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 3 m 47 s ); test_e2e exit 0 (3 passed (4.1s)); arch_test exit 0 (Duration  782ms (tests 98%, transform 2%, import 1%)); security_scan exit 1 (Ran 8 rules on 217 files: 1 finding.) — a297bfe | 2026-10-09 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |

@@ -31,7 +31,8 @@ public sealed class NotFoundTests(RoundsContainers containers)
             Assert.True(valid.StatusCode == HttpStatusCode.OK, $"limit={limit} must be accepted, got {(int)valid.StatusCode}: {await valid.Content.ReadAsStringAsync(ct)}");
         }
 
-        await using var connection = host.CreateHubConnection();
+        // A session for the unknown room itself, so the sala policy of SPEC-0009 lets the call reach the hub.
+        await using var connection = host.CreateHubConnection(salaId: "nao-existe");
         await connection.StartAsync(ct);
         var error = await Assert.ThrowsAsync<HubException>(() => connection.InvokeAsync<JsonElement>("JoinSala", "nao-existe", ct));
         Assert.Contains("SALA_NOT_FOUND", error.Message, StringComparison.Ordinal);
