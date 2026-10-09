@@ -1,0 +1,13 @@
+{
+  // E2E tests of SPEC-0010 (Pipa) run by src/frontend/playwright.config.ts. They sit outside the pnpm workspace, so the test packages
+  // resolve from src/frontend/node_modules (Playwright honours `paths` of the tsconfig closest to each test file).
+  "extends": "../../../src/frontend/tsconfig.base.json",
+  "compilerOptions": {
+    "types": [],
+    "paths": {
+      "@playwright/test": ["../../../src/frontend/node_modules/@playwright/test"],
+      "@axe-core/playwright": ["../../../src/frontend/node_modules/@axe-core/playwright"]
+    }
+  },
+  "include": ["**/*.ts"]
+}

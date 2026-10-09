@@ -1,0 +1,18 @@
+/* Styles of the Pipa game: Tailwind v4 (ADR-0004) over the HUD Base tokens of game-ui, then the Pipa theme. */
+@import "tailwindcss";
+@import "@apogeu/game-ui/hud-base.css";
+
+/* The HUD components live in game-ui: Tailwind must see their class names. */
+@source "../../../packages/game-ui/src";
+
+/* Pipa theme (Stitch design system "Pipa Crash"). */
+@theme {
+  --color-hud-accent: #f97316;
+  --color-hud-win: #22c55e;
+}
+
+html,
+body {
+  background-color: var(--color-hud-canvas);
+  color-scheme: dark;
+}

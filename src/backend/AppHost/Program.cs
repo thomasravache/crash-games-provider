@@ -1,4 +1,5 @@
 using Aspire.Hosting.JavaScript;
+using Microsoft.Extensions.Configuration;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -39,8 +40,12 @@ var gamePipa = builder.AddViteApp("game-pipa", $"{FrontendApps}/game-pipa")
     .WithPnpm(install: true, installArgs: ["--frozen-lockfile"]);
 var frontendInstall = gamePipa.Resource.Annotations.OfType<JavaScriptPackageInstallerAnnotation>().Single().Resource;
 
+// SPEC-0010 (tools/ci/run-e2e.sh): the E2E runner picks a free port and passes it as AppHost__ApiHttpPort, so it knows the
+// API URL without reading the dashboard. Unset (the normal local run and Aspire.Hosting.Testing), the port stays dynamic.
+var apiHttpPort = builder.Configuration.GetValue<int?>("AppHost:ApiHttpPort");
+
 var api = builder.AddProject<Projects.Host>("api")
-    .WithHttpEndpoint()
+    .WithHttpEndpoint(port: apiHttpPort)
     .WithHttpHealthCheck("/health")
     .WithReference(apogeuDatabase)
     .WaitFor(apogeuDatabase)
@@ -51,7 +56,12 @@ var api = builder.AddProject<Projects.Host>("api")
     .WithEnvironment("Operators__Demo__ApiKeys__0__Secret", demoKeySecret)
     .WithEnvironment("Security__PlayerSession__SigningKey", playerSessionSigningKey)
     .WithEnvironment("Security__Backoffice__Authority", ReferenceExpression.Create($"{keycloak.GetEndpoint("http")}/realms/apogeu"))
-    .WithEnvironment("Security__Backoffice__Audience", "apogeu-api");
+    .WithEnvironment("Security__Backoffice__Audience", "apogeu-api")
+    // SPEC-0010: the game calls the API and negotiates the RoundsHub from its own origin (CORS of the Host).
+    .WithEnvironment("Cors__GameOrigins__0", gamePipa.GetEndpoint("http"));
+
+// SPEC-0010: base URL of the API for the game (read by Vite as import.meta.env.VITE_APOGEU_API_URL).
+gamePipa.WithEnvironment("VITE_APOGEU_API_URL", api.GetEndpoint("http"));
 
 // Local run only: never baked into a publish (deploy output).
 if (builder.ExecutionContext.IsRunMode)
