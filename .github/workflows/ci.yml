@@ -38,8 +38,13 @@ jobs:
       e2e: ${{ steps.filter.outputs.e2e }}
       contracts: ${{ steps.filter.outputs.contracts }}
     steps:
+      # On push, paths-filter diffs against `github.event.before`; with a shallow clone it would `git fetch` that
+      # commit, which fails without credentials (persist-credentials: false). The full history makes the before
+      # commit local, so no fetch (and no token in .git/config) is needed. On pull_request it lists the files via
+      # the API (pull-requests: read).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
