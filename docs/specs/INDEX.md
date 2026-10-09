@@ -4,8 +4,8 @@
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 5 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 5, in-progress 5, implemented 4
+- Validação (G0): **1 erro(s), 6 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 3, approved 5, in-progress 4, implemented 5
 - Impedimentos: **1 aberto(s)**, 4 resolvido(s)
 
 ## Impedimentos Abertos
@@ -45,31 +45,30 @@ Perfil: **rigoroso**
 
 ## Plano de Execução
 
-**Em andamento:** SPEC-0004, SPEC-0007, SPEC-0008, SPEC-0009, SPEC-0016  
+**Em andamento:** SPEC-0007, SPEC-0008, SPEC-0009, SPEC-0016  
 **Paradas por impedimento:** —  
 **Próximo lote:** —
 
 | Onda | Spec | Título | Tier/Tam. | Status | Prontidão | Observação |
 |---|---|---|---|---|---|---|
-| 1 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | in-progress | 🔄 em andamento |  |
+| 1 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | in-progress | 🔄 em andamento |  |
 | 1 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | in-progress | 🔄 em andamento |  |
-| 1 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | in-progress | 🔄 em andamento |  |
-| 2 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0004 |
-| 2 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
-| 2 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 0d); aguarda implementação de SPEC-0004 |  |
-| 3 | SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite/S | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0008; saiu da onda 2: arquivos em comum com SPEC-0007 |
-| 3 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
-| 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
-| 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0008, SPEC-0009; saiu da onda 2: arquivos em comum com SPEC-0007, SPEC-0010, SPEC-0015; saiu da onda 3: arquivos em comum com SPEC-0016, SPEC-0011 |
-| 5 | SPEC-0018 | Som da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0011 | saiu da onda 4: arquivos em comum com SPEC-0017 |
+| 1 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ✅ pronta |  |
+| 2 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0008 |
+| 2 | SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite/S | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0007, SPEC-0008 |
+| 2 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
+| 3 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 0d) | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0016 |
+| 3 | SPEC-0018 | Som da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0011 |  |
+| 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 2: max_parallel=3 |
+| 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0007, SPEC-0008, SPEC-0010; saiu da onda 2: arquivos em comum com SPEC-0009, SPEC-0016, SPEC-0011; saiu da onda 3: arquivos em comum com SPEC-0015 |
 | 5 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0017 |
-| 5 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004; saiu da onda 2: arquivos em comum com SPEC-0007; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0017 |
+| 5 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0007; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0017 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 4/14 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 5/14 implementadas |
 
 ## Grafo de Dependências
 
@@ -81,9 +80,8 @@ flowchart LR
   S0013["SPEC-0013<br/>Robustez do hook format-staged e overri…"]:::proposed
   S0014["SPEC-0014<br/>Endurecimento do mascaramento de logs e…"]:::proposed
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
-    S0002["SPEC-0002<br/>Estrutura do repositório e qualidade de…"]:::implemented
     S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::implemented
-    S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::inprogress
+    S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::implemented
     S0005["SPEC-0005<br/>Ambiente local com Aspire e observabili…"]:::implemented
     S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::implemented
     S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::inprogress
@@ -96,12 +94,8 @@ flowchart LR
     S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::approved
     S0018["SPEC-0018<br/>Som da Pipa"]:::approved
   end
-  S0002 --> S0003
-  S0002 --> S0004
   S0003 --> S0004
   S0006 -. contrato v1 .-> S0004
-  S0002 --> S0005
-  S0002 --> S0006
   S0003 --> S0007
   S0003 --> S0008
   S0005 --> S0008
@@ -134,7 +128,7 @@ flowchart LR
 | [SPEC-0001](SPEC-0001-fundacao.md) | Fundação da plataforma Apogeu Games | epic | foundation | approved | 2026-10-07 | — | — | — |
 | [SPEC-0002](SPEC-0002-estrutura-repositorio.md) | Estrutura do repositório e qualidade de código | full | foundation | implemented | 2026-10-07 | SPEC-0001 | — | — |
 | [SPEC-0003](SPEC-0003-harness-testes.md) | Harness de testes e testes de arquitetura | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
-| [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
+| [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
 | [SPEC-0005](SPEC-0005-ambiente-aspire.md) | Ambiente local com Aspire e observabilidade base | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
 | [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
 | [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
