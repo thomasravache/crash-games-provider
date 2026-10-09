@@ -1,5 +1,3 @@
-#pragma warning disable MA0025 // Scaffold (SPEC-0006): the Implementer replaces the stub in the Green phase.
-
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -9,8 +7,11 @@ namespace Apogeu.BuildingBlocks.Contracts.Json;
 public sealed class MultiplierJsonConverter : JsonConverter<Multiplier>
 {
     public override Multiplier Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
-        throw new NotImplementedException();
+        new(DecimalString.Read(ref reader, nameof(Multiplier)));
 
-    public override void Write(Utf8JsonWriter writer, Multiplier value, JsonSerializerOptions options) =>
-        throw new NotImplementedException();
+    public override void Write(Utf8JsonWriter writer, Multiplier value, JsonSerializerOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+        DecimalString.Write(writer, value.Value);
+    }
 }
