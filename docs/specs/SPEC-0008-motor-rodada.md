@@ -175,25 +175,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0005, ADR-0010, ADR-0017, ADR-0018, ADR-0019 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0005, ADR-0010, ADR-0017, ADR-0018, ADR-0019 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0008:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0008:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, CT-01, CT-02 com a tag `SPEC-0008:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, CT-01, CT-02 com a tag `SPEC-0008:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -221,37 +221,58 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Motor de rodadas da sala em tempo real: um único líder por sala (lease no Redis com fencing) conduz Betting → Flying → Crashed com o ponto de crash do Fairness, emite `RoundSnapshot`, `RoundSync` e `RoundCrashed` pelo hub SignalR e expõe o histórico e a verificação por REST com a sessão do jogador (contrato v3). Se o líder cai, outra instância assume sem repetir rodada e termina no mesmo ponto; sem líder por 31 s a rodada é anulada. Entrada em massa numa sala não esgota o PostgreSQL.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Fatias verticais no módulo Rounds (ADR-0001/0002): `SalaConductor` no `Rounds.Features`, persistência em schema próprio `rounds` (EF Core), backplane Redis e eventos via Wolverine com outbox. Crescimento m(t) = e^(k·t), k = 0,00006, persistido por rodada junto com RTP e cap. Emendas: v2 (`GetCrashPointAsync` do Fairness), v3 (REST exige sessão do jogador, SPEC-0009) e a correção do IMP-02 — snapshot da sala servido da memória do líder (ligado ao lease) e, nos seguidores, por leitura coalescida do PostgreSQL; pool do Rounds limitado a 10 conexões (`Rounds:MaxPoolSize`). Escopo: emenda que incluiu o auxiliar dos E2E da Pipa (commit da SPEC-0010 que cita esta spec).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type foundation.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | máquina de estados da rodada (transições válidas e inválidas) | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| UT-02 | instante do crash t_c = ln(crash)/k e m(t_c) = crash | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| UT-03 | crash 1,00 emite RoundCrashed sem RoundSync | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| UT-04 | multiplicador do sync com FakeTimeProvider (1,34 em 5 s) | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| IT-01 | duas instâncias com Redis real: um único líder, rodadas 1..5 sem repetição | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 (passo Performance) |
+| IT-02 | GET /verification de rodada encerrada passa no Verify da SPEC-0007; sem semente não revelada | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| IT-03 | cliente SignalR real recebe snapshot, sync e crash na ordem | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| IT-04 | líder derrubado no voo: outro assume e encerra no mesmo crashPoint (± 250 ms) | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 (passo Performance) |
+| IT-05 | sem líder por 31 s: rodada Annulled com motivo e métrica | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| IT-06 | sala desconhecida e limit inválido: SALA_NOT_FOUND/404 e 400 INVALID_LIMIT | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| IT-07 | rajada de 300 JoinSala com max_connections baixo, sem "too many clients" (emenda IMP-02) | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| CT-01 | mensagens reais do hub conferem com o contrato gerado (SPEC-0006) | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| CT-02 | motor usa o contrato SPEC-0007@2 e reproduz os vetores | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 48966d1 |
+| Carga k6 (§7.6) | 1.000 VUs × 10 rodadas: RoundCrashed p99 ≤ 200 ms, 0 falhas de entrada | PASS | local, grafana/k6:2.3.0 por digest, depois de 6a75505: p99 118 ms, 10.000 crashes observados, 0 falhas de JoinSala |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — k6 local 1.000 VUs × 10 rodadas: p99 118 ms; failover IT-01/IT-04; segurança IT-02
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas rounds.* e traces por rodada; rollback = revert do merge 0a33c92
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e semgrep sem achados (CI 37971276684); IT-02 garante semente não revelada
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; a única supressão (SHA-1 do UUID v5) tem motivo na linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente ainda (G6 N/A até a SPEC-0012). Integrado na `main` pelo PR #20 (merge 0a33c92), CI 37971276684 verde.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0027 — regras de arquitetura robustas a tipos gerados pelo compilador e regra "hub sem regra de negócio" (achado do review).
+- SPEC-0032 — pool de conexões limitado nos DbContexts do Fairness e do Operators (mesmo risco do IMP-02).
+- Variante de arranque frio do snapshot: aceita como coberta — usa a mesma leitura coalescida do seguidor, exercitada pelo IT-07 (minor do review, decisão do Architect, sem spec).
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0008`. -->
