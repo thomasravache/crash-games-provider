@@ -178,7 +178,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:16.17]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — 37cbc72 | 2026-10-09 |
 | G2 Green | PASS | build exit 0 (✓ built in 155ms); test exit 0 (Duration  1.38s (tests 79%, transform 14%, import 6%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T17:14:09: Writing report file 'artifacts/coverage/Summary.txt') — 17d1bc9 | 2026-10-09 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  3.63s (tests 99%, transform 1%)) — 17d1bc9 | 2026-10-09 |
-| G4 Review | PENDING | | |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 17d1bc9 — 0 blocker/major; minors: GET /games sem anti-replay e rate limit, contador operators.launch_rejected sem teste e em dobro, isolamento entre operadores sem IT, versão do cache por processo, numeric(18,2), Load síncrono — 38acd95 | 2026-10-09 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
