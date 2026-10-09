@@ -1,12 +1,18 @@
 # Índice de Specs
 
-> Gerado por `spec_graph.py index` em 2026-10-08 — não edite manualmente.
+> Gerado por `spec_graph.py index` em 2026-10-09 — não edite manualmente.
 
 ## Saúde
 
-- Validação (G0): **2 erro(s), 5 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 6, approved 4, in-progress 3, implemented 3
-- Impedimentos: **0 aberto(s)**, 3 resolvido(s)
+- Validação (G0): **1 erro(s), 8 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 3, approved 7, in-progress 3, implemented 3
+- Impedimentos: **1 aberto(s)**, 3 resolvido(s)
+
+## Impedimentos Abertos
+
+| Spec | ID | Tipo | Fase/Gate | Responsável | Aberto em | Idade | Descrição |
+|---|---|---|---|---|---|---|---|
+| SPEC-0015 | IMP-01 | externo | G1 | thomas: GitHub Pro ou repositório público | 2026-10-09 | 0d | Branch protection e rulesets indisponíveis no GitHub Free para repositório privado (API 403) |
 
 ## Cobertura de Pilares
 
@@ -52,12 +58,12 @@ Perfil: **rigoroso**
 | 2 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
 | 2 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0006 |  |
 | 3 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
+| 3 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 0d); aguarda implementação de SPEC-0004 | saiu da onda 2: max_parallel=3 |
 | 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
-| 3 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
-| 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
-| 4 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
-| 5 | SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006, SPEC-0007; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0015 |
-| 5 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0015 |
+| 4 | SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006, SPEC-0007; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0015 |
+| 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0015 |
+| 4 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 5 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3 |
 
 ## Épicos
 
@@ -85,9 +91,9 @@ flowchart LR
     S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::approved
     S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::approved
     S0011["SPEC-0011<br/>Animação da cena da Pipa"]:::approved
-    S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::proposed
-    S0016["SPEC-0016<br/>Mutação com Stryker.NET e xUnit v3"]:::proposed
-    S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::proposed
+    S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::approved
+    S0016["SPEC-0016<br/>Mutação com Stryker.NET e xUnit v3"]:::approved
+    S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::approved
   end
   S0002 --> S0003
   S0002 --> S0004
@@ -136,9 +142,9 @@ flowchart LR
 | [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
 | [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | proposed | 2026-10-08 | — | — | — |
 | [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | proposed | 2026-10-08 | — | — | — |
-| [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | proposed | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
-| [SPEC-0016](SPEC-0016-mutacao-com-stryker-net-e-xunit-v3.md) | Mutação com Stryker.NET e xUnit v3 | lite | fix | proposed | 2026-10-08 | SPEC-0001 | — | — |
-| [SPEC-0017](SPEC-0017-endurecimento-dos-testes-e-da-ci-da-onda-3.md) | Endurecimento dos testes e da CI da onda 3 | lite | refactor | proposed | 2026-10-08 | SPEC-0001 | — | — |
+| [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | approved | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
+| [SPEC-0016](SPEC-0016-mutacao-com-stryker-net-e-xunit-v3.md) | Mutação com Stryker.NET e xUnit v3 | lite | fix | approved | 2026-10-08 | SPEC-0001 | — | — |
+| [SPEC-0017](SPEC-0017-endurecimento-dos-testes-e-da-ci-da-onda-3.md) | Endurecimento dos testes e da CI da onda 3 | lite | refactor | approved | 2026-10-08 | SPEC-0001 | — | — |
 
 ## ADRs
 

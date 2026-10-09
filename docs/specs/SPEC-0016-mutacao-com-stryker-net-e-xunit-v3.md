@@ -4,7 +4,7 @@ title: Mutação com Stryker.NET e xUnit v3
 tier: lite
 type: fix
 user_facing: false
-status: proposed
+status: approved
 created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
@@ -13,8 +13,8 @@ touches: ["stryker-config.json", ".config/dotnet-tools.json", "tools/ci/stryker-
 adrs: [ADR-0011]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-09
 ---
 
 # SPEC-0016 — Mutação com Stryker.NET e xUnit v3

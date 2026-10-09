@@ -4,7 +4,7 @@ title: Proteção da branch main no GitHub
 tier: lite
 type: feature
 user_facing: false
-status: proposed
+status: approved
 created: 2026-10-08
 parent: SPEC-0001
 depends_on: [SPEC-0004]
@@ -13,8 +13,8 @@ touches: ["tools/ci/**", "tests/ci/**"]
 adrs: [ADR-0011]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-09
 ---
 
 # SPEC-0015 — Proteção da branch main no GitHub
@@ -44,7 +44,7 @@ Quando o repositório tiver plano que permita (GitHub Pro ou repositório públi
 
 ## 5. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
-- [ ] Quando o repositório passa a ter plano que permita proteção (GitHub Pro ou público)? Até lá esta spec fica `proposed` (thomas)
+- [x] Quando o repositório passa a ter plano que permita proteção (GitHub Pro ou público)? — Sem data; a spec fica aprovada e parada por impedimento externo até o repositório ter GitHub Pro ou ficar público (thomas, 2026-10-09)
 
 ## 6. Aprovação (H1)
 Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado".
@@ -56,7 +56,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
-| G0 Spec | PENDING | | |
+| G0 Spec | PASS | validate: 0 erro(s) — ea23fac (árvore suja) | 2026-10-09 |
 | G1 Red | PENDING | | |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
@@ -70,6 +70,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-09 | G1 | externo | Branch protection e rulesets indisponíveis no GitHub Free para repositório privado (API 403) | Consulta a branches/main/protection e rules/branches/main (SPEC-0004 IMP-01) | thomas: GitHub Pro ou repositório público |  |  |
 
 ## 10. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->

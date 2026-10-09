@@ -4,7 +4,7 @@ title: Endurecimento dos testes e da CI da onda 3
 tier: lite
 type: refactor
 user_facing: false
-status: proposed
+status: approved
 created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
@@ -13,8 +13,8 @@ touches: ["tests/backend/Contracts.Tests/**", "tests/ci/**", "tools/contracts/**
 adrs: [ADR-0008, ADR-0011]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-09
 ---
 
 # SPEC-0017 — Endurecimento dos testes e da CI da onda 3
