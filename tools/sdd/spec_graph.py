@@ -1901,7 +1901,14 @@ def verify_spec(project: Project, spec_id: str, base, git_root=None):
         commits.append({"sha": sha, "subject": subject, "body": body, "kind": kind, "files": files})
 
     ref_re = re.compile(rf"\b{re.escape(spec_id)}\b")
-    mine = [c for c in commits if ref_re.search(c["subject"] + "\n" + c["body"])]
+
+    def declared_refs(c):
+        # Specs a commit declares: subject + "Refs:" lines; narrative mentions in the body only count when the
+        # commit has no "Refs:" line at all (same rule as pr-check uses for the PR body).
+        refs_lines = [line for line in c["body"].splitlines() if re.match(r"^\s*refs\s*:", line, re.I)]
+        return c["subject"] + "\n" + ("\n".join(refs_lines) if refs_lines else c["body"])
+
+    mine = [c for c in commits if ref_re.search(declared_refs(c))]
     untraced = [c for c in commits if not SPEC_REF_RE.search(c["subject"] + "\n" + c["body"])]
     short = lambda c: f"{c['sha'][:7]} {c['subject'][:72]}"
     is_test = lambda f: matches_any(f, test_paths)

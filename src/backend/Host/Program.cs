@@ -2,11 +2,13 @@ using Apogeu.Backoffice.Features;
 using Apogeu.Betting.Features;
 using Apogeu.Fairness.Features;
 using Apogeu.Host.OpenApi;
+using Apogeu.Host.Security;
 using Apogeu.Operators.Features;
 using Apogeu.Rounds.Features;
 using Apogeu.ServiceDefaults;
 using Apogeu.Wallet.Features;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OpenTelemetry.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,11 @@ builder.Services.AddOperatorsModule();
 builder.Services.AddRoundsModule();
 builder.Services.AddWalletModule();
 
+// SPEC-0009, ADR-0015: authorization denied by default, security headers and HSTS; the identities (operator signature,
+// player session, backoffice bearer) and their policies are registered by the Operators module above.
+builder.Services.AddHostSecurity();
+builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter(OperatorsModule.MeterName));
+
 // SPEC-0010: the game runs on another origin (its own Vite app under Aspire, an operator domain later) and calls the
 // REST API and the RoundsHub negotiation from the browser. Only the configured origins; no credentials, since the
 // player session travels as a bearer/access_token, never as a cookie (SPEC-0009).
@@ -43,7 +50,9 @@ builder.Services.AddCors(options => options.AddPolicy(
 
 var app = builder.Build();
 
+// CORS before authentication/authorization: preflights and the hub negotiation get the CORS headers even when denied.
 app.UseCors(GameCorsPolicy);
+app.UseHostSecurity();
 
 app.MapDefaultEndpoints();
 app.MapContractOpenApi();
