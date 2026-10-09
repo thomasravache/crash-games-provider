@@ -4,7 +4,7 @@ title: "Pipeline de CI no GitHub Actions"
 tier: full
 type: foundation
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002, SPEC-0003]
@@ -140,25 +140,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0011, ADR-0012, ADR-0013, ADR-0016 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0011, ADR-0012, ADR-0013, ADR-0016 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01 com a tag `SPEC-0004:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01 com a tag `SPEC-0004:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0004:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0004:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -171,8 +171,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 87317f8, 0 blocker/major; pendências: UT-01 para as regras novas do check-workflows, .semgrepignore, Dependabot sem [no-spec] — 87317f8 | 2026-10-08 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 50ms); test exit 0 (Duration  968ms (tests 98%, transform 1%, import 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /private/tmp/claude-50); test_e2e exit 0 (3 passed (3.6s)); arch_test exit 0 (Duration  745ms (tests 98%, transform 1%, import 1%)); security_scan exit 0 (Ran 8 rules on 96 files: 0 findings.) — 93cdba6 | 2026-10-09 |
 | H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| G6 Deploy | N/A | Sem ambiente remoto nesta fase (ADR-0013): deploy na SPEC-0012 | 2026-10-09 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 38d2b4e | 2026-10-09 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -185,37 +185,59 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Pipeline de CI no GitHub Actions para o repositório privado `thomasravache/crash-games-provider`. O workflow `ci` roda em todo PR e push na `main`, com filtro de caminhos, nos jobs `backend` (build sem avisos, formatação, testes unitários, de integração e de arquitetura com cobertura, e testes cronometrados numa etapa própria), `frontend`, `e2e` (Playwright em 3 navegadores), `security` (gitleaks, Semgrep pela imagem oficial fixada por digest, vulnerabilidades NuGet e npm, licenças), `contracts` (build + `contracts:check`) e `sdd` (`validate` + `pr-check`). O workflow `images` gera no merge as imagens da API e dos três apps como artefato `container-images` (retenção de 1 dia), e o `nightly` roda a simulação de RTP e a mutação às 03:00 UTC, pulando noites sem commits. Dependabot semanal para NuGet, npm, Actions e Docker. Todas as ações estão fixadas por SHA, com permissões só de leitura, verificadas por `tools/ci/check-workflows`.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+- TDD com papéis separados: Test-writer (scaffold e0ff0ea, red 367e6a8; emenda v2 697deef; testes reforçados 3757033; leitura do log por API 64bd811), Implementer (6dd5ffd, 441aea8, 2834c6f, d8f3985, 124a0d2; rodada do G4 6d74e93, 22d6c64, d143247, 3981172, b89a054, 87317f8), Reviewer independente (CHANGES_REQUESTED → APPROVED em 87317f8).
+- Emenda v2: o repositório segue privado no GitHub Free, sem proteção de branch no servidor. Os checks são informativos, e o merge acontece só depois do G5; a proteção e o IT-06 foram para a SPEC-0015. Também: imagens sem Aspire publish (o modo publish do AppHost foi para a SPEC-0012).
+- Emenda v3: o `security_scan` do sdd-config ficou igual ao job `security`.
+- Ajustes do primeiro run real (PR #6):
+  - lock files do AppHost sem RID fixo (`RestorePackagesWithLockFile=false` no AppHost e nos testes que o referenciam);
+  - build antes do `contracts:check`;
+  - Python-2.0 aceita só em dependência de build (emenda do ADR-0022);
+  - testes cronometrados com `Category=Performance` numa etapa sem cobertura.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type foundation.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Workflows válidos, ações fixadas por SHA, permissões mínimas | PASS | G5 em 93cdba6 (Ci.Tests 10/10) e CI do PR #6 em eb0e2af |
+| IT-01 | PR só de front: backend skipped, demais jobs executam | PASS | live, PR #12 (CI em 1 min 59 s) |
+| IT-02 | Teste quebrado: check vermelho e `mergeStateStatus` ≠ CLEAN | PASS | live, PR #10 (CI completa em 15 min 12 s) |
+| IT-03 | Segredo commitado: `security` falha no gitleaks (`aws-access-token`) | PASS | live, PR #15 |
+| IT-04 | DTO alterado sem regenerar: `contracts` falha com a divergência | PASS | live, PR #16 |
+| IT-05 | Merge de PR verde: artefato `container-images` com as 4 imagens | PASS | live, PR #13 (merge e1d0d8a; run de imagens 37895259188) |
+| CT-01 | `contracts:check` sobre contrato editado à mão sai ≠ 0 | PASS | live, PR #17 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado — o push direto na `main` saiu do escopo (emenda v2, SPEC-0015)
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado — exceção de lock file do AppHost e Python-2.0 de build registradas (emendas da SPEC-0004 e do ADR-0022)
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — PR só de front em 1 min 59 s (≤ 8 min, IT-01); PR completo em 15 min 12 s (≤ 20 min, IT-02); storage dentro da cota com retenção de 1 dia
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente remoto nesta fase (ADR-0013), G6 aponta a SPEC-0012
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — histórico de execuções do Actions; rollback = reverter o workflow
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma) — SPEC-0015, SPEC-0016, SPEC-0017, SPEC-0012
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Workflows ativos na `main` desde o PR #6 (merge 4771758, 2026-10-09). A correção dos testes live (64bd811) entra no próximo PR. G6 N/A até a SPEC-0012.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0015 — proteção da `main` e IT-06 (parada até haver GitHub Pro ou o repositório ficar público).
+- SPEC-0016 — mutação com Stryker e xUnit v3.
+- SPEC-0017 — etapas do job `backend`, coverlet em todos os testes, `.semgrepignore`, casos novos do `check-workflows`, PRs do Dependabot no `pr-check`.
+- SPEC-0012 — modo publish do AppHost e hospedagem.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0004`. -->

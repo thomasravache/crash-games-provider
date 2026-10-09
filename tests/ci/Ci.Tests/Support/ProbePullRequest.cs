@@ -12,6 +12,8 @@ namespace Apogeu.Ci.Tests.Support;
 /// </summary>
 public sealed class ProbePullRequest : IAsyncDisposable
 {
+    private static readonly TimeSpan JobLogTimeout = TimeSpan.FromMinutes(3);
+
     private ProbePullRequest(ProbeRepository repository, int number, string url)
     {
         Repository = repository;
@@ -111,13 +113,29 @@ public sealed class ProbePullRequest : IAsyncDisposable
         return state;
     }
 
-    /// <summary>Log of the failed steps of a job (<c>gh run view --job … --log-failed</c>).</summary>
-    public static async Task<string> FailedLogAsync(PullRequestCheck check, CancellationToken cancellationToken)
+    /// <summary>
+    /// Full log of one job, read through the REST API (<c>actions/jobs/{id}/logs</c>) as soon as that job completes.
+    /// <c>gh run view --log-failed</c> only works once the whole run is complete, which is too late when a job fails
+    /// fast while the others still run. The log is raw text with ANSI colors, so gh needs
+    /// <c>--allow-escape-sequences</c> to print it; it may answer 404 for a few seconds after completion, hence the retry.
+    /// </summary>
+    public static async Task<string> JobLogAsync(PullRequestCheck check, CancellationToken cancellationToken)
     {
         Assert.True(check.JobId is not null, $"Could not find the job id in the check link: {check}");
-        var log = await GitHubCli.RunAsync(["run", "view", "--job", check.JobId, "--log-failed"], cancellationToken).ConfigureAwait(false);
-        Assert.True(log.Succeeded, "Could not read the job log. " + log.Describe());
-        return log.StandardOutput;
+        var clock = Stopwatch.StartNew();
+        while (true)
+        {
+            var log = await GitHubCli
+                .RunAsync(["api", "--allow-escape-sequences", $"repos/{CiLive.Repository}/actions/jobs/{check.JobId}/logs"], cancellationToken)
+                .ConfigureAwait(false);
+            if (log.Succeeded && log.StandardOutput.Length > 0)
+            {
+                return log.StandardOutput;
+            }
+
+            Assert.True(clock.Elapsed < JobLogTimeout, $"Could not read the log of job {check.JobId} within {JobLogTimeout}. " + log.Describe());
+            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Merges with a merge commit (ADR-0011) and returns the merge commit SHA.</summary>
