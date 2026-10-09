@@ -168,7 +168,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em ef81abd, 0 blocker/major; minors como pendências (hubs com objetos/enums, possível flake do IT-03 com WebApplicationFactory em paralelo, lint de tools/contracts/*.mjs) — ef81abd | 2026-10-08 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 57ms); test exit 0 (Duration  1.13s (tests 98%, transform 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /private/tmp/claude-50); test_e2e exit 0 (3 passed (3.6s)); arch_test exit 0 (Duration  722ms (tests 98%, transform 1%, import 1%)); security_scan exit 0 (Ran 8 rules on 96 files: 0 findings.) — 93cdba6 | 2026-10-09 |
 | H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
-| G6 Deploy | PENDING | | |
+| G6 Deploy | N/A | Sem ambiente remoto nesta fase (ADR-0013): deploy na SPEC-0012 | 2026-10-09 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
@@ -181,37 +181,51 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O backend é a fonte única dos contratos com o front-end. O build do Host gera `artifacts/openapi/v1.json` (versionado) e o manifesto dos hubs SignalR. `pnpm -C src/frontend contracts:generate` transforma ambos em tipos e clientes TypeScript em `packages/contracts` (REST via openapi-typescript + openapi-fetch; hubs por gerador próprio), e `contracts:check` falha quando o código versionado diverge do backend. Convenções de JSON do contrato: dinheiro (`Money`) e multiplicador (`Multiplier`) como string decimal ("10.50", "2.47"), instantes ISO-8601 UTC com milissegundos e `Z` (valores sem fuso são rejeitados), enums em camelCase; as mesmas convenções valem no protocolo JSON dos hubs. `GET /api/v1/meta` expõe a versão do contrato; o documento OpenAPI só é servido em Development.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+- TDD com papéis separados: Test-writer (scaffold 23a7d45, red 8b2aee7; rodada do G4 629229d), Implementer (95c43c7, 5628083, 92a9363; rodada do G4 d9f8faa, ef81abd), Reviewer independente (CHANGES_REQUESTED → APPROVED em ef81abd).
+- `BuildingBlocks/Contracts/Json` (`ContractJson`, conversores de `Money`, `Multiplier` e `DateTimeOffset`); `Host/OpenApi` (geração no build com `Microsoft.Extensions.ApiDescription.Server`, `JsonHubProtocolOptions` com `ContractJson`); `tools/contracts` (`contracts.mjs`, `openapi-to-ts.mjs`, `hubs-to-ts.mjs`, `HubContracts`).
+- Emendas (contrato v1 inalterado): escopo com `.gitignore`, `artifacts/openapi/**` e `Directory.Packages.props`; esclarecimento do cenário de dinheiro (`Money`, nunca `decimal` cru) e correções do G4 (hubs testados, protocolo dos hubs com as convenções, data sem fuso rejeitada, CT-01 contra o documento versionado). ADR-0008 registra os geradores escolhidos.
+- Integração da onda 3: `ContractHost` passou a remover os serviços hospedados dos módulos (7e6bfaa), porque a Fairness migra o banco no start em Development; o job `contracts` da CI compila o backend antes do `contracts:check` (7d72186).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type foundation.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dinheiro e multiplicador como string decimal; convenções de data, enum e protocolo dos hubs | PASS | G5 em 93cdba6 (Contracts.Tests 20/20) e CI do PR #6 run em eb0e2af (job backend) |
+| UT-02 | Anulabilidade no OpenAPI e no TS; hubs gerados com `Money`, `Multiplier \| null`, `Promise`, `AsyncIterable` | PASS | G5 em 93cdba6 (Contracts.Tests 20/20) e CI do PR #6 em eb0e2af |
+| IT-01 | `contracts:generate` gera arquivos que compilam | PASS | G5 em 93cdba6 e CI do PR #6 em eb0e2af (jobs backend e contracts) |
+| IT-02 | `contracts:check` falha com campo novo sem regenerar | PASS | G5 em 93cdba6 e CI do PR #6 em eb0e2af |
+| IT-03 | OpenAPI só em Development | PASS | G5 em 93cdba6 e CI do PR #6 em eb0e2af |
+| CT-01 | `GET /api/v1/meta` valida contra o documento gerado e o versionado | PASS | G5 em 93cdba6 e CI do PR #6 em eb0e2af |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5) — G5 em clone limpo de 93cdba6 e CI do PR #6 verde em eb0e2af
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado — geradores registrados no ADR-0008
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — divergência detectada pelo `contracts:check` (IT-02) e verificada na CI (job contracts)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente remoto nesta fase (ADR-0013), G6 aponta a SPEC-0012
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — rollback = reverter o merge commit 4771758; sem dados
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma) — SPEC-0017
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 e na CI
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente remoto nesta fase (ADR-0013): mergeado na `main` pelo PR #6 (merge commit 4771758, 2026-10-09), CI verde. G6 N/A até a SPEC-0012.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0017 — hubs com objetos, enums e datas no gerador; possível instabilidade do IT-03 com `WebApplicationFactory` em paralelo; `tools/contracts/*.mjs` no lint; aviso de tipos que não carregam no `HubDiscovery`; cobertura do Contracts.Tests (coverlet).
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0006`. -->
