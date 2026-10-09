@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0008, SPEC-0009]
-consumes_contract: [SPEC-0020@1, SPEC-0021@1]
+consumes_contract: [SPEC-0020@1, SPEC-0021@2]
 contract_version: 1
 touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/Rounds.Contracts/**", "src/backend/Modules/Rounds/Rounds.Features/Conductor/**", "src/backend/Host/Program.cs"]
 adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0007, ADR-0008, ADR-0010, ADR-0015, ADR-0019]
@@ -38,7 +38,7 @@ Implementa o módulo Betting para aceitar apostas: até duas apostas por jogador
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0008 (motor e salas) e SPEC-0009 (sessão do jogador, hub autenticado).
-- **Contratos consumidos:** SPEC-0020@1 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@1 (`IOperatorWallet`: débito e estorno idempotentes).
+- **Contratos consumidos:** SPEC-0020@1 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@2 (`IOperatorWallet`: débito e estorno idempotentes).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural

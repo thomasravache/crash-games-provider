@@ -10,7 +10,7 @@ parent: SPEC-0019
 depends_on: [SPEC-0009]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**"]
+touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**", "src/backend/BuildingBlocks/Contracts/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020]
 external: []
 size: M
@@ -64,7 +64,7 @@ Cria o catálogo de jogos do provedor e os limites de aposta por operador e moed
 - **Custo:** N/A
 
 ## 6. Artefato A — Contrato
-**Interface:** `Operators.Contracts` (v1) + REST.
+**Interface:** `Operators.Contracts` (v1) + REST. Os tipos de valor compartilhados `OperatorId`, `PlayerId` e `Currency` (ISO 4217) ficam em `BuildingBlocks.Contracts`, ao lado de `Money`, porque Carteira e Apostas também os usam.
 
 ```text
 IGameCatalog
@@ -175,9 +175,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:16.17]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — 37cbc72 | 2026-10-09 |
+| G2 Green | PASS | build exit 0 (✓ built in 155ms); test exit 0 (Duration  1.38s (tests 79%, transform 14%, import 6%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T17:14:09: Writing report file 'artifacts/coverage/Summary.txt') — 17d1bc9 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  3.63s (tests 99%, transform 1%)) — 17d1bc9 | 2026-10-09 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
@@ -230,3 +230,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0020`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-09 | Escopo: `src/backend/BuildingBlocks/Contracts/**` — `OperatorId`, `PlayerId` e `Currency` ficam junto de `Money`, e não em `Operators.Contracts` | IMP-01 da SPEC-0021: tipos compartilhados por Carteira e Apostas não existiam | SPEC-0021 | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |

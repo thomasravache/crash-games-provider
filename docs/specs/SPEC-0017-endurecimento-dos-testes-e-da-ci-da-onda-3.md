@@ -9,7 +9,7 @@ created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
 consumes_contract: []
-touches: ["tests/Directory.Build.props", "tests/**/packages.lock.json", "tools/contracts/HubContracts/packages.lock.json", "tests/backend/Contracts.Tests/**", "tests/ci/**", "tools/contracts/**", ".semgrepignore", "src/frontend/eslint.config.js", "src/frontend/package.json", ".github/workflows/ci.yml", ".github/workflows/nightly.yml", "stryker-config.json"]
+touches: ["tests/Directory.Build.props", "tests/backend/Contracts.Tests/**", "tests/ci/**", "tools/contracts/**", ".semgrepignore", "src/frontend/eslint.config.js", "src/frontend/package.json", ".github/workflows/ci.yml", ".github/workflows/nightly.yml", "stryker-config.json"]
 adrs: [ADR-0008, ADR-0011]
 external: []
 size: S
@@ -119,6 +119,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 | 2026-10-09 | Escopo: saem de `touches` os lock files (`tests/**/packages.lock.json`, `tools/contracts/HubContracts/packages.lock.json`), já isentos por `scope_exempt` — escopo efetivo inalterado | O glob dos lock files colidia com as pastas de teste da Carteira e das Apostas e serializava a SPEC-0017 com o caminho crítico do épico de apostas | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 | 1 | 2026-10-09 | Escopo: minors do review (G4) da SPEC-0016 — concorrência 1 verificada estaticamente, variável de controle do Stryker no job e não no teste, relatório HTML no artefato do nightly — com UT-04; `touches` inclui `nightly.yml` e `stryker-config.json` | Fechamento (G7) da SPEC-0016: pendências do review sem spec | SPEC-0016 (pendências) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09); a confirmar no resumo |
 | 1 | 2026-10-09 | Escopo: job `backend` em etapas (unitários+arquitetura → integração → performance) num único job, com UT-02 | Feedback mais rápido e falhas legíveis sem gastar minutos extras (pergunta do usuário sobre a CI do backend) | Nenhuma | thomas, 2026-10-09 (chat) |
 | 1 | 2026-10-09 | Escopo: `coverlet.collector` para todo projeto de teste via `tests/Directory.Build.props`, com UT-03 | Projetos sem o coletor não mediam cobertura (aviso "Unable to find a datacollector"), deixando o G2 subestimado no Contracts, ServiceDefaults e AppHost | Nenhuma | thomas, 2026-10-09 (chat) |
