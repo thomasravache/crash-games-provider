@@ -55,3 +55,7 @@ git config core.hooksPath .githooks             # ativa commit-msg e pre-commit 
 ## Contratos com o front-end
 
 O backend é a fonte única (ADR-0008): o build do Host gera `artifacts/openapi/v1.json` (versionado) e o manifesto dos hubs, e `contracts:generate` produz os tipos e clientes TypeScript em `src/frontend/packages/contracts`, que nunca é editado à mão. Dinheiro (`Money`) e multiplicador (`Multiplier`) trafegam como string decimal, instantes em ISO-8601 UTC com `Z`, enums em camelCase — no REST e nos hubs SignalR.
+
+## CI
+
+GitHub Actions (`.github/workflows`): `ci` em todo PR e push na `main` (jobs `backend`, `frontend`, `e2e`, `security`, `contracts` e `sdd`, com filtro de caminhos), `images` no merge (imagens como artefato `container-images`) e `nightly` (simulação de RTP e mutação). Os checks são informativos: o repositório é privado no GitHub Free, sem proteção de branch (SPEC-0015), e o merge acontece só com a CI verde. Os testes live do pipeline (`Category=CiLive`) abrem PRs de prova; veja `tests/ci/README.md`.

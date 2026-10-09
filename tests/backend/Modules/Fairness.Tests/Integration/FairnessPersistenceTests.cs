@@ -165,6 +165,51 @@ public sealed partial class FairnessPersistenceTests(PostgreSqlContainerFixture 
         Assert.True(leaks.Count == 0, "Unrevealed seeds found in logs:" + Environment.NewLine + string.Join(Environment.NewLine, leaks));
     }
 
+    [Fact(DisplayName = "Dada uma cadeia de 50 elos com PostgreSQL real e a rodada 3 emitida, quando GetCrashPointAsync(chain, 3, …) é chamado, então devolve o mesmo CrashPoint que RevealAsync devolve depois, nenhum log contém a semente e a rodada 4 não emitida lança RoundNotFoundException")]
+    [Trait("Spec", "SPEC-0007:IT-07")]
+    [Trait("Category", "Integration")]
+    public async Task GivenIssuedRoundWhenGetCrashPointThenSameAsLaterRevealWithoutSeedInLogsAndUnissuedRoundNotFound()
+    {
+        const int Length = 50;
+        const int Issued = 3;
+        var ct = TestContext.Current.CancellationToken;
+        var connectionString = await TestDatabase.CreateAsync(postgres.ConnectionString, ct);
+        using var keys = new TemporaryKeyDirectory();
+        var capture = new LogCapture();
+        await using var host = await FairnessTestHost.StartAsync(connectionString, keys.Directory, capture, ct);
+        var sala = new SalaId(Guid.NewGuid());
+
+        var chain = await host.RunAsync(fairness => fairness.CreateChainAsync(sala, Length, ct));
+        await AdvanceAsync(host, sala, Issued, ct);
+
+        var crashPoint = await host.RunAsync(fairness => fairness.GetCrashPointAsync(chain.ChainId, Issued, DemoRtp, DefaultCap, ct));
+        await Assert.ThrowsAsync<RoundNotFoundException>(
+            () => host.RunAsync(fairness => fairness.GetCrashPointAsync(chain.ChainId, Issued + 1, DemoRtp, DefaultCap, ct)));
+        var logged = capture.Entries
+            .Select(entry => string.Join('\n', entry.Category, entry.Message, entry.Exception?.ToString() ?? string.Empty))
+            .ToList();
+
+        Assert.True(logged.Count > 0, "The log capture saw no entry: the test would prove nothing.");
+
+        // Only after the captured window: the reveal after the crash, then the whole chain to learn every link.
+        var revealed = await host.RunAsync(fairness => fairness.RevealAsync(chain.ChainId, Issued, DemoRtp, DefaultCap, ct));
+        Assert.Equal(revealed.CrashPoint, crashPoint);
+
+        await AdvanceAsync(host, sala, Length - Issued, ct);
+        var last = await host.RunAsync(fairness => fairness.RevealAsync(chain.ChainId, Length, DemoRtp, DefaultCap, ct));
+        var links = ReferenceAlgorithm.Chain(last.Seed.ToArray(), Length);
+        Assert.Equal(chain.TerminalHash.ToArray(), links[Length]);
+        Assert.Equal(revealed.Seed.ToArray(), links[Length - Issued]);
+
+        // Unrevealed during the window: s_3..s_N = h_{N-3}..h_0 (s_3 included: GetCrashPointAsync does not reveal it).
+        var unrevealed = Enumerable.Range(0, Length - Issued + 1).Select(k => links[k]).ToList();
+        var leaks = logged
+            .Where(text => unrevealed.SelectMany(SeedFormats.Of).Any(form => text.Contains(form, StringComparison.Ordinal)))
+            .ToList();
+
+        Assert.True(leaks.Count == 0, "Unrevealed seeds found in logs:" + Environment.NewLine + string.Join(Environment.NewLine, leaks));
+    }
+
     [Fact(DisplayName = "Dada uma cadeia de 3 elos já consumida, quando NextRoundAsync, então lança ChainExhausted")]
     [Trait("Spec", "SPEC-0007:IT-04")]
     [Trait("Category", "Integration")]
