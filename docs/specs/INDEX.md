@@ -4,8 +4,8 @@
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 3 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 11, in-progress 4, implemented 6
+- Validação (G0): **1 erro(s), 4 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 6, approved 11, in-progress 3, implemented 7
 - Impedimentos: **1 aberto(s)**, 5 resolvido(s)
 
 ## Impedimentos Abertos
@@ -45,7 +45,7 @@ Perfil: **rigoroso**
 
 ## Plano de Execução
 
-**Em andamento:** SPEC-0008, SPEC-0009, SPEC-0010, SPEC-0016  
+**Em andamento:** SPEC-0008, SPEC-0010, SPEC-0016  
 **Paradas por impedimento:** —  
 **Próximo lote:** —
 
@@ -54,27 +54,29 @@ Perfil: **rigoroso**
 | 1 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | in-progress | 🔄 em andamento |  |
 | 1 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | in-progress | 🔄 em andamento |  |
 | 1 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 0d) |  |
-| 2 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0008 |
 | 2 | SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite/S | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0008 |
 | 2 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
-| 3 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0008, SPEC-0010, SPEC-0015; saiu da onda 2: arquivos em comum com SPEC-0009, SPEC-0016, SPEC-0011 |
+| 2 | SPEC-0020 | Catálogo de jogos e limites por operador e moeda | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
+| 3 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0008, SPEC-0010, SPEC-0015; saiu da onda 2: arquivos em comum com SPEC-0016, SPEC-0011 |
 | 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 2: max_parallel=3 |
 | 4 | SPEC-0018 | Som da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0011 | saiu da onda 3: arquivos em comum com SPEC-0017 |
-| 4 | SPEC-0020 | Catálogo de jogos e limites por operador e moeda | full/M | approved | ⛔ aguarda implementação de SPEC-0009 | saiu da onda 3: arquivos em comum com SPEC-0017 |
-| 4 | SPEC-0021 | Carteira demo, livro-razão e contrato da carteira do operador | full/M | approved | ⛔ aguarda implementação de SPEC-0009 | saiu da onda 3: arquivos em comum com SPEC-0017 |
-| 5 | SPEC-0022 | Apostar, aposta dupla e cancelamento | full/M | approved | ⛔ aguarda implementação de SPEC-0008; aguarda implementação de SPEC-0009 | saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3 |
+| 4 | SPEC-0021 | Carteira demo, livro-razão e contrato da carteira do operador | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017 |
+| 4 | SPEC-0022 | Apostar, aposta dupla e cancelamento | full/M | approved | ⛔ aguarda implementação de SPEC-0008 | saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017 |
+| 5 | SPEC-0023 | Cash-out manual e automático | full/M | approved | ⛔ aguarda implementação de SPEC-0022 |  |
 | 5 | SPEC-0026 | Painel de aposta da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 | saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: arquivos em comum com SPEC-0018 |
 | 5 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3 |
-| 6 | SPEC-0023 | Cash-out manual e automático | full/M | approved | ⛔ aguarda implementação de SPEC-0022 |  |
+| 6 | SPEC-0024 | Liquidação da rodada e estorno | full/M | approved | ⛔ aguarda implementação de SPEC-0023 |  |
 | 6 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3 |
-| 7 | SPEC-0024 | Liquidação da rodada e estorno | full/M | approved | ⛔ aguarda implementação de SPEC-0023 |  |
-| 8 | SPEC-0025 | Apostas ao vivo e histórico pessoal | full/M | approved | ⛔ aguarda implementação de SPEC-0024 |  |
+| 6 | SPEC-0027 | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3 |
+| 7 | SPEC-0025 | Apostas ao vivo e histórico pessoal | full/M | approved | ⛔ aguarda implementação de SPEC-0024 |  |
+| 7 | SPEC-0028 | Endurecimento da API de operadores | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0020; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3 |
+| 7 | SPEC-0029 | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0010; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: arquivos em comum com SPEC-0018; saiu da onda 5: arquivos em comum com SPEC-0026; saiu da onda 6: max_parallel=3 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 6/14 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 7/14 implementadas |
 | SPEC-0019 | Apostas e cash-out em demo | approved | 0/7 implementadas |
 
 ## Grafo de Dependências
@@ -86,6 +88,9 @@ flowchart LR
   S0012["SPEC-0012<br/>Hospedagem e deploy (staging e produção)"]:::proposed
   S0013["SPEC-0013<br/>Robustez do hook format-staged e overri…"]:::proposed
   S0014["SPEC-0014<br/>Endurecimento do mascaramento de logs e…"]:::proposed
+  S0027["SPEC-0027<br/>Regras de arquitetura robustas a tipos …"]:::proposed
+  S0028["SPEC-0028<br/>Endurecimento da API de operadores"]:::proposed
+  S0029["SPEC-0029<br/>Verificador da Pipa ligado ao compromis…"]:::proposed
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::implemented
     S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::implemented
@@ -93,7 +98,7 @@ flowchart LR
     S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::implemented
     S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::implemented
     S0008["SPEC-0008<br/>Motor de rodada e salas em tempo real"]:::inprogress
-    S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::inprogress
+    S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::implemented
     S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::inprogress
     S0011["SPEC-0011<br/>Animação da cena da Pipa"]:::approved
     S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::approved
@@ -169,7 +174,7 @@ flowchart LR
 | [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
 | [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
 | [SPEC-0008](SPEC-0008-motor-rodada.md) | Motor de rodada e salas em tempo real | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | SPEC-0007@2 |
-| [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
+| [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
 | [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@2, SPEC-0008@3, SPEC-0009@1 |
 | [SPEC-0011](SPEC-0011-animacao-pipa.md) | Animação da cena da Pipa | full | feature | approved | 2026-10-07 | SPEC-0001 | SPEC-0010 | SPEC-0010@1 |
 | [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
@@ -187,6 +192,9 @@ flowchart LR
 | [SPEC-0024](SPEC-0024-liquidacao.md) | Liquidação da rodada e estorno | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0023 | SPEC-0021@1 |
 | [SPEC-0025](SPEC-0025-apostas-ao-vivo.md) | Apostas ao vivo e histórico pessoal | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0024 | SPEC-0021@1 |
 | [SPEC-0026](SPEC-0026-painel-aposta-pipa.md) | Painel de aposta da Pipa | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0010 | SPEC-0020@1, SPEC-0021@1, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1 |
+| [SPEC-0027](SPEC-0027-regras-arquitetura-onda4.md) | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite | fix | proposed | 2026-10-09 | — | — | — |
+| [SPEC-0028](SPEC-0028-endurecimento-api-operadores.md) | Endurecimento da API de operadores | lite | fix | proposed | 2026-10-09 | — | — | — |
+| [SPEC-0029](SPEC-0029-verificador-ligado-compromisso.md) | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite | fix | proposed | 2026-10-09 | — | — | — |
 
 ## ADRs
 

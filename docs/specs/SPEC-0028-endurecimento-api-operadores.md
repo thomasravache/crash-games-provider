@@ -1,0 +1,104 @@
+---
+id: SPEC-0028
+title: Endurecimento da API de operadores
+tier: lite
+type: fix
+user_facing: false
+status: proposed
+created: 2026-10-09
+parent:
+depends_on: []
+consumes_contract: []
+touches: ["src/backend/Modules/Operators/**", "src/backend/BuildingBlocks/Security/**", "src/backend/Host/Security/**", "tests/backend/Security.Tests/**", "tests/backend/Modules/Operators.Tests/**"]
+adrs: [ADR-0015, ADR-0014, ADR-0019]
+external: []
+size: S
+approved_by:
+approved_at:
+---
+
+# SPEC-0028 — Endurecimento da API de operadores
+
+<!-- Tier lite: bug fix ou mudança pequena, um módulo, sem mudança de contrato público, tamanho S. type: fix | feature | refactor. user_facing: true se o defeito aparece numa jornada do usuário (o teste de regressão deveria ser E2E). Se qualquer condição falhar, use o tier full. Substitua todos os marcadores com chaves duplas. -->
+
+## 1. Problema
+Achados menores da revisão (G4) da SPEC-0009: (1) o servidor assina o caminho decodificado e a query não entra na assinatura; (2) sem ForwardedHeaders o limite por IP agrupa todos atrás de um proxy, e chamadas não autenticadas ao lançamento (UNKNOWN_KEY/INVALID_SIGNATURE) não têm limite antes da autenticação; (3) `launch_grants` nunca é limpa; (4) o OpenAPI não declara `securitySchemes` nem os cabeçalhos `X-Apogeu-*`; (5) rotas públicas (`/api/v1/meta`, `/health`, `/alive`, `/openapi`) dependem de uma lista no Host em vez de `.AllowAnonymous()` por endpoint.
+
+## 2. Causa Raiz
+`OperatorSignatureAuthenticationHandler` usa `PathBase+Path` decodificado; `CreateSessionEndpoint`/lançamento usam `Connection.RemoteIpAddress`; falta tarefa de limpeza; `DenyByDefaultRequirement` tem lista de rotas.
+
+## 3. Mudança Proposta
+Canonicaliza caminho + query na assinatura (contrato documentado); ForwardedHeaders configurável e limite por IP antes da autenticação; limpeza periódica de `launch_grants` expirados; esquemas de segurança no OpenAPI; `.AllowAnonymous()` nas rotas públicas com teste de que todo endpoint declara política. Não muda: o algoritmo HMAC, códigos de erro e janelas.
+
+**Padrão seguido:** `src/backend/BuildingBlocks/Security/**` e `Operators.Features/**` (SPEC-0009)
+
+**Rollback:** revert do commit
+
+**Outras ocorrências:** Nenhuma
+
+## 4. Plano de Testes (TDD)
+<!-- Mínimo: um teste de regressão que reproduz o problema e FALHA antes da correção, no nível em que o defeito aparece (IT para fronteiras de I/O, E2E para jornadas de usuário). Código sem cobertura: primeiro CH-xx fixando o comportamento atual. Tag no código: `SPEC-0028:<ID>`. Categoria sem teste: "N/A — motivo" SEM ID. -->
+- Caracterização: N/A — coberto pelos testes da SPEC-0009
+- **UT-01** — Dados caminhos com caracteres codificados e query, quando a assinatura canônica é calculada no cliente e no servidor, então coincidem; mudar a query invalida a assinatura.
+- **IT-01** — Dado o Host real atrás de um proxy simulado, quando 61 lançamentos não autenticados chegam do mesmo IP real, então o 61º recebe 429; `launch_grants` expirados somem após a limpeza; todo endpoint declara política ou `AllowAnonymous`.
+
+## 5. Questões em Aberto
+<!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
+Nenhuma
+
+## 6. Aprovação (H1)
+Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado".
+
+## 7. Checklist de Implementação
+<!-- Preenchido na fase PLAN, após a aprovação. -->
+
+## 8. Registro de Gates
+<!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
+| Gate | Status | Evidência | Data |
+|---|---|---|---|
+| G0 Spec | PENDING | | |
+| G1 Red | PENDING | | |
+| G2 Green | PENDING | | |
+| G3 Arquitetura | PENDING | | |
+| G4 Review | PENDING | | |
+| G5 Integração & CI | PENDING | | |
+| H2 Integração aprovada | PENDING | | |
+| G6 Deploy | PENDING | | |
+| G7 Pronto & Docs | PENDING | | |
+
+## 9. Registro de Impedimentos
+<!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
+| ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
+|---|---|---|---|---|---|---|---|---|
+
+## 10. Relatório de Entrega
+<!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
+
+### O que foi entregue
+
+### Como foi feito
+
+### Prova de Correção
+<!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+
+### Verificação
+| Teste | Comportamento | Resultado | Evidência |
+|---|---|---|---|
+
+### Definição de Pronto
+- [ ] Teste de regressão falhou antes e passa depois da correção
+- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
+- [ ] Review independente sem achados blocker/major (G4)
+- [ ] Padrão existente mantido
+- [ ] Disponível no ambiente-alvo via pipeline (G6)
+- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
+
+### Deploy
+
+### Pendências
+
+## 11. Emendas
+<!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
+| Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
+|---|---|---|---|---|---|
