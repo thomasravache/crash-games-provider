@@ -10,7 +10,7 @@ parent: SPEC-0019
 depends_on: [SPEC-0009]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**"]
+touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**", "src/backend/BuildingBlocks/Contracts/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020]
 external: []
 size: M
@@ -64,7 +64,7 @@ Cria o catálogo de jogos do provedor e os limites de aposta por operador e moed
 - **Custo:** N/A
 
 ## 6. Artefato A — Contrato
-**Interface:** `Operators.Contracts` (v1) + REST.
+**Interface:** `Operators.Contracts` (v1) + REST. Os tipos de valor compartilhados `OperatorId`, `PlayerId` e `Currency` (ISO 4217) ficam em `BuildingBlocks.Contracts`, ao lado de `Money`, porque Carteira e Apostas também os usam.
 
 ```text
 IGameCatalog
@@ -230,3 +230,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0020`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-09 | Escopo: `src/backend/BuildingBlocks/Contracts/**` — `OperatorId`, `PlayerId` e `Currency` ficam junto de `Money`, e não em `Operators.Contracts` | IMP-01 da SPEC-0021: tipos compartilhados por Carteira e Apostas não existiam | SPEC-0021 | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
