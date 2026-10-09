@@ -4,7 +4,7 @@ title: Mutação com Stryker.NET e xUnit v3
 tier: lite
 type: fix
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
