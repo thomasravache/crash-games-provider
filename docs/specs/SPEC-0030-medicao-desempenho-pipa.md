@@ -30,8 +30,10 @@ O plano de testes da SPEC-0010 citou "Lighthouse CI", que não está previsto em
 ## 3. Mudança Proposta
 Duas medições automáticas, só no Chromium (usam o Chrome DevTools Protocol do Playwright, já no projeto — sem pacote novo), num projeto Playwright próprio `pipa-performance` rodado em passo separado do job `e2e` (mesma convenção dos testes de tempo do backend, `Category=Performance`):
 
-- **Tempo até interativo:** perfil mobile emulado (viewport do iPhone 15, CPU 4× mais lenta e rede "Fast 3G" via CDP), do `goto` do lançamento até o HUD exibir o estado da sala com o botão principal habilitado. Meta ≤ 3 s.
+- **Tempo até interativo:** perfil mobile emulado (viewport do iPhone 15, CPU 4× mais lenta e rede "4G lento" (150 ms, 1,6 Mbps, como o perfil mobile do Lighthouse) via CDP), do `goto` do lançamento até o selo DEMO e o texto da fase atual (PREPARE SUA PIPA, EM VOO, PIPA CORTADA! ou "Aguardando a próxima rodada") — não o multiplicador, que só existe em voo. Meta ≤ 3 s. Medido sobre o **build de produção** servido por `vite preview` (o servidor de desenvolvimento entrega módulos soltos e mede o Vite, não o jogo).
 - **Quadros por segundo:** com CPU 4× mais lenta, amostra `requestAnimationFrame` durante 5 s de voo. Meta: mediana ≥ 55 fps e p5 ≥ 30 fps (aproximação de 60 fps em Android médio, aceita como proxy).
+
+**Referência:** a medição manual do G7 da SPEC-0010 (2026-10-09) deu 2,22–2,28 s e 59,9 fps nessas condições; ela também mostrou as duas armadilhas acima.
 
 **Desvio declarado:** troca "Lighthouse CI" por medição com Playwright + CDP para não adicionar dependência; a métrica "interactive" do Lighthouse é substituída pelo critério observável acima. Não muda código de produção, a cena, o HUD nem o orçamento de bundle.
 
@@ -45,7 +47,7 @@ Duas medições automáticas, só no Chromium (usam o Chrome DevTools Protocol d
 <!-- Mínimo: um teste de regressão que reproduz o problema e FALHA antes da correção, no nível em que o defeito aparece (IT para fronteiras de I/O, E2E para jornadas de usuário). Código sem cobertura: primeiro CH-xx fixando o comportamento atual. Tag no código: `SPEC-0030:<ID>`. Categoria sem teste: "N/A — motivo" SEM ID. -->
 - Caracterização: N/A — não altera comportamento, só mede.
 - Unitário: N/A — a medição só tem sentido no navegador real.
-- **E2E-01** — Dado o perfil mobile emulado (CPU 4×, Fast 3G) e o backend real, quando o jogador abre o lançamento demo, então o HUD fica interativo em ≤ 3 s (falha hoje por não existir a medição; com um atraso artificial de 4 s injetado na rota do bundle, o teste reprova).
+- **E2E-01** — Dado o perfil mobile emulado (CPU 4×, 4G lento: 150 ms, 1,6 Mbps), o build de produção e o backend real, quando o jogador abre o lançamento demo, então o HUD fica interativo em ≤ 3 s (falha hoje por não existir a medição; com um atraso artificial de 4 s injetado na rota do bundle, o teste reprova).
 - **E2E-02** — Dada uma rodada em voo com CPU 4× mais lenta, quando se amostram os quadros por 5 s, então a mediana é ≥ 55 fps e o p5 ≥ 30 fps; o resultado é anexado ao relatório do Playwright.
 
 ## 5. Questões em Aberto
