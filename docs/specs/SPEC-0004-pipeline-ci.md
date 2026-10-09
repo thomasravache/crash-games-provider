@@ -167,7 +167,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:01.16]     Dado um workflow inseguro, quando tools/ci/check-workflows rod) — 367e6a8 | 2026-10-08 |
 | G2 Green | PASS | build exit 0 (✓ built in 81ms); test exit 0 (Duration  1.53s (tests 98%, transform 2%, import 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T23:31:34: Report generation took 0,1 seconds) — 87317f8 | 2026-10-08 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.05s (tests 97%, transform 2%, import 1%)) — 87317f8 | 2026-10-08 |
-| G4 Review | FAIL | Reviewer CHANGES_REQUESTED: 2 major (paths-filter no push da main falha com checkout raso; artefato de imagens estoura 500 MB de storage do Free), 4 minor (asserções de log fracas em IT-03/IT-04; minutos do Actions; semgrep sem hash; mutação pulada até todos os projetos existirem), 4 nit | 2026-10-08 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 87317f8, 0 blocker/major; pendências: UT-01 para as regras novas do check-workflows, .semgrepignore, Dependabot sem [no-spec] — 87317f8 | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
