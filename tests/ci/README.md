@@ -4,6 +4,8 @@
 |---|---|---|
 | `Unit/WorkflowSecurityTests` (UT-01) | actionlint 1.7.12 (local binary of that version, otherwise the `rhysd/actionlint:1.7.12` Docker image), every `uses:` pinned by a full commit SHA, read-only top-level `permissions`, and `tools/ci/check-workflows` | normal suite |
 | `Unit/ContractsJobTests` (CT-01, static) | the `contracts` job of `ci.yml` runs `pnpm -C src/frontend contracts:check` | normal suite |
+| `Unit/MutationConfigTests` (SPEC-0016 UT-01, static) | `stryker-config.json` mutates only Fairness.Domain, lists only existing test projects, `break` ≥ 85 and uses `test-runner: mtp` or `coverage-analysis: off` (xUnit v3) | normal suite |
+| `Nightly/MutationScoreTests` (SPEC-0016 UT-01) | `dotnet stryker` with the repository config: JSON report with the `SeedChain.cs` mutants covered and Fairness.Domain score ≥ 85% | nightly (`Category=Nightly`) |
 | `Live/*` (IT-01..IT-05, CT-01 live) | open real, disposable pull requests on `thomasravache/crash-games-provider` and assert the checks, the merge state and the images artifact | only on demand (`Category=CiLive`) |
 
 ## Live suite
