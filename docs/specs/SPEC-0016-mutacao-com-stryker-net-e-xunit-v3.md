@@ -71,8 +71,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1ddb579 (árvore suja) | 2026-10-08 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:04.14]     Dado o stryker-config.json, quando lido, então o runner não é ) — aa62e89 | 2026-10-09 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 58ms); test exit 0 (Duration  3.24s (tests 97%, import 1%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T13:43:32: Report generation took 0,3 seconds) — a75c4df | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  824ms (tests 97%, transform 1%, import 1%)) — a75c4df | 2026-10-09 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
