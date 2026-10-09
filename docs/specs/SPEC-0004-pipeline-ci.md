@@ -39,12 +39,12 @@ Cria o pipeline no GitHub Actions que protege a branch principal: build, lint, t
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0002 (comandos de build e lint) e SPEC-0003 (comandos de teste).
 - **Contratos consumidos:** SPEC-0006@1 — comando `contracts:check` (exit ≠ 0 em divergência).
-- **Pré-requisitos externos:** autorização explícita do usuário para criar o repositório no GitHub, fazer o primeiro push e configurar a proteção da branch (ação visível externamente); `gh` autenticado na conta `thomasravache`.
+- **Pré-requisitos externos:** autorização explícita do usuário para criar o repositório no GitHub, fazer o primeiro push e abrir os PRs de prova dos testes live (ação visível externamente); a proteção da branch é da SPEC-0015; `gh` autenticado na conta `thomasravache`.
 
 ## 4. Decisão Arquitetural
 **Contexto:** projeto novo; ADR-0011 (fluxo por PR), ADR-0012 (qualidade), ADR-0013 (entrega), ADR-0016 (dependências).
 
-**Decisão:** um workflow principal com filtro de caminhos por job; o job `sdd` roda sempre; cache de NuGet, pnpm e navegadores do Playwright; todos os jobs aplicáveis são checks obrigatórios na `main`.
+**Decisão:** um workflow principal com filtro de caminhos por job; o job `sdd` roda sempre; cache de NuGet, pnpm e navegadores do Playwright; todos os jobs aplicáveis são checks de todo PR para a `main` (informativos; obrigatórios no servidor com a SPEC-0015).
 
 **Justificativa:** CI por caminho mantém o feedback rápido sem abrir mão do portão SDD.
 
@@ -63,7 +63,7 @@ Cria o pipeline no GitHub Actions que protege a branch principal: build, lint, t
 - **Custo:** dentro da cota gratuita do GitHub Actions; minutos medidos nas primeiras execuções (cota não verificada — ADR-0013).
 
 ## 6. Artefato A — Contrato
-**Interface:** checks obrigatórios do PR e comandos do sdd-config.
+**Interface:** checks do PR e comandos do sdd-config.
 
 ```text
 Checks de todo PR para a main (informativos; obrigatórios no servidor só com a SPEC-0015):
@@ -122,7 +122,7 @@ Gatilhos: pull_request (main), push (main), schedule (nightly 03:00 UTC)
 - **Dados/schema:** N/A
 - **Compatibilidade:** N/A
 - **Observabilidade:** histórico de execuções do Actions; tempo por job acompanhado.
-- **Rollback:** reverter o workflow; desligar a obrigatoriedade do check afetado temporariamente com registro de impedimento.
+- **Rollback:** reverter o workflow; desativar o job afetado temporariamente com registro de impedimento.
 - **Etapas de migração/coexistência:** N/A
 
 ## 9. Questões em Aberto
