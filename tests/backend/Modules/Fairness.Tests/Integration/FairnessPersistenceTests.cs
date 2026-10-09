@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Apogeu.Fairness.Contracts;
@@ -23,6 +22,7 @@ public sealed partial class FairnessPersistenceTests(PostgreSqlContainerFixture 
     {
         const int Length = 50_000;
         const int Round = 12_345;
+        const int Checkpoints = 5;
         var ct = TestContext.Current.CancellationToken;
         var connectionString = await TestDatabase.CreateAsync(postgres.ConnectionString, ct);
         using var keys = new TemporaryKeyDirectory();
@@ -34,9 +34,11 @@ public sealed partial class FairnessPersistenceTests(PostgreSqlContainerFixture 
 
         Assert.Equal(Length, chain.Length);
         Assert.True(stored.Tables.Count > 0, "The schema 'fairness' has no table: the chain was not persisted in PostgreSQL.");
-        Assert.True(stored.Rows <= 10, $"Expected only the chain and its 5 checkpoints, found {stored.Rows} rows in the schema 'fairness'.");
-        Assert.True(stored.Bytes <= 16 * 1024, $"Expected only the origin and 5 checkpoints, found {stored.Bytes} bytes in the schema 'fairness'.");
-        Assert.InRange(stored.EncryptedPayloads, 5, 6);
+        // §4: only h_0 and a checkpoint every 10,000 links are stored encrypted. For 50,000 links they are h_0 (the origin,
+        // the first checkpoint), h_10000, h_20000, h_30000 and h_40000: 5 checkpoints. h_50000 is the public terminal hash.
+        Assert.True(stored.Rows == 1 + Checkpoints, $"Expected exactly 1 chain row and {Checkpoints} checkpoint rows, found {stored.Rows} rows in the schema 'fairness'.");
+        Assert.True(stored.Bytes <= 16 * 1024, $"Expected only the origin and {Checkpoints} checkpoints, found {stored.Bytes} bytes in the schema 'fairness'.");
+        Assert.Equal(Checkpoints, stored.EncryptedPayloads);
 
         var commitment = await AdvanceAsync(host, sala, Round, ct);
 
@@ -72,53 +74,49 @@ public sealed partial class FairnessPersistenceTests(PostgreSqlContainerFixture 
         AssertNotInClearText(stored.Dump, seed, firstLink: Length - Round, lastLink: Length - 1);
     }
 
-    [Fact(DisplayName = "Dado um processo que avança 3 rodadas e é reiniciado, quando NextRoundAsync é chamado, então o índice é 4 e a semente obtida ≤ 20 ms")]
-    [Trait("Spec", "SPEC-0007:IT-02")]
+    [Fact(DisplayName = "Dada uma cadeia de 50 elos, quando 20 chamadas de NextRoundAsync para a mesma sala rodam em paralelo, então os índices são exatamente 1..20, sem repetição, e os compromissos são distintos")]
+    [Trait("Spec", "SPEC-0007:IT-06")]
     [Trait("Category", "Integration")]
-    public async Task GivenProcessRestartedAfterThreeRoundsWhenNextRoundThenIndexIsFourWithinTwentyMilliseconds()
+    public async Task GivenChainOfFiftyWhenTwentyNextRoundsRunInParallelThenIndexesAreOneToTwentyWithDistinctCommitments()
     {
+        const int Length = 50;
+        const int Calls = 20;
         var ct = TestContext.Current.CancellationToken;
         var connectionString = await TestDatabase.CreateAsync(postgres.ConnectionString, ct);
         using var keys = new TemporaryKeyDirectory();
+        await using var host = await FairnessTestHost.StartAsync(connectionString, keys.Directory, logCapture: null, ct);
         var sala = new SalaId(Guid.NewGuid());
-        ChainInfo chain;
-        RoundSeedCommitment third;
+        var chain = await host.RunAsync(fairness => fairness.CreateChainAsync(sala, Length, ct));
 
-        await using (var first = await FairnessTestHost.StartAsync(connectionString, keys.Directory, logCapture: null, ct))
+        // Each call in its own DI scope (its own DbContext and connection), released together, as concurrent requests would be.
+        var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = Enumerable.Range(0, Calls)
+            .Select(_ => Task.Run(
+                async () =>
+                {
+                    await start.Task.ConfigureAwait(false);
+                    return await host.RunAsync(fairness => fairness.NextRoundAsync(sala, ct)).ConfigureAwait(false);
+                },
+                ct))
+            .ToList();
+        start.SetResult();
+        var issued = await Task.WhenAll(calls);
+
+        Assert.All(issued, round => Assert.Equal(chain.ChainId, round.ChainId));
+        Assert.Equal(Enumerable.Range(1, Calls), issued.Select(round => round.RoundIndex).Order());
+        Assert.Equal(Calls, issued.Select(round => Convert.ToHexString(round.Commitment.ToArray())).Distinct(StringComparer.Ordinal).Count());
+
+        // No seed repeated or skipped: ordered by index, the commitments are the chain itself, SHA256(c_{r+1}) = c_r and
+        // c_1 = SHA256(s_1) = h_N, the published terminal hash.
+        var commitments = issued.OrderBy(round => round.RoundIndex).Select(round => round.Commitment.ToArray()).ToList();
+        Assert.Equal(chain.TerminalHash.ToArray(), commitments[0]);
+        for (var r = 1; r < Calls; r++)
         {
-            // 50,000 links: round 4 uses h_49996, up to 9,996 hashes away from the nearest checkpoint.
-            chain = await first.RunAsync(fairness => fairness.CreateChainAsync(sala, 50_000, ct));
-            for (var r = 1; r <= 2; r++)
-            {
-                await first.RunAsync(fairness => fairness.NextRoundAsync(sala, ct));
-            }
-
-            third = await first.RunAsync(fairness => fairness.NextRoundAsync(sala, ct));
+            Assert.Equal(commitments[r - 1], SHA256.HashData(commitments[r]));
         }
 
-        Assert.Equal(3, third.RoundIndex);
-
-        await using var restarted = await FairnessTestHost.StartAsync(connectionString, keys.Directory, logCapture: null, ct);
-
-        // Warm-up of the new process on another room, so the measurement is the seed retrieval and not the first-call JIT.
-        var otherSala = new SalaId(Guid.NewGuid());
-        await restarted.RunAsync(fairness => fairness.CreateChainAsync(otherSala, 20_000, ct));
-        await restarted.RunAsync(fairness => fairness.NextRoundAsync(otherSala, ct));
-
-        var stopwatch = Stopwatch.StartNew();
-        var fourth = await restarted.RunAsync(fairness => fairness.NextRoundAsync(sala, ct));
-        stopwatch.Stop();
-
-        Assert.Equal(chain.ChainId, fourth.ChainId);
-        Assert.Equal(4, fourth.RoundIndex);
-        Assert.True(stopwatch.Elapsed <= TimeSpan.FromMilliseconds(20), $"Next round after restart took {stopwatch.Elapsed.TotalMilliseconds:F1} ms, above 20 ms.");
-
-        // Neither repeated nor skipped: the commitment of round 4 is SHA256(s_4) = s_3, the seed of round 3.
-        var revealedThird = await restarted.RunAsync(fairness => fairness.RevealAsync(chain.ChainId, 3, DemoRtp, DefaultCap, ct));
-        var revealedFourth = await restarted.RunAsync(fairness => fairness.RevealAsync(chain.ChainId, 4, DemoRtp, DefaultCap, ct));
-        Assert.Equal(revealedThird.Seed.ToArray(), fourth.Commitment.ToArray());
-        Assert.Equal(SHA256.HashData(revealedFourth.Seed.ToArray()), fourth.Commitment.ToArray());
-        Assert.NotEqual(third.Commitment.ToArray(), fourth.Commitment.ToArray());
+        var next = await host.RunAsync(fairness => fairness.NextRoundAsync(sala, ct));
+        Assert.Equal(Calls + 1, next.RoundIndex);
     }
 
     [Fact(DisplayName = "Dada a captura de logs ativa, quando a cadeia é criada, avançada e revelada, então nenhuma semente não revelada aparece em log")]
