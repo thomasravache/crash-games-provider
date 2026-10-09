@@ -2,6 +2,8 @@
 // texts, roles and ids (ADR-0009: DOM, roles and labels, never pixels of the scene).
 
 export const hudText = {
+  /** Brand of the game: the stable main heading (h1) of every screen. */
+  brand: "Pipa",
   betting: "PREPARE SUA PIPA",
   flying: "EM VOO",
   crashed: "PIPA CORTADA!",

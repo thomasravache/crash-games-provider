@@ -104,7 +104,7 @@ export function Hud({
   return (
     <div className="flex min-h-dvh flex-col bg-hud-canvas font-hud-body text-hud-text">
       <header className="flex items-center gap-3 border-b border-hud-border bg-hud-surface px-4 py-2">
-        <p className="font-hud-display text-lg font-bold tracking-tight">Pipa</p>
+        <h1 className="font-hud-display text-lg font-bold tracking-tight">{hudText.brand}</h1>
         <span className="rounded-full bg-hud-accent px-2 py-0.5 font-hud-display text-xs font-bold tracking-widest text-hud-canvas">
           {hudText.demoBadge}
         </span>
@@ -126,7 +126,6 @@ export function Hud({
       </header>
 
       <main className="flex flex-1 flex-col md:grid md:grid-cols-12">
-        <h1 className="sr-only">Pipa — jogo de crash em modo demo</h1>
         <p className="sr-only" aria-live="polite" aria-atomic="true">
           {announcement(state)}
         </p>
