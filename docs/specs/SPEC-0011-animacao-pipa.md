@@ -195,7 +195,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G0 Spec | PASS | validate: 0 erro(s) — 8dec4f4 (árvore suja) | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:43.72]     Dado um processo que avança 3 rodadas e é reiniciado, quando N) — b867610 | 2026-10-09 |
 | G2 Green | PASS | build exit 0 (✓ built in 154ms); test exit 0 (Duration  1.41s (tests 68%, transform 20%, import 11%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T17:52:49: Report generation took 1,5 seconds) — bf49685 | 2026-10-09 |
-| G3 Arquitetura | PENDING | | |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  802ms (tests 97%, transform 2%, import 1%)) — 6cd9827 | 2026-10-09 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
