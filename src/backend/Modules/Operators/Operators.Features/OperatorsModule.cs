@@ -2,6 +2,7 @@ using Apogeu.BuildingBlocks.Security;
 using Apogeu.Operators.Contracts;
 using Apogeu.Operators.Features.Authentication;
 using Apogeu.Operators.Features.Backoffice;
+using Apogeu.Operators.Features.Catalog;
 using Apogeu.Operators.Features.Configuration;
 using Apogeu.Operators.Features.Development;
 using Apogeu.Operators.Features.Hubs;
@@ -89,6 +90,7 @@ public static class OperatorsModule
         endpoints.MapLaunch();
         endpoints.MapCreateSession();
         endpoints.MapGetMe();
+        endpoints.MapListGames();
         endpoints.MapLaunchDemo();
 
         return endpoints;
