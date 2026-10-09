@@ -196,7 +196,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:43.72]     Dado um processo que avança 3 rodadas e é reiniciado, quando N) — b867610 | 2026-10-09 |
 | G2 Green | PASS | build exit 0 (✓ built in 154ms); test exit 0 (Duration  1.39s (tests 69%, transform 19%, import 11%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T18:48:49: Report generation took 0,3 seconds) — 6cd9827 | 2026-10-09 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  802ms (tests 97%, transform 2%, import 1%)) — 6cd9827 | 2026-10-09 |
-| G4 Review | PENDING | | |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em c815b4f — 0 blocker/major; minors: freeze/effectsLog no chunk de produção (inacessíveis), constante de crescimento duplicada, buffers de teste sem teto, gatilho do visual-baselines além da Emenda e browsers extras, suíte de contrato do GameAnimator criada aqui, comentário longo — c815b4f | 2026-10-09 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
