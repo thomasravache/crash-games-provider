@@ -96,7 +96,7 @@ GET /api/v1/meta → 200 {"apiVersion":"1.0.0","serverTime":"2026-10-07T22:00:00
 - N/A — projeto novo.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dado um DTO com `decimal` monetário 10.5 e um multiplicador 2.47, quando serializado pelos conversores, então gera `"10.50"` e `"2.47"`, e a desserialização devolve os mesmos valores exatos.
+- **UT-01** — Dado um DTO com campo `Money` 10.5 e um multiplicador 2.47, quando serializado pelos conversores, então gera `"10.50"` e `"2.47"`, e a desserialização devolve os mesmos valores exatos.
 - **UT-02** — Dado um DTO com `string?`, quando o esquema é gerado, então a propriedade é anulável no OpenAPI e `string | null` no TS.
 
 ### 7.3 Testes de Integração

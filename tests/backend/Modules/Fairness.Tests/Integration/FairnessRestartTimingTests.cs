@@ -22,6 +22,7 @@ public sealed class FairnessRestartTimingTests(PostgreSqlContainerFixture postgr
 
     [Fact(DisplayName = "Dado um processo que avança 3 rodadas e é reiniciado, quando NextRoundAsync é chamado, então o índice é 4 (sem repetir nem pular semente); e, após aquecimento, a mediana de 15 obtenções da semente a ~10.000 hashes do checkpoint é ≤ 20 ms")]
     [Trait("Spec", "SPEC-0007:IT-02")]
+    [Trait("Category", "Performance")]
     [Trait("Category", "Integration")]
     public async Task GivenProcessRestartedAfterThreeRoundsWhenNextRoundThenIndexIsFourAndMedianSeedRetrievalIsWithinTwentyMilliseconds()
     {

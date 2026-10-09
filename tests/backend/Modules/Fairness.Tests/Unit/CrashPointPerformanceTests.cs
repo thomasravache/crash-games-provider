@@ -15,6 +15,7 @@ public sealed class CrashPointPerformanceTests
 
     [Fact(DisplayName = "Dados 100.000 cálculos, quando medidos, então a média é ≤ 1 ms")]
     [Trait("Spec", "SPEC-0007:UT-07")]
+    [Trait("Category", "Performance")]
     public void GivenOneHundredThousandCalculationsWhenMeasuredThenAverageIsAtMostOneMillisecond()
     {
         const int Calculations = 100_000;

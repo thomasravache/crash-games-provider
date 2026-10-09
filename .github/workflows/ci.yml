@@ -123,9 +123,13 @@ jobs:
       - name: Test (unit, integration, architecture)
         run: >-
           dotnet test Apogeu.slnx --no-build
-          --filter "Category!=Nightly&Category!=CiLive"
+          --filter "Category!=Nightly&Category!=CiLive&Category!=Performance"
           --collect "XPlat Code Coverage"
           --results-directory artifacts/coverage/raw
+      # Timed NFR tests (SPEC-0005 IT-01, SPEC-0007 UT-07/IT-02) run apart: no coverage instrumentation (coverlet
+      # instruments the measured code), one test project at a time, and after the container images are cached.
+      - name: Test (performance)
+        run: dotnet test Apogeu.slnx --no-build --filter "Category=Performance" -m:1
       - name: Upload coverage
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
