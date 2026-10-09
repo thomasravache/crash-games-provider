@@ -1,4 +1,5 @@
 using System.Globalization;
+using Apogeu.BuildingBlocks.Security;
 using Apogeu.Rounds.Domain;
 using Apogeu.Rounds.Features.Salas;
 using Microsoft.AspNetCore.Builder;
@@ -31,6 +32,7 @@ internal static class GetSalaRoundsEndpoint
             .MapGet(Route, HandleAsync)
             .WithName("GetSalaRounds")
             .WithTags("Rounds")
+            .RequireAuthorization(SecurityPolicies.PlayerSession)
             .AddOpenApiOperationTransformer(DescribeLimitAsInteger)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);

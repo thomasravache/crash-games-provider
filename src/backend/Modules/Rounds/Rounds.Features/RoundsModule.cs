@@ -1,3 +1,4 @@
+using Apogeu.BuildingBlocks.Security;
 using Apogeu.Rounds.Features.Conductor;
 using Apogeu.Rounds.Features.History;
 using Apogeu.Rounds.Features.Live;
@@ -48,7 +49,7 @@ public static class RoundsModule
             ?? throw new InvalidOperationException($"Missing required configuration 'ConnectionStrings:{ConnectionName}'."));
         services.AddHostedService<RoundsDevelopmentMigrations>();
 
-        // The hub requires an authenticated user, with the scheme the Host registers (SPEC-0009).
+        // The hub and the REST endpoints require a player session; the policy and its scheme come from SPEC-0009.
         services.AddAuthorization();
         services.AddSignalR().AddStackExchangeRedis();
         services.AddOptions<RedisOptions>().Configure<IConfiguration>((options, configuration) =>
@@ -71,7 +72,8 @@ public static class RoundsModule
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
-        endpoints.MapHub<RoundsHub>(RoundsHub.Path).RequireAuthorization();
+        // SPEC-0009 (ADR-0015): denied by default, so every endpoint of the module declares the player-session policy.
+        endpoints.MapHub<RoundsHub>(RoundsHub.Path).RequireAuthorization(SecurityPolicies.PlayerSession);
         endpoints.MapGetSalaRounds();
         endpoints.MapGetRoundVerification();
 
