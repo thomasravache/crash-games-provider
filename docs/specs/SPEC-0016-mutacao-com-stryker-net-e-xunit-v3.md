@@ -9,7 +9,7 @@ created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
 consumes_contract: []
-touches: ["stryker-config.json", ".config/dotnet-tools.json", "tools/ci/stryker-targets", "tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj", "Directory.Packages.props"]
+touches: ["tests/ci/**", ".github/workflows/nightly.yml", "stryker-config.json", ".config/dotnet-tools.json", "tools/ci/stryker-targets", "tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj", "Directory.Packages.props"]
 adrs: [ADR-0011]
 external: []
 size: S
@@ -69,7 +69,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1ddb579 (árvore suja) | 2026-10-08 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:04.14]     Dado o stryker-config.json, quando lido, então o runner não é ) — aa62e89 | 2026-10-09 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -116,3 +116,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 | 2026-10-09 | Escopo: `tests/ci/**` (onde vive o UT-01) e `.github/workflows/nightly.yml`; o teste noturno de mutação leva `Category=Nightly` + `Category=Mutation`, o job `rtp-simulation` filtra `Category=Nightly&Category!=Mutation` e o job `mutation` roda o teste `Category=Mutation` (Stryker uma vez por noite) | SPEC_DEFECT do Test-writer: teste fora de `touches` e Stryker rodando duas vezes na noite | Nenhuma | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
