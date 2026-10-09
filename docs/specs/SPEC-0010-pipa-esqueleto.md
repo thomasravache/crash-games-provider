@@ -4,7 +4,7 @@ title: "Pipa demo: esqueleto andante do cliente"
 tier: full
 type: foundation
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0005, SPEC-0006]
@@ -151,29 +151,29 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0006, ADR-0008, ADR-0019, ADR-0020 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0006, ADR-0008, ADR-0019, ADR-0020 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06 com a tag `SPEC-0010:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06 com a tag `SPEC-0010:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, CT-01, CT-02, CT-03 com a tag `SPEC-0010:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, CT-01, CT-02, CT-03 com a tag `SPEC-0010:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase 4: Jornada E2E**
-- [ ] Red: E2E-01, E2E-02, E2E-03, E2E-04 falhando pelo motivo certo
-- [ ] Green: jornada completa passando localmente
+- [x] Red: E2E-01, E2E-02, E2E-03, E2E-04 falhando pelo motivo certo
+- [x] Green: jornada completa passando localmente
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -185,9 +185,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  789ms (tests 97%, transform 2%, import 1%)) — 7af2d33 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 6dce3a1 e no delta até 7af2d33 (E2E com backend real, título estável) — 0 blocker/major; minors como pendências — 7af2d33 | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 140ms); test exit 0 (Duration  1.35s (tests 81%, transform 13%, import 4%, worker 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 3 m 17 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  814ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 250 files: 0 findings.) — 07e8617 | 2026-10-09 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); validação local via Aspire e E2E na CI (PR #20, merge 0a33c92) | 2026-10-09 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 80d0b72 | 2026-10-09 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -199,37 +199,60 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Pipa demo de ponta a ponta, ainda sem apostas: o jogador entra pelo lançamento demo, o token sai da URL e vira sessão, e o jogo mostra as rodadas ao vivo — PREPARE SUA PIPA com contagem, EM VOO com o multiplicador subindo, PIPA CORTADA! —, com a cena PixiJS da pipa e o céu mudando por faixa de multiplicador, o histórico de rodadas, o selo DEMO e o "Comprovadamente Justo", que reverifica no navegador uma rodada encerrada. Sessão expirada, falha de conexão e "Reconectando…" têm telas próprias, e a reconexão ressincroniza o estado.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+`game-sdk` (transporte SignalR/REST, store de estado e verificador TS do provably fair), `game-ui` (HUD React a partir da tela "Pipa Crash - Jogo da Pipa" do Stitch), `scene-kit` (pipa PixiJS via `GameAnimator`, carregada sob demanda fora do bundle inicial) e `apps/game-pipa`. O orçamento de bundle (≤ 1,5 MB gzip) é verificado no build por plugin do Vite. Emendas: escopo dos testes do front, CORS do Host/AppHost para a origem do jogo, E2E com o backend real na CI (`tools/ci/run-e2e.sh`, job `e2e`) e pin SPEC-0008@3 (sessão do jogador no REST). Título visível estável "Pipa", com as mensagens de estado em h2.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type foundation.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | multiplicador local compensa o desvio de relógio do servidor | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| UT-02 | sync atrasado ou crash duplicado não mudam o estado Crashed | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| UT-03 | reconexão substitui o estado pelo snapshot | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| UT-04 | verificador TS: vetores válidos, semente e crash alterados detectados | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| UT-05 | paletas do céu por faixa de multiplicador | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| UT-06 | GameAnimator chamado nas transições Betting → Flying → Crashed | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| IT-01 | game-sdk (Node) troca o launchToken e acompanha uma rodada no backend real | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 (job e2e) |
+| CT-01 | verificador TS idêntico ao C# nos vetores SPEC-0007@2 | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| CT-02 | mensagens reais do hub conferem com os tipos gerados (SPEC-0008@3) | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| CT-03 | lançamento e sessão conferem com os tipos gerados (SPEC-0009@1) | PASS | CI run 37971276684 (PR #20, 257c903); G5 local 07e8617 |
+| E2E-01 | lançamento demo carrega o jogo com selo DEMO e histórico | PASS | CI 37971276684 (job e2e, backend real); G5 local 07e8617 via tools/ci/run-e2e.sh — Chromium, WebKit iPhone 15 e Firefox |
+| E2E-02 | rodada completa no HUD com axe sem violações em cada estado | PASS | CI 37971276684 (job e2e, backend real); G5 local 07e8617 via tools/ci/run-e2e.sh — Chromium, WebKit iPhone 15 e Firefox |
+| E2E-03 | "Comprovadamente Justo" verifica a rodada encerrada | PASS | CI 37971276684 (job e2e, backend real); G5 local 07e8617 via tools/ci/run-e2e.sh — Chromium, WebKit iPhone 15 e Firefox |
+| E2E-04 | sessão expirada e reconexão após queda de rede | PASS | CI 37971276684 (job e2e, backend real); G5 local 07e8617 via tools/ci/run-e2e.sh — Chromium, WebKit iPhone 15 e Firefox |
+| Desempenho (§7.6) | bundle inicial, interativo no perfil mobile e fps | PASS | bundle: build do Vite (plugin de orçamento, 1868480): 91,1 KiB gzip ≤ 1,5 MB; interativo e fps: medição manual em 2026-10-09 com o build de produção e o backend real, Chromium com CPU 4× mais lenta e rede 4G lenta (150 ms, 1,6 Mbps): página interativa em 176–185 ms, jogo pronto (sessão + HUD da fase) em 2,22–2,28 s em 5 de 5 carregamentos (meta ≤ 3 s), voo com mediana 59,9 fps e p5 59,5 fps (meta 60 fps). Emulação, não um Android real; automação na SPEC-0030 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — bundle 91,1 KiB gzip (≤ 1,5 MB); interativo 2,22–2,28 s (≤ 3 s) e 59,9 fps medidos manualmente com CPU 4× e 4G lento (emulação no Chromium; automação na SPEC-0030); acessibilidade: axe sem violações (E2E-02), leitor de tela pendente com thomas
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — conforme o Plano de Rollout: sem console (no-console), erros em telas próprias; rollback = revert do merge 0a33c92
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e semgrep sem achados (CI 37971276684); sessionToken só em memória (E2E-01)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — lint, typecheck e TreatWarningsAsErrors verdes
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado na `main` pelo PR #20 (merge 0a33c92); roda localmente com `dotnet run --project src/backend/AppHost` (README, "Rodar a Pipa demo").
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0029 — verificador ligado ao compromisso exibido ao vivo, axe em todos os estados e teste de CORS no .NET (achados do review).
+- SPEC-0030 — medição automática de interativo e fps no perfil mobile (a medição deste relatório foi manual).
+- Revisão manual com leitor de tela (§7.6), prevista para o G4 e não feita pelo review automatizado: **ação de thomas**; o axe automatizado passou em todos os estados do HUD cobertos pelo E2E-02.
+- Mensagem do `curl` no `run-e2e.sh` quando a API não sobe (minor cosmético do review): aceito sem spec — o script já falha com o log da AppHost.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0010`. -->

@@ -7,9 +7,9 @@ user_facing: true
 status: approved
 created: 2026-10-07
 parent: SPEC-0019
-depends_on: [SPEC-0010]
+depends_on: [SPEC-0010, SPEC-0024]
 consumes_contract: [SPEC-0020@1, SPEC-0021@1, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1]
-contract_version: 1
+contract_version: 2
 touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021]
 external: []
@@ -21,14 +21,14 @@ approved_at: 2026-10-09
 # SPEC-0026 — Painel de aposta da Pipa
 
 ## 1. Visão Geral
-Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com valor, fichas rápidas, cash-out automático, botões APOSTAR / CANCELAR / RETIRAR R$ x / PRÓXIMA, saldo demo com "Recarregar demo", e as abas "Todas as apostas" e "Minhas apostas". Prova as jornadas críticas **aposta-cashout** e **aposta-perdida** de ponta a ponta.
+Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com valor, fichas rápidas, cash-out automático, botões APOSTAR / CANCELAR / RETIRAR R$ x / PRÓXIMA, saldo demo com "Recarregar demo". As abas "Todas as apostas" e "Minhas apostas" ficam na SPEC-0031 (Emenda v2). Prova as jornadas críticas **aposta-cashout** e **aposta-perdida** de ponta a ponta.
 
 ## 2. Motivação & Escopo
 **Motivação:** é a experiência que o operador vende e o jogador usa; fecha as duas jornadas críticas ainda sem prova.
 
 **Objetivos (dentro do escopo):**
 - `game-sdk`: cliente do hub `/hubs/bets` e da API de carteira/histórico, store das apostas e do saldo (servidor como fonte da verdade; valores sempre como `Money` em string).
-- `game-ui`: dois painéis conforme o design "Pipa Crash" do Stitch, com estados por fase, validação local pelos limites (o servidor decide), mensagens de erro em pt-BR, saldo e recarga, abas de apostas.
+- `game-ui`: dois painéis conforme o design "Pipa Crash" do Stitch, com estados por fase, validação local pelos limites (o servidor decide), mensagens de erro em pt-BR, saldo e recarga (abas de apostas: SPEC-0031).
 - Integração no HUD do `game-pipa`, substituindo o painel desabilitado da SPEC-0010.
 - Acessibilidade WCAG 2.2 AA no painel (rótulos, foco, anúncios `aria-live` de aposta aceita, retirada e perda).
 
@@ -73,12 +73,12 @@ Painel (por painel 1 e 2)
   Erros do servidor (código → mensagem pt-BR): BET_BELOW_MIN, BET_ABOVE_MAX, INSUFFICIENT_FUNDS, PANEL_BUSY,
     CANCEL_NOT_ALLOWED, CASHOUT_TOO_LATE ("Cash-out tardio: a pipa já tinha sido cortada"), WALLET_UNAVAILABLE
 Saldo: "R$ 2.990,00 · DEMO"; botão "Recarregar demo" visível só quando saldo < aposta mínima
-Abas: "Todas as apostas" (LiveBets) | "Minhas apostas" (GET /api/v1/me/bets)
-Store (game-sdk/state): BetsState { panels:[PanelState, PanelState], balance:Money, limits, live, mine }
+Reconexão: saldo relido da carteira (SPEC-0021@1) e apostas abertas relidas de GET /api/v1/me/bets (SPEC-0025@1)
+Store (game-sdk/state): BetsState { panels:[PanelState, PanelState], balance:Money, limits }
 Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 ```
 
-**Design:** Stitch — projeto "Pipa — Crash Game" (16371353209282165204), tela "Pipa Crash - Jogo da Pipa" (painéis APOSTA 1/APOSTA 2, botões APOSTAR verde e RETIRAR laranja, abas de apostas).
+**Design:** Stitch — projeto "Pipa — Crash Game" (16371353209282165204), tela "Pipa Crash - Jogo da Pipa" (painéis APOSTA 1/APOSTA 2, botões APOSTAR verde e RETIRAR laranja; as abas de apostas são da SPEC-0031).
 
 **Arquivos/módulos afetados:** ver `touches`.
 
@@ -91,10 +91,10 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 | Formatação de dinheiro | "2990.5", "24.70" | "R$ 2.990,50", "R$ 24,70"; envio como string, sem float | UT-04 |
 | Mensagens de erro | cada código do contrato | mensagem pt-BR correspondente | UT-05 |
 | Recarga | saldo abaixo/acima do mínimo | botão visível/oculto; recarga atualiza saldo | UT-06 |
-| SDK de apostas contra servidor real | backend do Aspire | aposta, retira, histórico | IT-01 |
+| SDK de apostas contra servidor real | backend do Aspire | aposta, retira, saldo atualizado | IT-01 |
 | Tipos do hub e REST | mensagens reais | conferem com os tipos gerados | CT-01 |
-| Aposta e cash-out | jogador aposta R$ 10 e retira no voo | saldo = 3.000 − 10 + pagamento; aparece em "Minhas apostas" | E2E-01 |
-| Aposta perdida | jogador aposta e não retira | "perdeu"; saldo reduzido em 10; histórico | E2E-02 |
+| Aposta e cash-out | jogador aposta R$ 10 e retira no voo | painel mostra o ganho; saldo = 3.000 − 10 + pagamento | E2E-01 |
+| Aposta perdida | jogador aposta e não retira | "perdeu" no painel (BetSettled); saldo reduzido em 10 | E2E-02 |
 | Cancelar | aposta e cancela na fase de apostas | estorno integral | E2E-03 |
 | Próxima rodada e aposta dupla | apostas nos dois painéis, uma durante o voo | PRÓXIMA ativa na rodada seguinte; painéis independentes | E2E-04 |
 | Cash-out automático | alvo 1,01x | retirada automática anunciada (ou perda em crash 1,00x, com nova tentativa) | E2E-05 |
@@ -112,14 +112,14 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 - **UT-06** — Dado saldo 0,50 com mínimo 1,00 e depois saldo 10,00, quando o painel renderiza, então "Recarregar demo" aparece e some; a recarga atualiza o saldo.
 
 ### 7.3 Testes de Integração
-- **IT-01** — Dado o backend real do Aspire, quando o `game-sdk` (Node) aposta 10,00, retira no voo e lê "Minhas apostas", então recebe BetAccepted, CashedOut e o histórico com a aposta cashed_out.
+- **IT-01** — Dado o backend real do Aspire, quando o `game-sdk` (Node) aposta 10,00, retira no voo e relê o saldo, então recebe BetAccepted e CashedOut e o saldo é 3.000 − 10 + pagamento.
 
 ### 7.4 Testes de Contrato
-- **CT-01** — Dadas as mensagens reais de IT-01 (hub de apostas, carteira e histórico), quando validadas em tempo de execução contra os tipos gerados, então conferem (SPEC-0020@1 a SPEC-0025@1).
+- **CT-01** — Dadas as mensagens reais de IT-01 (hub de apostas e carteira), quando validadas em tempo de execução contra os tipos gerados, então conferem (SPEC-0020@1 a SPEC-0024@1; o histórico da SPEC-0025@1 é validado na SPEC-0031).
 
 ### 7.5 Testes E2E
-- **E2E-01** — Dado o jogo aberto pelo lançamento demo, quando o jogador aposta R$ 10,00 no painel 1 e clica RETIRAR durante o voo, então o painel mostra o ganho, o saldo é 3.000 − 10 + pagamento e a aposta aparece em "Minhas apostas"; axe sem violações [jornada: aposta-cashout].
-- **E2E-02** — Dado o jogo aberto, quando o jogador aposta R$ 10,00 e não retira, então após PIPA CORTADA! o painel mostra a perda, o saldo cai 10,00 e o histórico registra lost; axe sem violações [jornada: aposta-perdida].
+- **E2E-01** — Dado o jogo aberto pelo lançamento demo, quando o jogador aposta R$ 10,00 no painel 1 e clica RETIRAR durante o voo, então o painel mostra o ganho, o saldo é 3.000 − 10 + pagamento; axe sem violações [jornada: aposta-cashout].
+- **E2E-02** — Dado o jogo aberto, quando o jogador aposta R$ 10,00 e não retira, então após PIPA CORTADA! o painel mostra a perda (BetSettled), o saldo cai 10,00 e o painel volta a APOSTAR; axe sem violações [jornada: aposta-perdida].
 - **E2E-03** — Dado o jogo na fase de apostas, quando o jogador aposta e cancela, então o saldo volta ao valor anterior.
 - **E2E-04** — Dado o jogo em voo, quando o jogador aposta nos dois painéis (um durante o voo), então o painel mostra PRÓXIMA e ativa na rodada seguinte, e os dois painéis evoluem de forma independente.
 - **E2E-05** — Dado o cash-out automático em 1,01x, quando a rodada voa, então a retirada automática é anunciada (rodada com crash 1,00x conta como perda e o teste tenta a próxima, até 5 rodadas).
@@ -235,3 +235,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0026`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v2 | 2026-10-09 | As abas "Todas as apostas" e "Minhas apostas" saem do escopo (vão para a SPEC-0031); IT-01, CT-01, E2E-01 e E2E-02 deixam de verificar o histórico; `depends_on` passa a incluir a SPEC-0024, cujos cash-out e liquidação reais os E2E exigem | Jogar com apostas uma onda antes: sem o histórico da SPEC-0025, o painel roda na mesma onda que ela | SPEC-0031 (nova); nenhuma outra (consome SPEC-0025@1 só para a releitura na reconexão, com dublês) | thomas (2026-10-09) |
