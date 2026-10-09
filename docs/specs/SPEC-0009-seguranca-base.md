@@ -4,7 +4,7 @@ title: "Segurança base: lançamento demo, sessão do jogador e acesso"
 tier: full
 type: foundation
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0003, SPEC-0005]
@@ -160,25 +160,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0014, ADR-0015, ADR-0019, ADR-0020 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0014, ADR-0015, ADR-0019, ADR-0020 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0009:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0009:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, IT-08, IT-09, CT-01 com a tag `SPEC-0009:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, IT-08, IT-09, CT-01 com a tag `SPEC-0009:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -190,9 +190,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  850ms (tests 98%, transform 1%, import 1%)) — 97cfdb8 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — d5428ae + correção do harness do Keycloak 97cfdb8 (minor do review), 0 blocker/major; minors como pendência: ForwardedHeaders antes do deploy, CloseOnAuthenticationExpiration no hub, frame-ancestors no host do jogo, escopo organization no backoffice, frame-ancestors só https fora de Development — 97cfdb8 | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 52ms); test exit 0 (Duration  1.17s (tests 98%, transform 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    13, Skipped:     0, Total:    13, Duration: 2 m 49 s ); test_e2e exit 0 (3 passed (4.0s)); arch_test exit 0 (Duration  777ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 217 files: 0 findings.) — 8891ef5 | 2026-10-09 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
+| G6 Deploy | N/A | Sem ambientes ainda: validação local por decisão do usuário (ADR-0013); deploy entra com a SPEC-0012 (hospedagem e deploy) | 2026-10-09 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 03417d6 | 2026-10-09 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -205,37 +205,64 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Segurança base da plataforma:
+- Requisições de operador assinadas com HMAC-SHA256 (janela de ±300 s, comparação em tempo constante, proteção contra reenvio no Redis que normaliza a assinatura).
+- Lançamento demo com token de uso único de 60 s e sessão do jogador em JWT de 8 h (sub, op, sala, cur, mode); hub de rodadas e REST de rodadas restritos à sessão.
+- Backoffice com Keycloak (realm `apogeu`, papéis, MFA para administrador do provedor, organizações por operador) e `/api/v1/backoffice/me`.
+- Negação por padrão, cabeçalhos de segurança, limite de taxa, `/dev/launch-demo` só em Development e trava de dinheiro real.
+- AppHost passa as chaves do operador demo, a chave de sessão e a configuração do backoffice como parâmetros gerados do Aspire.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+- TDD com papéis separados: Test-writer (47ab42a, ad3dd89, c2a44df, 07e1e4f; correção de relógio 9fceecd; caso de reenvio 690e37b), Implementer (76ca0ea, 5eb4d97, c7a07a2, 8df9ae6, 7de42e6), Reviewer independente (CHANGES_REQUESTED: reenvio com assinatura em outra caixa e HTTPS do Keycloak → APPROVED).
+- Integração da onda 4: política de sessão de jogador também no REST de rodadas (3050067, e181c2e) — contrato v3 da SPEC-0008.
+- Emenda de escopo: AppHost/Program.cs (IMP-01).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type foundation.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Assinatura HMAC confere com o vetor | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| UT-02 | Janela de tempo ±300 s | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| UT-03 | Token de lançamento de uso único e TTL 60 s | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| UT-04 | Dinheiro real bloqueado | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-01 | Lançamento válido com p99 ≤ 100 ms | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-02 | Lançamentos inválidos com códigos do contrato | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-03 | Replay detectado, inclusive com a assinatura em outra caixa | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-04 | Troca do token por sessão (válido, usado, expirado, inválido) | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-05 | Hub restrito à sala da sessão | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-06 | Backoffice com Keycloak real: 401/403/200 por papel | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-07 | Segredos e tokens fora dos logs | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-08 | Limite de taxa e cabeçalhos de segurança | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| IT-09 | Rota de desenvolvimento só em Development | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
+| CT-01 | Respostas conferem com o OpenAPI gerado | PASS | G5 732e4a8 + CI 37950245614 (PR #19) |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5) — suíte, arquitetura e CI verdes (G5 local + CI 37950245614 no PR #19)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — lançamento p99 ≤ 100 ms (IT-01, Performance); negação por padrão, cabeçalhos e limite de taxa (IT-08); mascaramento (IT-07)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: só validação local nesta fase (ADR-0013), G6 aponta a SPEC-0012
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas security.launch_rejected, security.replay_detected, security.rate_limited; rollback = reverter o merge commit (schema novo, sem dados de produção)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma) — SPEC-0028 (endurecimento da API de operadores), SPEC-0012 (deploy)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks sem achados na integração da onda
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente remoto nesta fase (ADR-0013): na `main` pelo PR #19 (636ebdb); smoke no Aspire: /dev/launch-demo 302 e sessão 200. G6 N/A até a SPEC-0012.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0028 — canonicalização do caminho, ForwardedHeaders e limite antes da autenticação, limpeza de `launch_grants`, `securitySchemes` no OpenAPI, `AllowAnonymous` por endpoint.
+- SPEC-0012 — hospedagem e deploy.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0009`. -->
