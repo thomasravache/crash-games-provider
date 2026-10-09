@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0002, SPEC-0003]
 consumes_contract: [SPEC-0006@1]
 contract_version: 2
-touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**", "src/backend/AppHost/AppHost.csproj", "src/backend/AppHost/packages.lock.json", "tests/backend/AppHost.Tests/AppHost.Tests.csproj", "tests/backend/AppHost.Tests/packages.lock.json", "tests/backend/Architecture.Tests/Architecture.Tests.csproj", "tests/backend/Architecture.Tests/packages.lock.json", "tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs"]
+touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**", "src/backend/AppHost/AppHost.csproj", "src/backend/AppHost/packages.lock.json", "tests/backend/AppHost.Tests/AppHost.Tests.csproj", "tests/backend/AppHost.Tests/packages.lock.json", "tests/backend/Architecture.Tests/Architecture.Tests.csproj", "tests/backend/Architecture.Tests/packages.lock.json", "tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs", "tests/backend/Modules/Fairness.Tests/Integration/FairnessRestartTimingTests.cs", "tests/backend/Modules/Fairness.Tests/Unit/CrashPointPerformanceTests.cs"]
 adrs: [ADR-0011, ADR-0012, ADR-0013, ADR-0016]
 external: []
 size: M

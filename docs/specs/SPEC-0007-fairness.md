@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0003]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/Modules/Fairness/**", "tests/backend/Modules/Fairness.Tests/**", "tests/vectors/**"]
+touches: ["src/backend/Modules/Fairness/**", "tests/backend/Modules/Fairness.Tests/**", "tests/vectors/**", ".github/workflows/ci.yml", "tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs"]
 adrs: [ADR-0001, ADR-0006, ADR-0010, ADR-0014]
 external: []
 size: M
@@ -248,3 +248,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|---|---|
 | v1 (esclarecimento, sem mudança de versão) | 2026-10-08 | Codificação explicitada: HMAC com chave = 32 bytes crus da semente e mensagem = bytes crus do sal decodificado do hex; X = primeiros 52 bits de H em big-endian; vetores em hex minúsculo, `rtp`/`cap`/`crashPoint` como string decimal (2 casas para cap e crash) | O §4 não fixava a codificação do sal; o Test-writer escolheu a leitura de bytes crus, documentada em `tests/vectors/README.md` e reproduzida por gerador Python independente | SPEC-0008, SPEC-0010 (consomem os vetores; mesmo formato de array do §6) | Architect — esclarecimento dentro do contrato v1, coberto pela autorização do usuário para seguir sem paradas (2026-10-08) |
 | v1 (esclarecimento, sem mudança de versão) | 2026-10-08 | IT-02 mede a mediana de 15 obtenções da semente (não uma amostra de `NextRoundAsync`) e testes cronometrados rodam sem paralelismo; novos IT-06 (concorrência na mesma sala) e UT-08 (`length` fora de 1..1.000.000 → `ArgumentOutOfRangeException`); `IFairnessService.RevealAsync` documenta que só se revela após o crash | Review G4: amostra única instável na CI; serialização e limite de N sem teste | SPEC-0008 (deve revelar só após o crash — já previsto na rodada); persistência das chaves do Data Protection no Host vai para a SPEC-0012 | Architect — esclarecimento dentro do contrato v1, coberto pela autorização do usuário para seguir recomendações (2026-10-08) |
+| v1 (inalterado) | 2026-10-09 | Escopo: `.github/workflows/ci.yml` e `tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs` entram em `touches` só pelo commit b709b9d (testes cronometrados com `Category=Performance` numa etapa própria da CI, emenda da SPEC-0004) | pr-check confere cada spec citada no commit contra o próprio `touches` | Nenhuma | Architect — correção de escopo, coberta pela autorização do usuário para seguir recomendações (2026-10-09) |
