@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0002]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/BuildingBlocks/Contracts/**", "src/backend/Host/OpenApi/**", "src/backend/Modules/Backoffice/Backoffice.Features/Meta/**", "src/frontend/packages/contracts/**", "tools/contracts/**", "tests/backend/Contracts.Tests/**", "src/backend/Host/Program.cs", "src/backend/Host/Host.csproj", "src/backend/Modules/Backoffice/Backoffice.Features/BackofficeModule.cs", "src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj", "src/frontend/package.json"]
+touches: ["src/backend/BuildingBlocks/Contracts/**", "src/backend/Host/OpenApi/**", "src/backend/Modules/Backoffice/Backoffice.Features/Meta/**", "src/frontend/packages/contracts/**", "tools/contracts/**", "tests/backend/Contracts.Tests/**", "src/backend/Host/Program.cs", "src/backend/Host/Host.csproj", "src/backend/Modules/Backoffice/Backoffice.Features/BackofficeModule.cs", "src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj", "src/frontend/package.json", ".gitignore", "artifacts/openapi/**", "Directory.Packages.props"]
 adrs: [ADR-0008, ADR-0004]
 external: []
 size: M
@@ -217,3 +217,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0006`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (inalterado) | 2026-10-08 | Emenda de escopo: `touches` inclui `.gitignore`, `artifacts/openapi/**` e `Directory.Packages.props` | ADR-0008 versiona o documento OpenAPI (exceção no `.gitignore`) e a geração no build usa `Microsoft.Extensions.ApiDescription.Server`, par do `Microsoft.AspNetCore.OpenApi` previsto no ADR | Nenhuma (contrato inalterado) | Architect — correção de escopo sem mudança de contrato, coberta pela autorização do usuário para seguir sem paradas (2026-10-08) |
