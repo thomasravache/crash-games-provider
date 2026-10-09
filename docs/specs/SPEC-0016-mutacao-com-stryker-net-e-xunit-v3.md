@@ -28,7 +28,7 @@ Rodar `dotnet stryker` em `Fairness.Domain` (meta ≥ 85%, SPEC-0007 §7.6) dá 
 Provável incompatibilidade entre o runner vstest do Stryker.NET 5.0.0 e os testes em xUnit v3 (`xunit.v3.mtp-off`); o runner `mtp` encontrou 0 testes. Config estática aponta para projeto inexistente (SPEC-0003).
 
 ## 3. Mudança Proposta
-Configurar o Stryker para capturar cobertura com xUnit v3 (runner/opções corretos, ou ajuste do projeto de teste), tirar da config fixa os projetos que não existem (o `tools/ci/stryker-targets` do nightly já filtra) e registrar o score real do `Fairness.Domain`. Não muda código de produção nem os testes da SPEC-0007.
+Diagnóstico do Reviewer da SPEC-0007: runner `mtp` do Stryker com o projeto de teste em MTP (ou `coverage-analysis: off` com filtro tirando o UT-06), `mutate` restrito a `Fairness.Domain` e `break` = 85. Configurar o Stryker para capturar cobertura com xUnit v3 (runner/opções corretos, ou ajuste do projeto de teste), tirar da config fixa os projetos que não existem (o `tools/ci/stryker-targets` do nightly já filtra) e registrar o score real do `Fairness.Domain`. Não muda código de produção nem os testes da SPEC-0007.
 
 **Padrão seguido:** `stryker-config.json` (SPEC-0003) e `tools/ci/stryker-targets` (SPEC-0004).
 
