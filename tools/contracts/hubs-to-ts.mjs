@@ -1,6 +1,12 @@
 // Hub contract generator (ADR-0008, SPEC-0006): hub manifest (exported by HubContracts from the strongly typed SignalR
 // hubs) → TypeScript interfaces. Server methods become `Name(args): Promise<Result>` (streams: `AsyncIterable<Item>`);
 // client methods (TClient) become `Name(args): void`. Method names are the wire names the hub uses.
+//
+//   node tools/contracts/hubs-to-ts.mjs --input <manifest.json> --output <file.ts> --scalars-from <module>
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { formatTypeScript } from "./frontend-modules.mjs";
 import { brandedFormats } from "./scalars.mjs";
 
@@ -124,4 +130,29 @@ function objectType(schema, usedBrands) {
 
 function wrap(type) {
   return type.includes(" ") ? `(${type})` : type;
+}
+
+async function main() {
+  const { values } = parseArgs({
+    options: {
+      input: { type: "string" },
+      output: { type: "string" },
+      "scalars-from": { type: "string" },
+    },
+  });
+  if (values.input === undefined || values.output === undefined || values["scalars-from"] === undefined) {
+    throw new Error(
+      "Usage: node tools/contracts/hubs-to-ts.mjs --input <manifest.json> --output <file.ts> --scalars-from <module>",
+    );
+  }
+
+  const manifest = JSON.parse(await readFile(resolve(values.input), "utf8"));
+  const source = await hubsToTypeScript(manifest, { scalarsFrom: values["scalars-from"] });
+  const output = resolve(values.output);
+  await mkdir(dirname(output), { recursive: true });
+  await writeFile(output, source);
+}
+
+if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await main();
 }
