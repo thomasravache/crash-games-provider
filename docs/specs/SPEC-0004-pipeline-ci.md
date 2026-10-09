@@ -28,7 +28,7 @@ Cria o pipeline no GitHub Actions que protege a branch principal: build, lint, t
 
 **Objetivos (dentro do escopo):**
 - Repositório **privado** `thomasravache/crash-games-provider` criado. Proteção da `main` no servidor fora do escopo (emenda v2 → SPEC-0015): no GitHub Free privado ela é indisponível; o controle é de processo — CI em todo PR e merge só pelo Architect após G5 verde.
-- Workflows: `ci.yml` (jobs `backend`, `frontend`, `e2e`, `security`, `contracts`, `sdd`, com filtro de caminhos), `images.yml` (gera imagens via Aspire publish no merge, sem publicar em registro), `nightly.yml` (simulação de RTP e mutação).
+- Workflows: `ci.yml` (jobs `backend`, `frontend`, `e2e`, `security`, `contracts`, `sdd`, com filtro de caminhos), `images.yml` (no merge, gera as imagens dos recursos do AppHost — API por `dotnet publish -t:PublishContainer`, apps Vite por `docker build` — como artefato, sem publicar em registro; o modo publish do Aspire fica para a SPEC-0012), `nightly.yml` (simulação de RTP e mutação).
 - Dependabot (NuGet, npm, GitHub Actions, Docker) semanal.
 - Comandos `ci` e `security_scan` no `sdd-config.yml`.
 
@@ -219,3 +219,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
 | 2 | 2026-10-08 | Proteção da `main` no servidor e IT-06 saem do escopo; IT-02 passa a verificar check vermelho e `mergeStateStatus` ≠ `CLEAN`; checks `ci/*` informativos, merge só pelo Architect após G5 | IMP-01: repositório privado no GitHub Free não tem branch protection nem rulesets (API 403); o humano escolheu manter privado | SPEC-0015 (nova, recebe a proteção e o IT-06); nenhum consumidor do contrato | thomas, 2026-10-08 (chat) |
+| 2 (inalterado) | 2026-10-08 | `images.yml` gera as imagens sem Aspire publish (`dotnet publish -t:PublishContainer` para a API, `docker build` para os apps Vite), mesmo artefato `container-images` | SPEC_DEFECT do Implementer: o AppHost quebra no modo publish (`.Single()` em `JavaScriptPackageInstallerAnnotation`) e não tem ambiente de computação; corrigir exige mexer no AppHost e talvez `Aspire.Hosting.Docker` (sem ADR) — decisão natural da SPEC-0012, que escolhe a hospedagem | SPEC-0012 (recebe o modo publish do AppHost) | Architect — mudança de texto sem mudança de contrato, coberta pela autorização do usuário para seguir recomendações (2026-10-08) |
