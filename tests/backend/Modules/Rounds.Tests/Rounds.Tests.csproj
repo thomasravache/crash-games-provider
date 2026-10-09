@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <!-- Clears the shared Redis container between integration tests (leader locks and backplane, ADR-0005). -->
     <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="Npgsql" />
   </ItemGroup>
 
   <ItemGroup>
