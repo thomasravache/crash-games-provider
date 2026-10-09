@@ -181,9 +181,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/45]⎯) — 90d03d6 | 2026-10-09 |
-| G2 Green | PASS | build exit 0 (✓ built in 158ms); test exit 0 (Duration  1.23s (tests 81%, transform 13%, import 5%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T12:13:44: Report generation took 0,3 seconds) — 6dce3a1 | 2026-10-09 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  788ms (tests 97%, transform 2%, import 1%)) — 6dce3a1 | 2026-10-09 |
-| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 6dce3a1 — 0 blocker/major; minors: resposta de verificação sem o tipo gerado, verificador não liga ao compromisso exibido ao vivo (follow-up prioritário), axe em todos os estados do HUD, teste .NET da política CORS, referências ao pin @3 — 6dce3a1 | 2026-10-09 |
+| G2 Green | PASS | build exit 0 (✓ built in 161ms); test exit 0 (Duration  1.36s (tests 82%, transform 12%, import 4%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T14:21:27: Report generation took 0,3 seconds) — 7af2d33 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  789ms (tests 97%, transform 2%, import 1%)) — 7af2d33 | 2026-10-09 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 6dce3a1 e no delta até 7af2d33 (E2E com backend real, título estável) — 0 blocker/major; minors como pendências — 7af2d33 | 2026-10-09 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
