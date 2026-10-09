@@ -4,8 +4,8 @@
 
 ## Saúde
 
-- Validação (G0): **2 erro(s), 3 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 4, approved 4, in-progress 3, implemented 3
+- Validação (G0): **2 erro(s), 5 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 6, approved 4, in-progress 3, implemented 3
 - Impedimentos: **0 aberto(s)**, 3 resolvido(s)
 
 ## Cobertura de Pilares
@@ -56,12 +56,14 @@ Perfil: **rigoroso**
 | 3 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
 | 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
 | 4 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 5 | SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006, SPEC-0007; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0015 |
+| 5 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0015 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/11 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/13 implementadas |
 
 ## Grafo de Dependências
 
@@ -84,6 +86,8 @@ flowchart LR
     S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::approved
     S0011["SPEC-0011<br/>Animação da cena da Pipa"]:::approved
     S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::proposed
+    S0016["SPEC-0016<br/>Mutação com Stryker.NET e xUnit v3"]:::proposed
+    S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::proposed
   end
   S0002 --> S0003
   S0002 --> S0004
@@ -133,6 +137,8 @@ flowchart LR
 | [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | proposed | 2026-10-08 | — | — | — |
 | [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | proposed | 2026-10-08 | — | — | — |
 | [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | proposed | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
+| [SPEC-0016](SPEC-0016-mutacao-com-stryker-net-e-xunit-v3.md) | Mutação com Stryker.NET e xUnit v3 | lite | fix | proposed | 2026-10-08 | SPEC-0001 | — | — |
+| [SPEC-0017](SPEC-0017-endurecimento-dos-testes-e-da-ci-da-onda-3.md) | Endurecimento dos testes e da CI da onda 3 | lite | refactor | proposed | 2026-10-08 | SPEC-0001 | — | — |
 
 ## ADRs
 

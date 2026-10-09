@@ -192,8 +192,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:06.76]     Dado PostgreSQL real, quando uma cadeia de 50.000 elos é criad) — 6104bb0 | 2026-10-08 |
-| G2 Green | PASS | build exit 0 (✓ built in 48ms); test exit 0 (Duration  1.13s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T22:43:31: Report generation took 0,1 seconds) — 9a5a55e | 2026-10-08 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  762ms (tests 97%, transform 1%, import 1%)) — 9a5a55e | 2026-10-08 |
+| G2 Green | PASS | build exit 0 (✓ built in 65ms); test exit 0 (Duration  1.12s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T23:42:39: Report generation took 0,1 seconds) — 708cd9a | 2026-10-08 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  748ms (tests 98%, transform 1%, import 1%)) — 708cd9a | 2026-10-08 |
 | G4 Review | FAIL | Reviewer CHANGES_REQUESTED: 1 major (IT-02 cronometra uma amostra única de NextRoundAsync — instável na CI), 4 minor (chaves do Data Protection sem persistência no Host; concorrência de NextRoundAsync sem teste; length sem limite; Reveal da rodada corrente), 3 nit | 2026-10-08 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
