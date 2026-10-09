@@ -2,11 +2,13 @@ using Apogeu.Backoffice.Features;
 using Apogeu.Betting.Features;
 using Apogeu.Fairness.Features;
 using Apogeu.Host.OpenApi;
+using Apogeu.Host.Security;
 using Apogeu.Operators.Features;
 using Apogeu.Rounds.Features;
 using Apogeu.ServiceDefaults;
 using Apogeu.Wallet.Features;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OpenTelemetry.Metrics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +34,14 @@ builder.Services.AddOperatorsModule();
 builder.Services.AddRoundsModule();
 builder.Services.AddWalletModule();
 
+// SPEC-0009, ADR-0015: authorization denied by default, security headers and HSTS; the identities (operator signature,
+// player session, backoffice bearer) and their policies are registered by the Operators module above.
+builder.Services.AddHostSecurity();
+builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter(OperatorsModule.MeterName));
+
 var app = builder.Build();
+
+app.UseHostSecurity();
 
 app.MapDefaultEndpoints();
 app.MapContractOpenApi();

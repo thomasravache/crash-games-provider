@@ -8,7 +8,7 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0005, SPEC-0006]
-consumes_contract: [SPEC-0007@2, SPEC-0008@2, SPEC-0009@1]
+consumes_contract: [SPEC-0007@2, SPEC-0008@3, SPEC-0009@1]
 contract_version: 1
 touches: ["src/frontend/apps/game-pipa/**", "src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/packages/scene-kit/**", "tests/e2e/pipa/**", "tests/frontend/pipa/**", "tests/frontend/integration/pipa/**", "tests/frontend/arch/pipa-*", "src/frontend/package.json", "src/frontend/vitest.workspace.ts", "src/backend/AppHost/Program.cs", "src/backend/Host/Program.cs"]
 adrs: [ADR-0004, ADR-0006, ADR-0008, ADR-0019, ADR-0020]
@@ -135,7 +135,7 @@ Gancho de teste:  window.__APOGEU_TEST__ = { state(): RoundState }  (somente bui
 - **Estratégia:** merge direto (somente local/demo).
 - **Dados/schema:** N/A
 - **Compatibilidade:** consome contratos v1 das SPEC-0007/0008/0009.
-- **Observabilidade:** erros do cliente registrados no console de desenvolvimento; telemetria de navegador fica para a spec de hospedagem.
+- **Observabilidade:** sem log no console (regra `no-console` do ADR-0012); erros visíveis ao jogador pelas telas de sessão expirada, falha de conexão e "Reconectando…"; telemetria de navegador fica para a spec de hospedagem.
 - **Rollback:** reverter o merge commit.
 - **Etapas de migração/coexistência:** N/A
 
@@ -181,8 +181,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/45]⎯) — 90d03d6 | 2026-10-09 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 158ms); test exit 0 (Duration  1.23s (tests 81%, transform 13%, import 5%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T12:13:44: Report generation took 0,3 seconds) — 6dce3a1 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  788ms (tests 97%, transform 2%, import 1%)) — 6dce3a1 | 2026-10-09 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
@@ -237,3 +237,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|---|---|
 | v1 (inalterado) | 2026-10-09 | Emenda de escopo: `touches` inclui os testes do front (`tests/frontend/pipa/**`, `tests/frontend/integration/pipa/**`, `tests/frontend/arch/pipa-*`), `src/frontend/package.json`, `src/frontend/vitest.workspace.ts`, `src/backend/AppHost/Program.cs` (URL da API para o jogo) e `src/backend/Host/Program.cs` (CORS para a origem do jogo) | Os testes vivem onde o Vitest e o TestKit esperam; o esqueleto andante só funciona no Aspire com a URL da API injetada no jogo e CORS liberado | Nenhuma (contrato inalterado) | Architect — correção de escopo sem mudança de contrato, coberta pela autorização do usuário para seguir pelo recomendado (2026-10-09) |
 | v1 (inalterado) | 2026-10-09 | Pins revistos: SPEC-0007@2 (só acrescenta `GetCrashPointAsync`; vetores e algoritmo inalterados) e SPEC-0008@2 (`RoundSnapshot.current` definido; `crashPoint`/`revealedSeed` nulos até o crash; erros em ProblemDetails `code`; `rtp`/`growthK` como string decimal) | Emendas v2 das SPEC-0007 e SPEC-0008 | Nenhuma | Architect — revisão de consumidor, pela autorização do usuário (2026-10-09) |
+| v1 (inalterado) | 2026-10-09 | Observabilidade do rollout: sem log no console (regra de lint `no-console`), erros mostrados nas telas do jogo; `@microsoft/signalr` como cliente JS do hub (emenda do ADR-0005) | Relato do Implementer: o texto pedia log no console, proibido pelas regras de código | Nenhuma | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
