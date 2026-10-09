@@ -9,3 +9,4 @@ export type RestClient = Client<paths>;
 export function createRestClient(options?: ClientOptions): RestClient {
   return createClient<paths>(options);
 }
+// ci-live probe CT-01: hand edit, out of sync with contracts:generate
