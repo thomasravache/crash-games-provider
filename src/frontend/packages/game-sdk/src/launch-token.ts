@@ -1,6 +1,5 @@
-// Launch token in the URL (SPEC-0010 §5): read `lt` from `/?lt=…` and remove it with history.replaceState.
-
-import { NotImplementedError } from "./not-implemented";
+// Launch token in the URL (SPEC-0010 §5): read `lt` from `/?lt=…` and remove it with history.replaceState, so the
+// single-use token never stays in the address bar, the history or a shared link.
 
 export interface LaunchLocation {
   readonly href: string;
@@ -12,5 +11,10 @@ export interface LaunchHistory {
 
 /** Returns the launch token (or null) and removes `lt` from the address bar. */
 export function takeLaunchToken(location: LaunchLocation, history: LaunchHistory): string | null {
-  throw new NotImplementedError("takeLaunchToken", history, location);
+  const url = new URL(location.href);
+  if (!url.searchParams.has("lt")) return null;
+  const token = url.searchParams.get("lt") ?? "";
+  url.searchParams.delete("lt");
+  history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  return token === "" ? null : token;
 }

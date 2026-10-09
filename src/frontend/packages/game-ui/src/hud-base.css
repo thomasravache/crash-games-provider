@@ -1,0 +1,20 @@
+/* HUD Base tokens (SPEC-0010 §2): defaults of every game, from the Stitch design system "Pipa Crash". A game theme
+   overrides them after this import. Consumed through Tailwind v4 (`bg-hud-surface`, `text-hud-flying`, …). */
+@theme {
+  --color-hud-canvas: #080b16;
+  --color-hud-surface: #0f172a;
+  --color-hud-surface-raised: #1e293b;
+  --color-hud-border: rgb(255 255 255 / 0.08);
+  --color-hud-text: #e0e1f2;
+  --color-hud-muted: #a3aec2;
+  --color-hud-accent: #f97316;
+  --color-hud-win: #22c55e;
+  --color-hud-betting: #22d3ee;
+  --color-hud-flying: #facc15;
+  --color-hud-crashed: #ef4444;
+  --color-hud-tier-low: #38bdf8;
+  --color-hud-tier-mid: #c084fc;
+  --color-hud-tier-high: #facc15;
+  --font-hud-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-hud-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}

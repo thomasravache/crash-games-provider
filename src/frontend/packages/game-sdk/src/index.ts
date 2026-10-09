@@ -4,7 +4,7 @@ export * from "./state";
 export * from "./fairness";
 export * from "./client";
 export * from "./launch-token";
-export * from "./not-implemented";
 export * from "./transport/hub-connection";
 export * from "./transport/session-api";
+export * from "./transport/rounds-api";
 export type * from "./transport/wire";
