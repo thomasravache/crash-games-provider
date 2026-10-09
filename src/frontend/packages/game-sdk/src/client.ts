@@ -10,6 +10,8 @@ import {
   type ConnectHub,
   type RoundsHubConnection,
 } from "./transport/hub-connection";
+import type { RoundVerificationData } from "./fairness/verifier";
+import { fetchRoundVerification, VerificationError } from "./transport/rounds-api";
 import { exchangeLaunchToken, type FetchLike } from "./transport/session-api";
 import type { RoundSnapshot } from "./transport/wire";
 
@@ -37,8 +39,16 @@ export interface GameClient {
   readonly store: RoundStore;
   /** Exchanges the launch token (rejects with SessionError), connects, syncs the clock and joins the sala. */
   start(launchToken: string): Promise<SessionInfo>;
+  /**
+   * Verification data of a finished round (SPEC-0008@2), read with the session of this client; rejects with
+   * VerificationError (code "NO_SESSION" before start).
+   */
+  loadVerification(roundId: string): Promise<RoundVerificationData>;
   stop(): Promise<void>;
 }
+
+/** Shown when the operator sent no nickname (it is optional in the launch, SPEC-0009@1; the demo launch sends none). */
+export const anonymousNickname = "Jogador";
 
 /** GetServerTime round trips per synchronization; the one with the shortest round trip wins. */
 const clockSamples = 3;
@@ -60,6 +70,8 @@ export function createGameClient(options: GameClientOptions): GameClient {
 
   let connection: RoundsHubConnection | undefined;
   let salaId = "";
+  // The session token lives only in this closure (memory), never in storage (SPEC-0010 §5).
+  let sessionToken: string | undefined;
   let stopped = false;
   /** Increments on every (re)synchronization, so a stale one never overwrites a newer snapshot. */
   let generation = 0;
@@ -133,22 +145,26 @@ export function createGameClient(options: GameClientOptions): GameClient {
       store.setConnection("connecting");
       const session = await exchangeLaunchToken(apiBaseUrl, launchToken, fetchImpl);
       salaId = session.salaId;
-      // The session token lives only in this closure (memory), never in storage (SPEC-0010 §5).
-      const { sessionToken } = session;
+      const token = session.sessionToken;
+      sessionToken = token;
       const hub = connectHub(`${apiBaseUrl}/hubs/rounds`, {
-        accessTokenFactory: () => sessionToken,
+        accessTokenFactory: () => token,
       });
       connection = hub;
       listen(hub);
       await hub.start();
       await synchronize(hub);
       return {
-        nickname: session.player.nickname,
+        nickname: session.player.nickname ?? anonymousNickname,
         salaId: session.salaId,
         currency: session.currency,
         mode: session.mode,
         expiresAt: session.expiresAt,
       };
+    },
+    loadVerification(roundId) {
+      if (sessionToken === undefined) return Promise.reject(new VerificationError("NO_SESSION"));
+      return fetchRoundVerification(apiBaseUrl, roundId, sessionToken, fetchImpl);
     },
     async stop() {
       stopped = true;

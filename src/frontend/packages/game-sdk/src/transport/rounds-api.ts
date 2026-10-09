@@ -1,4 +1,5 @@
-// Verification data of a finished round (SPEC-0008@2 §6): GET /api/v1/rounds/{roundId}/verification.
+// Verification data of a finished round (SPEC-0008@2 §6): GET /api/v1/rounds/{roundId}/verification, which requires the
+// player session (SPEC-0009@1) as an HTTP bearer.
 
 import type { RoundVerificationData } from "../fairness/verifier";
 import { problemCode, type FetchLike } from "./session-api";
@@ -17,13 +18,14 @@ export class VerificationError extends Error {
 export async function fetchRoundVerification(
   apiBaseUrl: string,
   roundId: string,
+  sessionToken: string,
   fetchImpl: FetchLike,
 ): Promise<RoundVerificationData> {
   let response: Response;
   try {
     response = await fetchImpl(
       `${apiBaseUrl}/api/v1/rounds/${encodeURIComponent(roundId)}/verification`,
-      { headers: { accept: "application/json" } },
+      { headers: { accept: "application/json", authorization: `Bearer ${sessionToken}` } },
     );
   } catch {
     throw new VerificationError("NETWORK");

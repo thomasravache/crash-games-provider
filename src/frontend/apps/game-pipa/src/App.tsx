@@ -1,9 +1,4 @@
-import {
-  fetchRoundVerification,
-  SessionError,
-  type GameClient,
-  type SessionInfo,
-} from "@apogeu/game-sdk";
+import { SessionError, type GameClient, type SessionInfo } from "@apogeu/game-sdk";
 import type { RoundStateSource } from "@apogeu/game-sdk/state";
 import {
   ConnectionFailedScreen,
@@ -25,7 +20,6 @@ type Screen =
 
 export interface AppProps {
   readonly client: GameClient;
-  readonly apiBaseUrl: string;
   /** The session start, begun once before React renders (the launch token is single use). */
   readonly session: Promise<SessionInfo>;
 }
@@ -56,11 +50,9 @@ function Scene({ source }: { readonly source: RoundStateSource }): JSX.Element {
 
 function Game({
   client,
-  apiBaseUrl,
   session,
 }: {
   readonly client: GameClient;
-  readonly apiBaseUrl: string;
   readonly session: SessionInfo;
 }): JSX.Element {
   const state = useRoundState(client.store);
@@ -79,9 +71,7 @@ function Game({
       {fairnessOpen ? (
         <FairnessDialog
           history={state.history}
-          loadVerification={(roundId) =>
-            fetchRoundVerification(apiBaseUrl, roundId, (input, init) => fetch(input, init))
-          }
+          loadVerification={(roundId) => client.loadVerification(roundId)}
           onClose={() => {
             setFairnessOpen(false);
           }}
@@ -91,7 +81,7 @@ function Game({
   );
 }
 
-export function App({ client, apiBaseUrl, session }: AppProps): JSX.Element {
+export function App({ client, session }: AppProps): JSX.Element {
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
 
   useEffect(() => {
@@ -119,6 +109,6 @@ export function App({ client, apiBaseUrl, session }: AppProps): JSX.Element {
     case "failed":
       return <ConnectionFailedScreen />;
     case "game":
-      return <Game client={client} apiBaseUrl={apiBaseUrl} session={screen.session} />;
+      return <Game client={client} session={screen.session} />;
   }
 }

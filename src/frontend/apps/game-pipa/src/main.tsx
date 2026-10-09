@@ -24,8 +24,7 @@ function runFrameTicker(store: RoundStore): void {
 // The launch token leaves the address bar before anything else (SPEC-0010 §5) and is exchanged exactly once, outside
 // React (StrictMode runs effects twice; the token is single use).
 const launchToken = takeLaunchToken(window.location, window.history);
-const api = apiBaseUrl();
-const client = createGameClient({ apiBaseUrl: api });
+const client = createGameClient({ apiBaseUrl: apiBaseUrl() });
 installTestHook(client.store);
 runFrameTicker(client.store);
 const session =
@@ -37,6 +36,6 @@ session.catch(() => undefined);
 
 createRoot(container).render(
   <StrictMode>
-    <App client={client} apiBaseUrl={api} session={session} />
+    <App client={client} session={session} />
   </StrictMode>,
 );
