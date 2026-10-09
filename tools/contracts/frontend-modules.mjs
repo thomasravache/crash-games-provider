@@ -23,9 +23,23 @@ export async function importFromFrontend(name) {
   return import(pathToFileURL(entry).href);
 }
 
-/** Formats generated TypeScript with the front-end's Prettier configuration, so `format:check` accepts it. */
+/** Upper bound of Prettier passes: the output of a well-behaved input stabilises after two or three. */
+const maxFormatPasses = 10;
+
+/**
+ * Formats generated TypeScript with the front-end's Prettier configuration, so `format:check` accepts it. One pass is not
+ * idempotent for some long signatures (a second pass reflows them again), so Prettier runs until its output stops changing.
+ */
 export async function formatTypeScript(source) {
   const { default: prettier } = await importFromFrontend("prettier");
   const config = (await prettier.resolveConfig(join(frontendRoot, "package.json"))) ?? {};
-  return prettier.format(source, { ...config, parser: "typescript" });
+  let current = source;
+  for (let pass = 0; pass < maxFormatPasses; pass++) {
+    const formatted = await prettier.format(current, { ...config, parser: "typescript" });
+    if (formatted === current) {
+      return formatted;
+    }
+    current = formatted;
+  }
+  throw new Error(`Prettier did not reach a stable output after ${maxFormatPasses} passes.`);
 }

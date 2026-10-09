@@ -23,6 +23,20 @@
         "resolved": "10.0.12",
         "contentHash": "Z/bU4AL/E4m0j5tduRjIuqZrVMK//wRAM+iq+UcQtjQuEMwBnMY8AQ+MvK4IQZAdKb5Zlk9PUglfsN53xOmU3A=="
       },
+      "MessagePack": {
+        "type": "Transitive",
+        "resolved": "2.5.302",
+        "contentHash": "5DZsKli4dMEpm/glcMAheuO8/IesfaTskbfsuvgnQwWFKS5FN7Z6yNx+5F+UW94E+9N2qt8Zs63/XVzpLsElgA==",
+        "dependencies": {
+          "MessagePack.Annotations": "2.5.302",
+          "Microsoft.NET.StringTools": "17.6.3"
+        }
+      },
+      "MessagePack.Annotations": {
+        "type": "Transitive",
+        "resolved": "2.5.302",
+        "contentHash": "PTHQHbMJzx1VtUUCpnvPavD7o5X9s2dAJ4uQHAP2kBCwJKICpPTZq0qxzbB4/6iJJiIxem8zlxyfldGAx1SjSQ=="
+      },
       "Microsoft.EntityFrameworkCore.Abstractions": {
         "type": "Transitive",
         "resolved": "10.0.12",
@@ -97,6 +111,11 @@
         "dependencies": {
           "Microsoft.Extensions.Compliance.Abstractions": "10.10.0"
         }
+      },
+      "Microsoft.NET.StringTools": {
+        "type": "Transitive",
+        "resolved": "17.6.3",
+        "contentHash": "N0ZIanl1QCgvUumEL1laasU0a7sOE5ZwLZVTn0pAePnfhq8P7SvTjF8Axq+CnavuQkmdQpGNXQ1efZtu5kDFbA=="
       },
       "Microsoft.OpenApi": {
         "type": "Transitive",
@@ -241,21 +260,32 @@
         "type": "Project"
       },
       "Apogeu.Rounds.Domain": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Rounds.Contracts": "[1.0.0, )"
+        }
       },
       "Apogeu.Rounds.Features": {
         "type": "Project",
         "dependencies": {
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
+          "Apogeu.Fairness.Contracts": "[1.0.0, )",
           "Apogeu.Rounds.Contracts": "[1.0.0, )",
           "Apogeu.Rounds.Domain": "[1.0.0, )",
-          "Apogeu.Rounds.Infrastructure": "[1.0.0, )"
+          "Apogeu.Rounds.Infrastructure": "[1.0.0, )",
+          "Microsoft.AspNetCore.OpenApi": "[10.0.12, )",
+          "Microsoft.AspNetCore.SignalR.StackExchangeRedis": "[10.0.12, )",
+          "OpenTelemetry.Extensions.Hosting": "[1.19.1, )",
+          "StackExchange.Redis": "[3.3.1, )"
         }
       },
       "Apogeu.Rounds.Infrastructure": {
         "type": "Project",
         "dependencies": {
           "Apogeu.Rounds.Contracts": "[1.0.0, )",
-          "Apogeu.Rounds.Domain": "[1.0.0, )"
+          "Apogeu.Rounds.Domain": "[1.0.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.12, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )"
         }
       },
       "Apogeu.ServiceDefaults": {
@@ -290,6 +320,16 @@
         "dependencies": {
           "Apogeu.Wallet.Contracts": "[1.0.0, )",
           "Apogeu.Wallet.Domain": "[1.0.0, )"
+        }
+      },
+      "Microsoft.AspNetCore.SignalR.StackExchangeRedis": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "GtsZEM5JP9epJ5cw3h4UaQg9eWrNQFWMSBA3E0FJrd5QK+gJpEC4rgZ9hucL2oEHvVfRDvMsKlaKHZIz0Vz2jw==",
+        "dependencies": {
+          "MessagePack": "2.5.302",
+          "StackExchange.Redis": "2.7.27"
         }
       },
       "Microsoft.EntityFrameworkCore": {
