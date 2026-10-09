@@ -25,7 +25,7 @@ public sealed class ImagesOnMergeTests
     public async Task GivenGreenPullRequestWhenMergedThenImagesWorkflowAttachesImageArtifacts()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await CiLive.EnsureReadyAsync(CiPipeline.CiWorkflow, CiPipeline.RequiredJobs, cancellationToken);
+        await CiLive.EnsureReadyAsync(CiPipeline.CiWorkflow, CiPipeline.PullRequestJobs, cancellationToken);
         Assert.True(
             WorkflowFile.TryLoad(CiPipeline.ImagesWorkflow) is not null,
             $"workflow {CiPipeline.ImagesWorkflow} not found in {WorkflowFile.Directory}");
@@ -34,7 +34,7 @@ public sealed class ImagesOnMergeTests
         await repository.CommitAsync(allowEmpty: true, cancellationToken);
         await using var pullRequest = await ProbePullRequest.OpenAsync(repository, cancellationToken);
 
-        var checks = await pullRequest.WaitForChecksAsync(CiPipeline.CiWorkflowName, CiPipeline.RequiredJobs, cancellationToken);
+        var checks = await pullRequest.WaitForChecksAsync(CiPipeline.CiWorkflowName, CiPipeline.PullRequestJobs, cancellationToken);
         var red = checks.Where(check => check.Failed || string.Equals(check.Bucket, "cancel", StringComparison.OrdinalIgnoreCase)).ToList();
         Assert.True(red.Count == 0, "The probe PR is not green:" + Environment.NewLine + ProbePullRequest.Describe(red));
         Assert.Equal("CLEAN", await pullRequest.MergeStateAsync(cancellationToken));

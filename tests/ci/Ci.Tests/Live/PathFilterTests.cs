@@ -19,14 +19,14 @@ public sealed class PathFilterTests
     public async Task GivenFrontendOnlyPullRequestWhenCiRunsThenBackendIsSkippedAndFrontendJobsRun()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        await CiLive.EnsureReadyAsync(CiPipeline.CiWorkflow, CiPipeline.RequiredJobs, cancellationToken);
+        await CiLive.EnsureReadyAsync(CiPipeline.CiWorkflow, CiPipeline.PullRequestJobs, cancellationToken);
 
         await using var repository = await ProbeRepository.CloneAsync("IT-01", cancellationToken);
         repository.AppendToFile("src/frontend/packages/game-sdk/src/index.ts", "// ci-live probe IT-01: front-end only change\n");
         await repository.CommitAsync(allowEmpty: false, cancellationToken);
         await using var pullRequest = await ProbePullRequest.OpenAsync(repository, cancellationToken);
 
-        var checks = await pullRequest.WaitForChecksAsync(CiPipeline.CiWorkflowName, CiPipeline.RequiredJobs, cancellationToken);
+        var checks = await pullRequest.WaitForChecksAsync(CiPipeline.CiWorkflowName, CiPipeline.PullRequestJobs, cancellationToken);
 
         LiveAssert.Bucket(checks, CiPipeline.Backend, "skipping");
         LiveAssert.Bucket(checks, CiPipeline.Frontend, "pass");

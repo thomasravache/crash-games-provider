@@ -27,5 +27,6 @@ public static class CiPipeline
 
     public static readonly string[] ContractWorkflows = [CiWorkflow, ImagesWorkflow, NightlyWorkflow];
 
-    public static readonly string[] RequiredJobs = [Backend, Frontend, E2e, Security, Contracts, Sdd];
+    /// <summary>Jobs whose checks every PR to main reports (informative; required on the server only with SPEC-0015).</summary>
+    public static readonly string[] PullRequestJobs = [Backend, Frontend, E2e, Security, Contracts, Sdd];
 }
