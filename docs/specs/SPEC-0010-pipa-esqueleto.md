@@ -39,7 +39,7 @@ Entrega o cliente do jogo Pipa em modo demo de ponta a ponta: o jogador entra pe
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0005 (apps servidos pelo Aspire) e SPEC-0006 (pacote `contracts`).
-- **Contratos consumidos:** SPEC-0007@2 (algoritmo e vetores para o verificador TS); SPEC-0008@2 (hub e REST de rodadas); SPEC-0009@1 (lançamento e sessão).
+- **Contratos consumidos:** SPEC-0007@2 (algoritmo e vetores para o verificador TS); SPEC-0008@3 (hub e REST de rodadas); SPEC-0009@1 (lançamento e sessão).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -114,7 +114,7 @@ Gancho de teste:  window.__APOGEU_TEST__ = { state(): RoundState }  (somente bui
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dado o contrato SPEC-0007@2 (vetores), quando o verificador TS recalcula todos os vetores, então os resultados são idênticos aos do C#.
-- **CT-02** — Dados os tipos gerados do hub (SPEC-0008@2), quando as mensagens reais de IT-01 são validadas em tempo de execução, então conferem.
+- **CT-02** — Dados os tipos gerados do hub (SPEC-0008@3), quando as mensagens reais de IT-01 são validadas em tempo de execução, então conferem.
 - **CT-03** — Dados os tipos gerados de lançamento e sessão (SPEC-0009@1), quando o fluxo de IT-01 roda, então requisições e respostas conferem.
 
 ### 7.5 Testes E2E
@@ -235,6 +235,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0010`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (inalterado) | 2026-10-09 | Pin atualizado para SPEC-0008@3: o REST de rodadas (verificação) exige a sessão do jogador; o cliente envia o Bearer e o auxiliar dos E2E também (6dce3a1) | Emenda v3 da SPEC-0008 (lacuna de contrato encontrada na integração) | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 | v1 (inalterado) | 2026-10-09 | Emenda de escopo: `touches` inclui os testes do front (`tests/frontend/pipa/**`, `tests/frontend/integration/pipa/**`, `tests/frontend/arch/pipa-*`), `src/frontend/package.json`, `src/frontend/vitest.workspace.ts`, `src/backend/AppHost/Program.cs` (URL da API para o jogo) e `src/backend/Host/Program.cs` (CORS para a origem do jogo) | Os testes vivem onde o Vitest e o TestKit esperam; o esqueleto andante só funciona no Aspire com a URL da API injetada no jogo e CORS liberado | Nenhuma (contrato inalterado) | Architect — correção de escopo sem mudança de contrato, coberta pela autorização do usuário para seguir pelo recomendado (2026-10-09) |
 | v1 (inalterado) | 2026-10-09 | Pins revistos: SPEC-0007@2 (só acrescenta `GetCrashPointAsync`; vetores e algoritmo inalterados) e SPEC-0008@2 (`RoundSnapshot.current` definido; `crashPoint`/`revealedSeed` nulos até o crash; erros em ProblemDetails `code`; `rtp`/`growthK` como string decimal) | Emendas v2 das SPEC-0007 e SPEC-0008 | Nenhuma | Architect — revisão de consumidor, pela autorização do usuário (2026-10-09) |
 | v1 (inalterado) | 2026-10-09 | Observabilidade do rollout: sem log no console (regra de lint `no-console`), erros mostrados nas telas do jogo; `@microsoft/signalr` como cliente JS do hub (emenda do ADR-0005) | Relato do Implementer: o texto pedia log no console, proibido pelas regras de código | Nenhuma | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
