@@ -50,6 +50,10 @@ public sealed class SalaConductor
     private readonly IRoundChainStore? _chains;
     private readonly DateTimeOffset? _leaderLastSeenAt;
     private readonly SalaId _fairnessSala;
+    private readonly ISalaSnapshotPublisher? _snapshots;
+
+    // The last crashed rounds of the room, newest first: kept only when the state is published (IMP-02).
+    private RoundSummary[] _history = [];
 
     private bool _resumed;
     private Round? _round;
@@ -98,6 +102,36 @@ public sealed class SalaConductor
         ILogger<SalaConductor> logger,
         IRoundChainStore? chains,
         DateTimeOffset? leaderLastSeenAt)
+        : this(sala, fairness, store, broadcaster, metrics, time, logger, chains, leaderLastSeenAt, snapshots: null)
+    {
+    }
+
+    /// <param name="sala">The room conducted.</param>
+    /// <param name="fairness">SPEC-0007@2: commitment, crash point and reveal of each round.</param>
+    /// <param name="store">The rounds of the room (source of truth for resuming).</param>
+    /// <param name="broadcaster">The room group of the hub.</param>
+    /// <param name="metrics">Business metrics of the module.</param>
+    /// <param name="time">The server clock.</param>
+    /// <param name="logger">Logger (ids only, never a crash point or seed before the crash).</param>
+    /// <param name="chains">Records the public data of every chain created, for the verification of its rounds.</param>
+    /// <param name="leaderLastSeenAt">
+    /// The last instant the previous leader of the room was seen alive, when known.
+    /// </param>
+    /// <param name="snapshots">
+    /// Receives the state of the room (current round and last crashed rounds) after every transition is persisted and
+    /// before it is broadcast, so <c>JoinSala</c> on the leader never reads the database (IMP-02).
+    /// </param>
+    public SalaConductor(
+        SalaConfig sala,
+        IFairnessService fairness,
+        IRoundStore store,
+        IRoundBroadcaster broadcaster,
+        RoundsMetrics metrics,
+        TimeProvider time,
+        ILogger<SalaConductor> logger,
+        IRoundChainStore? chains,
+        DateTimeOffset? leaderLastSeenAt,
+        ISalaSnapshotPublisher? snapshots)
     {
         ArgumentNullException.ThrowIfNull(sala);
         ArgumentNullException.ThrowIfNull(fairness);
@@ -116,6 +150,7 @@ public sealed class SalaConductor
         _logger = logger;
         _chains = chains;
         _leaderLastSeenAt = leaderLastSeenAt;
+        _snapshots = snapshots;
         _curve = new GrowthCurve(sala.GrowthK);
         _fairnessSala = SalaIdentity.ToFairness(sala.Id);
     }
@@ -232,6 +267,7 @@ public sealed class SalaConductor
         _round = round;
         _nextNumber = round.Number + 1;
         _crashPoint = null;
+        PublishSnapshot();
 
         RoundsLog.BettingOpened(_logger, _sala.Id, round.Number, round.Id.Value, round.BettingEndsAt);
         await _broadcaster.Sala(_sala.Id)
@@ -252,6 +288,7 @@ public sealed class SalaConductor
         round.StartFlight(startedAt);
         await _store.SaveAsync(round, ct).ConfigureAwait(false);
         Schedule(round, crashPoint.Value);
+        PublishSnapshot();
 
         _metrics.RoundStarted(_sala.Id);
         RoundsLog.FlightStarted(_logger, _sala.Id, round.Number, round.Id.Value, startedAt);
@@ -282,6 +319,12 @@ public sealed class SalaConductor
         await _store.SaveAsync(round, ct).ConfigureAwait(false);
         _crashPoint = null;
         _nextRoundAt = crashedAt + _sala.CooldownDuration;
+        if (_snapshots is not null)
+        {
+            _history = [SalaSnapshotQuery.Summary(round), .. _history.Take(SalaSnapshotQuery.HistorySize - 1)];
+        }
+
+        PublishSnapshot();
 
         RoundsLog.Crashed(_logger, _sala.Id, round.Number, round.Id.Value, crashPoint, crashedAt);
         await _broadcaster.Sala(_sala.Id)
@@ -298,6 +341,7 @@ public sealed class SalaConductor
         await _store.SaveAsync(round, ct).ConfigureAwait(false);
         _crashPoint = null;
         _nextRoundAt = now + _sala.CooldownDuration;
+        PublishSnapshot();
 
         _metrics.RoundAnnulled(_sala.Id);
         RoundsLog.Annulled(_logger, _sala.Id, round.Number, round.Id.Value, reason);
@@ -309,6 +353,19 @@ public sealed class SalaConductor
     /// one continues with its persisted <c>startedAt</c> and the same crash point, or is annulled beyond the deadline.
     /// </summary>
     private async Task ResumeAsync(CancellationToken ct)
+    {
+        if (_snapshots is not null)
+        {
+            // The only history read of the term: from now on the conductor keeps it from its own crashes.
+            var crashed = await _store.ListCrashedAsync(_sala.Id, SalaSnapshotQuery.HistorySize, ct).ConfigureAwait(false);
+            _history = [.. crashed.Select(SalaSnapshotQuery.Summary)];
+        }
+
+        await ResumeLatestAsync(ct).ConfigureAwait(false);
+        PublishSnapshot();
+    }
+
+    private async Task ResumeLatestAsync(CancellationToken ct)
     {
         var now = _time.GetUtcNow();
         var latest = await _store.FindLatestAsync(_sala.Id, ct).ConfigureAwait(false);
@@ -412,6 +469,10 @@ public sealed class SalaConductor
 
         RoundsLog.ChainCreated(_logger, _sala.Id, chain.ChainId.Value, chain.Length);
     }
+
+    /// <summary>Publishes the state of the room as persisted: the crash point of a round in flight is never part of it.</summary>
+    private void PublishSnapshot() =>
+        _snapshots?.Publish(_round is null ? null : SalaSnapshotQuery.Current(_round), _history);
 
     /// <summary>The parameters the round is played with; the room's current configuration for a round opened without them.</summary>
     private RoundParameters ParametersOf(Round round) => round.Parameters ?? RoundParameters.Of(_sala);

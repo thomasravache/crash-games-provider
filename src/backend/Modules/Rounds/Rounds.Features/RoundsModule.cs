@@ -44,9 +44,11 @@ public static class RoundsModule
         services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter(RoundsMetrics.MeterName));
         services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddSource(RoundsMetrics.MeterName));
 
-        services.AddRoundsInfrastructure(provider =>
-            provider.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionName)
-            ?? throw new InvalidOperationException($"Missing required configuration 'ConnectionStrings:{ConnectionName}'."));
+        // The module's own Npgsql pool is bounded (Rounds:MaxPoolSize), so no burst opens more connections than that (IMP-02).
+        services.AddRoundsInfrastructure(
+            provider => provider.GetRequiredService<IConfiguration>().GetConnectionString(ConnectionName)
+                ?? throw new InvalidOperationException($"Missing required configuration 'ConnectionStrings:{ConnectionName}'."),
+            provider => provider.GetRequiredService<IOptions<RoundsOptions>>().Value.MaxPoolSize);
         services.AddHostedService<RoundsDevelopmentMigrations>();
 
         // The hub and the REST endpoints require a player session; the policy and its scheme come from SPEC-0009.
@@ -58,7 +60,11 @@ public static class RoundsModule
             options.Configuration.ChannelPrefix = RedisChannel.Literal(BackplaneChannelPrefix);
         });
         services.AddSingleton<IRoundBroadcaster, SignalRRoundBroadcaster>();
-        services.AddScoped<SalaSnapshotQuery>();
+        services.AddSingleton<SalaLiveViews>();
+        services.AddSingleton(provider => new SalaSnapshotQuery(
+            provider.GetRequiredService<SalaCatalog>(),
+            provider.GetRequiredService<SalaLiveViews>(),
+            provider.GetRequiredService<IServiceScopeFactory>()));
 
         services.AddSingleton<RoundsRedis>();
         services.AddSingleton<RoundsLeadershipService>();
