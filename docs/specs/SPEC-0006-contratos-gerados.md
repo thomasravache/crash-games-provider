@@ -4,7 +4,7 @@ title: "Contratos gerados do backend para o front-end"
 tier: full
 type: foundation
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0002]
@@ -137,25 +137,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0008, ADR-0004 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0008, ADR-0004 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02 com a tag `SPEC-0006:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02 com a tag `SPEC-0006:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0006:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0006:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -169,7 +169,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 57ms); test exit 0 (Duration  1.13s (tests 98%, transform 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /private/tmp/claude-50); test_e2e exit 0 (3 passed (3.6s)); arch_test exit 0 (Duration  722ms (tests 98%, transform 1%, import 1%)); security_scan exit 0 (Ran 8 rules on 96 files: 0 findings.) — 93cdba6 | 2026-10-09 |
 | H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
 | G6 Deploy | N/A | Sem ambiente remoto nesta fase (ADR-0013): deploy na SPEC-0012 | 2026-10-09 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 82e5d6f | 2026-10-09 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
