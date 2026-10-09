@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""Supply-chain checks of the GitHub Actions workflows (SPEC-0004, UT-01). Stdlib only.
+
+Usage: tools/ci/check-workflows [WORKFLOWS_DIR]   (default: .github/workflows of the repository)
+
+Fails (exit 1) when a workflow:
+  - uses an action or reusable workflow not pinned by a full 40-character commit SHA
+    (tags, branches and short SHAs are rejected; docker:// images need an @sha256 digest);
+  - has no top-level `permissions` block, or the top-level block grants more than read access
+    (write access is granted per job, only where needed);
+  - grants `permissions: write-all` anywhere (top level or job);
+  - is triggered by `pull_request_target` (runs fork code with a write token and the repository secrets).
+actionlint (syntax, expressions, shellcheck) is run separately; this script only enforces the pinning policy.
+"""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+USES = re.compile(r"""^\s*(?:-\s+)?uses\s*:\s*["']?(?P<ref>[^"'\s#]+)""")
+FULL_SHA = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+@[0-9a-f]{40}$")
+DOCKER_DIGEST = re.compile(r"^docker://[^@\s]+@sha256:[0-9a-f]{64}$")
+TOP_LEVEL_KEY = re.compile(r"""^["']?(?P<key>[A-Za-z0-9_-]+)["']?\s*:(?:\s|$)""")
+MORE_THAN_READ = re.compile(r"\bwrite(?:-all)?\b|\bread-all\b")
+WRITE_ALL = re.compile(r"""^\s*permissions\s*:\s*["']?write-all["']?\s*$""")
+PULL_REQUEST_TARGET = re.compile(r"\bpull_request_target\b")
+
+
+def is_pinned(reference: str) -> bool:
+    if reference.startswith("./"):
+        return True  # local action or reusable workflow of this repository
+    if reference.startswith("docker://"):
+        return bool(DOCKER_DIGEST.match(reference))
+    return bool(FULL_SHA.match(reference))
+
+
+def top_level_block(lines: list[str], key: str) -> str | None:
+    for start, line in enumerate(lines):
+        match = TOP_LEVEL_KEY.match(line)
+        if match and match.group("key") == key:
+            end = start + 1
+            while end < len(lines) and (not lines[end].strip() or lines[end].lstrip().startswith("#") or lines[end][0] == " "):
+                end += 1
+            return "\n".join(lines[start:end])
+    return None
+
+
+def check(path: Path) -> list[str]:
+    lines = path.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n")
+    problems = []
+    for number, line in enumerate(lines, start=1):
+        code = re.sub(r"\s#.*$|^#.*$", "", line)
+        if WRITE_ALL.match(code):
+            problems.append(f"{path.name}:{number}: `permissions: write-all` is not allowed (grant each scope per job)")
+        if PULL_REQUEST_TARGET.search(code):
+            problems.append(f"{path.name}:{number}: the `pull_request_target` trigger is not allowed "
+                            "(it runs pull request code with a write token and secrets; use `pull_request`)")
+    for number, line in enumerate(lines, start=1):
+        match = USES.match(line)
+        if match and not is_pinned(match.group("ref")):
+            problems.append(f"{path.name}:{number}: `{match.group('ref')}` is not pinned by a full commit SHA "
+                            "(use owner/repo@<40-char sha> # vX.Y.Z; docker:// images need @sha256:<digest>)")
+    permissions = top_level_block(lines, "permissions")
+    if permissions is None:
+        problems.append(f"{path.name}: no top-level `permissions` block (declare `permissions: contents: read`)")
+    else:
+        body = "\n".join(re.sub(r"#.*$", "", line) for line in permissions.split("\n"))
+        if MORE_THAN_READ.search(body):
+            problems.append(f"{path.name}: the top-level `permissions` grant more than read access "
+                            "(grant write per job, only where needed)")
+    return problems
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) > 2:
+        print("usage: check-workflows [WORKFLOWS_DIR]", file=sys.stderr)
+        return 2
+    directory = Path(argv[1]) if len(argv) == 2 else Path(__file__).resolve().parents[2] / ".github" / "workflows"
+    if not directory.is_dir():
+        print(f"check-workflows: directory not found: {directory}", file=sys.stderr)
+        return 2
+    workflows = sorted(p for p in directory.iterdir() if p.is_file() and p.suffix in (".yml", ".yaml"))
+    if not workflows:
+        print(f"check-workflows: no workflow in {directory}", file=sys.stderr)
+        return 2
+    problems = [problem for workflow in workflows for problem in check(workflow)]
+    for problem in problems:
+        print(f"FAIL {problem}")
+    print(f"check-workflows: {len(workflows)} workflow(s), {len(problems)} problem(s)")
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

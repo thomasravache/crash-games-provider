@@ -1,0 +1,76 @@
+# Semgrep CE rules for the .NET back end (ADR-0012, SPEC-0004). Focused on the risks of a real-money crash game:
+# predictable randomness, injection, unsafe deserialization, weak crypto and disabled TLS validation.
+# Run: semgrep scan --config .semgrep --error
+rules:
+  - id: apogeu-cs-insecure-random
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      System.Random is predictable. Crash points, seeds, tokens and ids must come from
+      System.Security.Cryptography.RandomNumberGenerator (ADR-0006) or the injected seed source (ADR-0009).
+    pattern-either:
+      - pattern: new Random(...)
+      - pattern: new System.Random(...)
+      - pattern: Random.Shared
+      - pattern: System.Random.Shared
+    paths:
+      include: [src/]
+
+  - id: apogeu-cs-sql-injection
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      Raw SQL built from an interpolated or concatenated string. Use FromSql/ExecuteSql (parameterized
+      FormattableString) or LINQ.
+    pattern-either:
+      - pattern: $DB.FromSqlRaw($"...", ...)
+      - pattern: $DB.FromSqlRaw("..." + $X, ...)
+      - pattern: $DB.ExecuteSqlRaw($"...", ...)
+      - pattern: $DB.ExecuteSqlRaw("..." + $X, ...)
+      - pattern: $DB.ExecuteSqlRawAsync($"...", ...)
+      - pattern: $DB.ExecuteSqlRawAsync("..." + $X, ...)
+      - pattern: new NpgsqlCommand($"...", ...)
+      - pattern: new NpgsqlCommand("..." + $X, ...)
+
+  - id: apogeu-cs-unsafe-deserialization
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      Unsafe deserialization (arbitrary type instantiation). Use System.Text.Json with known types.
+    pattern-either:
+      - pattern: new BinaryFormatter(...)
+      - pattern: new NetDataContractSerializer(...)
+      - pattern: new LosFormatter(...)
+      - pattern: TypeNameHandling.All
+      - pattern: TypeNameHandling.Auto
+      - pattern: TypeNameHandling.Objects
+
+  - id: apogeu-cs-weak-hash
+    languages: [csharp]
+    severity: ERROR
+    message: >-
+      MD5/SHA-1 are broken for integrity and fairness proofs. Use SHA-256 or stronger (ADR-0006).
+    pattern-either:
+      - pattern: MD5.Create(...)
+      - pattern: SHA1.Create(...)
+      - pattern: MD5.HashData(...)
+      - pattern: SHA1.HashData(...)
+      - pattern: new HMACMD5(...)
+      - pattern: new HMACSHA1(...)
+      - pattern: System.Security.Cryptography.MD5.Create(...)
+      - pattern: System.Security.Cryptography.SHA1.Create(...)
+      - pattern: System.Security.Cryptography.MD5.HashData(...)
+      - pattern: System.Security.Cryptography.SHA1.HashData(...)
+    paths:
+      include: [src/]
+
+  - id: apogeu-cs-tls-validation-disabled
+    languages: [csharp]
+    severity: ERROR
+    message: Server certificate validation is disabled. Never accept every certificate.
+    pattern-either:
+      - pattern: |
+          $H.ServerCertificateCustomValidationCallback = (...) => true;
+      - pattern: |
+          ServicePointManager.ServerCertificateValidationCallback = (...) => true;
+      - pattern: HttpClientHandler.DangerousAcceptAnyServerCertificateValidator

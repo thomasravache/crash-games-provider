@@ -11,6 +11,7 @@ public sealed class EnvironmentStartupTests
 
     [Fact(DisplayName = "Dado o AppHost via Aspire.Hosting.Testing, quando iniciado, então todos os recursos chegam a Healthy em até 90 s")]
     [Trait("Spec", "SPEC-0005:IT-01")]
+    [Trait("Category", "Performance")]
     public async Task GivenAppHostWhenStartedThenAllResourcesBecomeHealthyWithinNinetySeconds()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

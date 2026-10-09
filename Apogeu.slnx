@@ -40,15 +40,21 @@
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Infrastructure/Backoffice.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Features/Backoffice.Features.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/contracts/HubContracts/HubContracts.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/backend/AppHost.Tests/AppHost.Tests.csproj" />
     <Project Path="tests/backend/Architecture.Tests/Architecture.Tests.csproj" />
     <Project Path="tests/backend/Architecture.Tests/Fixtures/Architecture.Fixtures/Architecture.Fixtures.csproj" />
     <Project Path="tests/backend/Architecture.Tests/Fixtures/StandIn.AutoMapper/StandIn.AutoMapper.csproj" />
     <Project Path="tests/backend/Architecture.Tests/Fixtures/StandIn.MediatR/StandIn.MediatR.csproj" />
+    <Project Path="tests/backend/Contracts.Tests/Contracts.Tests.csproj" />
+    <Project Path="tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj" />
     <Project Path="tests/backend/Repository.Tests/Repository.Tests.csproj" />
     <Project Path="tests/backend/ServiceDefaults.Tests/ServiceDefaults.Tests.csproj" />
     <Project Path="tests/backend/TestKit/TestKit.csproj" />
     <Project Path="tests/backend/TestKit/Tests/TestKit.Tests.csproj" />
+    <Project Path="tests/ci/Ci.Tests/Ci.Tests.csproj" />
   </Folder>
 </Solution>

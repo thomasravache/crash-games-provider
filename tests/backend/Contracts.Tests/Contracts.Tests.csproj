@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/backend/BuildingBlocks/BuildingBlocks.csproj" />
+    <ProjectReference Include="../../../src/backend/Host/Host.csproj" />
+  </ItemGroup>
+
+  <!-- Build order only: the hub-contract tests run the exporter from its own output (tools/contracts/HubContracts/bin). -->
+  <ItemGroup>
+    <ProjectReference Include="../../../tools/contracts/HubContracts/HubContracts.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Process runner and repository copy shared with Repository.Tests (SPEC-0002), compiled in rather than duplicated. -->
+  <ItemGroup>
+    <Compile Include="../Repository.Tests/Support/ProcessResult.cs" Link="Support/Shared/ProcessResult.cs" />
+    <Compile Include="../Repository.Tests/Support/ProcessRunner.cs" Link="Support/Shared/ProcessRunner.cs" />
+    <Compile Include="../Repository.Tests/Support/RepositoryCopyFixture.cs" Link="Support/Shared/RepositoryCopyFixture.cs" />
+    <Compile Include="../Repository.Tests/Support/RepositoryFixtureDefinition.cs" Link="Support/Shared/RepositoryFixtureDefinition.cs" />
+    <Compile Include="../Repository.Tests/Support/RepositoryRoot.cs" Link="Support/Shared/RepositoryRoot.cs" />
+  </ItemGroup>
+
+</Project>

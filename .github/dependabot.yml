@@ -1,0 +1,61 @@
+# Dependabot (SPEC-0004, ADR-0016): weekly updates (ADR-0016 requires at least weekly) of NuGet, npm (pnpm
+# workspace), GitHub Actions and Docker base images, minor and patch grouped per ecosystem, at most 3 open PRs per
+# ecosystem to limit the Actions minutes of the private GitHub Free repository. Commit messages follow Conventional
+# Commits; every PR still needs a spec reference and a green CI before the Architect merges it.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: build(deps)
+    groups:
+      nuget-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: "/src/frontend"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: build(deps)
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: build(ci)
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: "/tools/ci/images"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: build(ci)
+    groups:
+      docker-minor-patch:
+        update-types: [minor, patch]

@@ -10,7 +10,7 @@ max_parallel: 3
 # Exemplos: "dotnet build" | "npm run build" | "./gradlew build" | "go build ./..."
 build: "pnpm -C src/frontend install --frozen-lockfile && dotnet build Apogeu.slnx && pnpm -C src/frontend build"
 # Suíte completa. Exemplos: "dotnet test" | "npm test" | "pytest" | "go test ./..."
-test: "dotnet test Apogeu.slnx --filter \"Category!=Nightly\" && pnpm -C src/frontend test"
+test: "dotnet test Apogeu.slnx --filter \"Category!=Nightly&Category!=CiLive\" && pnpm -C src/frontend test"
 test_integration: "dotnet test Apogeu.slnx --filter Category=Integration"
 # E2E da jornada do usuário. Exemplos: "npx playwright test" | "npx cypress run" | "maestro test flows/"
 test_e2e: "pnpm -C src/frontend test:e2e"
@@ -18,7 +18,7 @@ test_e2e: "pnpm -C src/frontend test:e2e"
 smoke_test: ""
 lint: "dotnet format Apogeu.slnx --verify-no-changes && pnpm -C src/frontend lint && pnpm -C src/frontend format:check"
 # G2 — cobertura das linhas alteradas (ex: diff-cover, coverlet + reportgenerator). Opcional.
-coverage: "rm -rf artifacts/coverage src/frontend/coverage && dotnet test Apogeu.slnx --filter \"Category!=Nightly\" --collect \"XPlat Code Coverage\" --results-directory artifacts/coverage/raw && pnpm -C src/frontend test:coverage && dotnet tool restore && dotnet reportgenerator \"-reports:artifacts/coverage/raw/**/coverage.cobertura.xml;src/frontend/coverage/lcov.info\" -targetdir:artifacts/coverage \"-reporttypes:Cobertura;TextSummary;Html\" \"-assemblyfilters:-Apogeu.TestKit*;-Apogeu.Architecture.*;-Apogeu.Repository.*;-*.Tests;-*.StandIn\""
+coverage: "rm -rf artifacts/coverage src/frontend/coverage && dotnet test Apogeu.slnx --filter \"Category!=Nightly&Category!=CiLive\" --collect \"XPlat Code Coverage\" --results-directory artifacts/coverage/raw && pnpm -C src/frontend test:coverage && dotnet tool restore && dotnet reportgenerator \"-reports:artifacts/coverage/raw/**/coverage.cobertura.xml;src/frontend/coverage/lcov.info\" -targetdir:artifacts/coverage \"-reporttypes:Cobertura;TextSummary;Html\" \"-assemblyfilters:-Apogeu.TestKit*;-Apogeu.Architecture.*;-Apogeu.Repository.*;-*.Tests;-*.StandIn\""
 coverage_min_changed_lines: 80
 # Opcional: mutation testing em código de domínio crítico (Stryker, PIT, mutmut).
 mutation: ""
@@ -27,11 +27,11 @@ mutation: ""
 # Exemplos: "dotnet test --filter Category=Architecture" | "npx depcruise src" | "lint-imports"
 arch_test: "dotnet test Apogeu.slnx --filter Category=Architecture && pnpm -C src/frontend test:arch"
 # Auditoria de dependências + segredos. Exemplos: "npm audit --audit-level=high" | "dotnet list package --vulnerable" | "gitleaks detect"
-security_scan: ""
+security_scan: 'gitleaks detect --no-banner --redact && docker run --rm --volume "$PWD:/src:ro" --workdir /src semgrep/semgrep:1.178.0@sha256:32e459968daabe7ab86968184a29109b9564aa00392401156f9788452b42786b semgrep scan --config .semgrep --error --metrics=off --disable-version-check && mkdir -p artifacts && dotnet list Apogeu.slnx package --vulnerable --include-transitive --format json > artifacts/nuget-vulnerable.json && python3 tools/ci/nuget-vulnerabilities artifacts/nuget-vulnerable.json && pnpm -C src/frontend audit --audit-level high && tools/ci/check-licenses'
 
 # --- CI/CD e ambientes (G5, G6) ---
 # Como conferir o pipeline da branch/PR. Exemplo: "gh pr checks --watch"
-ci: ""
+ci: "gh pr checks --watch"
 # Como o deploy acontece (preferencialmente pelo pipeline). Exemplos: "merge em main → pipeline" | "gh workflow run deploy.yml -f env=staging"
 deploy_staging: ""
 deploy_production: ""

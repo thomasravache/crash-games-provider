@@ -1,5 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <!-- ADR-0016 exception (SPEC-0004 emenda): the Aspire SDK adds Aspire.Dashboard.Sdk.<rid> and
+       Aspire.Hosting.Orchestration.<rid> for the machine's own platform, so no single packages.lock.json fits macOS and
+       the Linux CI runners. This project (and the tests that reference the AppHost) restore without a lock file. -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>

@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+"""Licence check of the NuGet and npm dependencies against ADR-0016 + ADR-0022 (SPEC-0004). Stdlib only.
+
+Usage: tools/ci/check-licenses            (from the repository root, after `dotnet restore` and `pnpm install`)
+
+NuGet: every package in the obj/project.assets.json of the solution, licence read from its .nuspec
+(<license type="expression">) in the NuGet packages folder. npm: `pnpm licenses list --json` of the front-end
+workspace. SPDX expressions are evaluated (OR: one allowed side is enough; AND/WITH: every part must be allowed).
+CC-BY-4.0 is accepted only for build-time data packages that are not production dependencies (ADR-0022).
+Any other licence fails: add an ADR, then extend the lists below in the same change.
+"""
+from __future__ import annotations
+
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+FRONTEND = ROOT / "src" / "frontend"
+
+# ADR-0016 + ADR-0022.
+ALLOWED = {
+    "MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MPL-2.0",
+    "PostgreSQL", "BlueOak-1.0.0", "CC0-1.0", "0BSD", "Unlicense",
+}
+# ADR-0022: licences accepted only for build-time packages, never for a production (runtime) dependency:
+# CC-BY-4.0 for build data; Python-2.0 (PSF) for argparse, via openapi-typescript → js-yaml (ADR-0008 generator).
+BUILD_DATA_ONLY = {"CC-BY-4.0": {"caniuse-lite"}, "Python-2.0": {"argparse"}}
+# Packages whose metadata carries no SPDX expression; licence identified by reading the shipped licence file.
+# Keyed by exact version, so an update is reviewed again.
+REVIEWED = {
+    ("nuget", "Fractions", "7.3.0"): "BSD-2-Clause",  # license.txt: 2-clause BSD text (reviewed 2026-10-08)
+}
+
+TOKEN = re.compile(r"\(|\)|\bAND\b|\bOR\b|\bWITH\b|[^\s()]+", re.IGNORECASE)
+
+
+def allowed_expression(expression: str, extra: set[str]) -> bool:
+    """Evaluates an SPDX expression; `extra` are licences accepted for this package only."""
+    tokens = TOKEN.findall(expression.strip())
+    position = 0
+
+    def atom() -> bool:
+        nonlocal position
+        token = tokens[position] if position < len(tokens) else ""
+        position += 1
+        if token == "(":
+            value = disjunction()
+            position += 1  # ")"
+            return value
+        identifier = token.removesuffix("+")
+        return identifier in ALLOWED or identifier in extra
+
+    def conjunction() -> bool:
+        nonlocal position
+        value = atom()
+        while position < len(tokens) and tokens[position].upper() in ("AND", "WITH"):
+            is_exception = tokens[position].upper() == "WITH"
+            position += 1
+            if is_exception:
+                position += 1  # licence exceptions only restrict further; the base licence decides
+                continue
+            value = atom() and value
+        return value
+
+    def disjunction() -> bool:
+        nonlocal position
+        value = conjunction()
+        while position < len(tokens) and tokens[position].upper() == "OR":
+            position += 1
+            value = conjunction() or value
+        return value
+
+    return bool(tokens) and disjunction()
+
+
+def nuget_packages() -> dict[tuple[str, str], str]:
+    """(id, version) -> licence expression (or a marker when the nuspec has none)."""
+    found: dict[tuple[str, str], str] = {}
+    assets = [p for p in ROOT.glob("**/obj/project.assets.json") if "node_modules" not in p.parts]
+    if not assets:
+        raise SystemExit("check-licenses: no obj/project.assets.json found — run `dotnet restore Apogeu.slnx` first")
+    for asset in assets:
+        data = json.loads(asset.read_text(encoding="utf-8"))
+        folders = [Path(folder) for folder in data.get("packageFolders", {})]
+        for key, library in data.get("libraries", {}).items():
+            if library.get("type") != "package":
+                continue
+            package_id, version = key.split("/", 1)
+            if (package_id, version) in found:
+                continue
+            found[(package_id, version)] = nuspec_licence(folders, library["path"])
+    return found
+
+
+def nuspec_licence(folders: list[Path], relative: str) -> str:
+    for folder in folders:
+        nuspecs = list((folder / relative).glob("*.nuspec"))
+        if nuspecs:
+            text = nuspecs[0].read_text(encoding="utf-8", errors="replace")
+            match = re.search(r'<license\s+type="expression"\s*>([^<]+)</license>', text)
+            return match.group(1).strip() if match else "<no SPDX expression in nuspec>"
+    return "<nuspec not found>"
+
+
+def pnpm_licences(production_only: bool) -> dict[tuple[str, str], str]:
+    command = ["pnpm", "-C", str(FRONTEND), "licenses", "list", "--json"] + (["--prod"] if production_only else [])
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise SystemExit(f"check-licenses: `{' '.join(command)}` failed:\n{result.stderr}")
+    found: dict[tuple[str, str], str] = {}
+    output = result.stdout.strip()
+    for licence, packages in (json.loads(output) if output else {}).items():
+        for package in packages:
+            for version in package.get("versions", [""]):
+                found[(package["name"], version)] = licence
+    return found
+
+
+def main() -> int:
+    problems: list[str] = []
+    nuget = nuget_packages()
+    for (package_id, version), licence in sorted(nuget.items()):
+        licence = REVIEWED.get(("nuget", package_id, version), licence)
+        if not allowed_expression(licence, set()):
+            problems.append(f"nuget {package_id} {version}: {licence}")
+
+    npm = pnpm_licences(production_only=False)
+    production = pnpm_licences(production_only=True)
+    for (name, version), licence in sorted(npm.items()):
+        licence = REVIEWED.get(("npm", name, version), licence)
+        build_data = {lic for lic, names in BUILD_DATA_ONLY.items() if name in names}
+        if (name, version) in production:
+            build_data = set()  # build-data licences are never accepted for production dependencies
+        if not allowed_expression(licence, build_data):
+            where = " (production dependency)" if (name, version) in production else ""
+            problems.append(f"npm {name} {version}: {licence}{where}")
+
+    for problem in problems:
+        print(f"FAIL licence not allowed by ADR-0016/ADR-0022: {problem}")
+    print(f"check-licenses: {len(nuget)} NuGet and {len(npm)} npm package(s) checked, {len(problems)} problem(s)")
+    return 1 if problems else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

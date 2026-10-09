@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Hub-contract exporter (ADR-0008, SPEC-0006): reflects over the Host's assemblies, finds the strongly typed SignalR
+    hubs (Hub<TClient>) and writes a JSON manifest of their server and client methods, with the parameter and return
+    types as JSON Schemas under the contract JSON conventions. tools/contracts/hubs-to-ts.mjs turns it into TypeScript.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/backend/Host/Host.csproj" />
+    <ProjectReference Include="../../../src/backend/BuildingBlocks/BuildingBlocks.csproj" />
+  </ItemGroup>
+
+</Project>

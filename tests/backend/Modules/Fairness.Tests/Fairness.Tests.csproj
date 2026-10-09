@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests of the Fairness module (SPEC-0007, ADR-0006, ADR-0009). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Dependency injection, logging and Data Protection for the integration tests. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../TestKit/TestKit.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Contracts/Fairness.Contracts.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Domain/Fairness.Domain.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Infrastructure/Fairness.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The public vectors v1 and their schema (CT-01, UT-01), shared with the TypeScript verifier. -->
+    <None Include="../../../vectors/fairness-v1.json" Link="vectors/fairness-v1.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../../vectors/fairness-v1.schema.json" Link="vectors/fairness-v1.schema.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

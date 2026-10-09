@@ -1,12 +1,18 @@
 # Índice de Specs
 
-> Gerado por `spec_graph.py index` em 2026-10-08 — não edite manualmente.
+> Gerado por `spec_graph.py index` em 2026-10-09 — não edite manualmente.
 
 ## Saúde
 
-- Validação (G0): **1 erro(s), 5 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 7, implemented 3
-- Impedimentos: **0 aberto(s)**, 2 resolvido(s)
+- Validação (G0): **1 erro(s), 4 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 3, approved 8, in-progress 3, implemented 3
+- Impedimentos: **1 aberto(s)**, 3 resolvido(s)
+
+## Impedimentos Abertos
+
+| Spec | ID | Tipo | Fase/Gate | Responsável | Aberto em | Idade | Descrição |
+|---|---|---|---|---|---|---|---|
+| SPEC-0015 | IMP-01 | externo | G1 | thomas: GitHub Pro ou repositório público | 2026-10-09 | 0d | Branch protection e rulesets indisponíveis no GitHub Free para repositório privado (API 403) |
 
 ## Cobertura de Pilares
 
@@ -39,28 +45,32 @@ Perfil: **rigoroso**
 
 ## Plano de Execução
 
-**Em andamento:** —  
+**Em andamento:** SPEC-0004, SPEC-0006, SPEC-0007  
 **Paradas por impedimento:** —  
-**Próximo lote:** SPEC-0004, SPEC-0006, SPEC-0007
+**Próximo lote:** —
 
 | Onda | Spec | Título | Tier/Tam. | Status | Prontidão | Observação |
 |---|---|---|---|---|---|---|
-| 1 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | approved | ✅ pronta |  |
-| 1 | SPEC-0006 | Contratos gerados do backend para o front-end | full/M | approved | ✅ pronta |  |
-| 1 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | approved | ✅ pronta |  |
-| 2 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
+| 1 | SPEC-0004 | Pipeline de CI no GitHub Actions | full/M | in-progress | 🔄 em andamento |  |
+| 1 | SPEC-0006 | Contratos gerados do backend para o front-end | full/M | in-progress | 🔄 em andamento |  |
+| 1 | SPEC-0008 | Motor de rodada e salas em tempo real | full/M | approved | ✅ pronta |  |
+| 2 | SPEC-0007 | Justiça do resultado: cadeia de sementes e ponto de crash | full/M | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0004 |
 | 2 | SPEC-0009 | Segurança base: lançamento demo, sessão do jogador e acesso | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
 | 2 | SPEC-0010 | Pipa demo: esqueleto andante do cliente | full/M | approved | ⛔ aguarda implementação de SPEC-0006 |  |
 | 3 | SPEC-0011 | Animação da cena da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0010 |  |
+| 3 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 0d); aguarda implementação de SPEC-0004 | saiu da onda 2: max_parallel=3 |
 | 3 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) |  |
-| 3 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
-| 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 4 | SPEC-0016 | Mutação com Stryker.NET e xUnit v3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006; saiu da onda 2: arquivos em comum com SPEC-0007; saiu da onda 3: arquivos em comum com SPEC-0015 |
+| 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0004, SPEC-0006; saiu da onda 2: arquivos em comum com SPEC-0007; saiu da onda 3: arquivos em comum com SPEC-0015 |
+| 4 | SPEC-0018 | Som da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0011 |  |
+| 5 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3 |
+| 5 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0004; saiu da onda 2: arquivos em comum com SPEC-0007; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/10 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 3/14 implementadas |
 
 ## Grafo de Dependências
 
@@ -74,14 +84,18 @@ flowchart LR
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0002["SPEC-0002<br/>Estrutura do repositório e qualidade de…"]:::implemented
     S0003["SPEC-0003<br/>Harness de testes e testes de arquitetu…"]:::implemented
-    S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::approved
+    S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::inprogress
     S0005["SPEC-0005<br/>Ambiente local com Aspire e observabili…"]:::implemented
-    S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::approved
-    S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::approved
+    S0006["SPEC-0006<br/>Contratos gerados do backend para o fro…"]:::inprogress
+    S0007["SPEC-0007<br/>Justiça do resultado: cadeia de semente…"]:::inprogress
     S0008["SPEC-0008<br/>Motor de rodada e salas em tempo real"]:::approved
     S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::approved
     S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::approved
     S0011["SPEC-0011<br/>Animação da cena da Pipa"]:::approved
+    S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::approved
+    S0016["SPEC-0016<br/>Mutação com Stryker.NET e xUnit v3"]:::approved
+    S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::approved
+    S0018["SPEC-0018<br/>Som da Pipa"]:::approved
   end
   S0002 --> S0003
   S0002 --> S0004
@@ -104,6 +118,9 @@ flowchart LR
   S0010 -. contrato v1 .-> S0011
   S0004 --> S0012
   S0010 --> S0012
+  S0004 --> S0015
+  S0011 --> S0018
+  S0010 -. contrato v1 .-> S0018
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -118,10 +135,10 @@ flowchart LR
 | [SPEC-0001](SPEC-0001-fundacao.md) | Fundação da plataforma Apogeu Games | epic | foundation | approved | 2026-10-07 | — | — | — |
 | [SPEC-0002](SPEC-0002-estrutura-repositorio.md) | Estrutura do repositório e qualidade de código | full | foundation | implemented | 2026-10-07 | SPEC-0001 | — | — |
 | [SPEC-0003](SPEC-0003-harness-testes.md) | Harness de testes e testes de arquitetura | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
-| [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
+| [SPEC-0004](SPEC-0004-pipeline-ci.md) | Pipeline de CI no GitHub Actions | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0002, SPEC-0003 | SPEC-0006@1 |
 | [SPEC-0005](SPEC-0005-ambiente-aspire.md) | Ambiente local com Aspire e observabilidade base | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
-| [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
-| [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
+| [SPEC-0006](SPEC-0006-contratos-gerados.md) | Contratos gerados do backend para o front-end | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0002 | — |
+| [SPEC-0007](SPEC-0007-fairness.md) | Justiça do resultado: cadeia de sementes e ponto de crash | full | foundation | in-progress | 2026-10-07 | SPEC-0001 | SPEC-0003 | — |
 | [SPEC-0008](SPEC-0008-motor-rodada.md) | Motor de rodada e salas em tempo real | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | SPEC-0007@1 |
 | [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
 | [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | approved | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@1, SPEC-0008@1, SPEC-0009@1 |
@@ -129,6 +146,10 @@ flowchart LR
 | [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
 | [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | proposed | 2026-10-08 | — | — | — |
 | [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | proposed | 2026-10-08 | — | — | — |
+| [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | approved | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
+| [SPEC-0016](SPEC-0016-mutacao-com-stryker-net-e-xunit-v3.md) | Mutação com Stryker.NET e xUnit v3 | lite | fix | approved | 2026-10-08 | SPEC-0001 | — | — |
+| [SPEC-0017](SPEC-0017-endurecimento-dos-testes-e-da-ci-da-onda-3.md) | Endurecimento dos testes e da CI da onda 3 | lite | refactor | approved | 2026-10-08 | SPEC-0001 | — | — |
+| [SPEC-0018](SPEC-0018-som-da-pipa.md) | Som da Pipa | full | feature | approved | 2026-10-09 | SPEC-0001 | SPEC-0011 | SPEC-0010@1 |
 
 ## ADRs
 
@@ -156,3 +177,5 @@ flowchart LR
 | [ADR-0020](../adr/ADR-0020-acessibilidade-conformidade.md) | Acessibilidade e conformidade regulatória | accepted | @axe-core/playwright no CI para HUD e backoffice; checklist de conformidade no G4; spec de conformidade obrigatória antes de dinheiro real |
 | [ADR-0021](../adr/ADR-0021-direcao-animacao.md) | Direção de animação das cenas dos jogos | accepted | Testes de regressão visual (Playwright toHaveScreenshot) dos quadros-chave; E2E de movimento reduzido; medição de tempo de quadro; dependency-cruiser: animação só via GameAnimator |
 | [ADR-0022](../adr/ADR-0022-licencas-permitidas.md) | Ampliação das licenças permitidas | accepted | Verificação de licenças no CI (ferramenta escolhida na SPEC-0004) usando a lista permitida do ADR-0016 ampliada por este ADR |
+| [ADR-0023](../adr/ADR-0023-recraft-para-a-arte-vetorial-dos-jogos.md) | Recraft para a arte vetorial dos jogos | accepted | Revisão no G4 da spec de arte final (licença do plano e origem de cada asset registradas); regressão visual do ADR-0021 com imagens de referência aprovadas pelo usuário |
+| [ADR-0024](../adr/ADR-0024-audio-dos-jogos-com-web-audio-nativa-e-efeitos-cc0.md) | Áudio dos jogos com Web Audio nativa e efeitos CC0 | accepted | dependency-cruiser: só o scene-kit acessa AudioContext (áudio via GameAudio); revisão no G4 do registro de origem e da licença CC0 de cada arquivo em public/audio; orçamento de pacote no CI |

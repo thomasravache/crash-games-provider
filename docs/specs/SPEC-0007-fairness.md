@@ -4,13 +4,13 @@ title: "Justiça do resultado: cadeia de sementes e ponto de crash"
 tier: full
 type: foundation
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0003]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/Modules/Fairness/**", "tests/backend/Modules/Fairness.Tests/**", "tests/vectors/**"]
+touches: ["src/backend/Modules/Fairness/**", "tests/backend/Modules/Fairness.Tests/**", "tests/vectors/**", ".github/workflows/ci.yml", "tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs"]
 adrs: [ADR-0001, ADR-0006, ADR-0010, ADR-0014]
 external: []
 size: M
@@ -103,6 +103,8 @@ Vetores (JSON): [{ seed, previousSeed, salt, rtp, cap, crashPoint }]  — hex mi
 | Entrada inválida | RTP 0,85 ou 1,00; limite 0,5; semente 31 bytes | erro de validação correspondente | UT-05 |
 | Distribuição correta | 1.000.000 de rodadas determinísticas | proporção com crash ≥ 2 ≈ RTP/2 (tolerância estatística) | UT-06 |
 | Desempenho do cálculo | 100.000 cálculos | média ≤ 1 ms | UT-07 |
+| Rodadas concorrentes na mesma sala | 20 `NextRoundAsync` em paralelo | índices 1..20 distintos, sem repetir semente | IT-06 |
+| Tamanho de cadeia inválido | `length` < 1 ou > 1.000.000 | `ArgumentOutOfRangeException`, nada persistido | UT-08 |
 | Persistência cifrada | cadeia criada | banco só tem origem cifrada + checkpoints; revelar devolve a semente correta | IT-01 |
 | Continuidade após reinício | reinício do processo entre rodadas | próxima rodada usa o índice seguinte, sem repetir | IT-02 |
 | Sementes fora dos logs | criar, avançar, revelar | nenhuma semente não revelada aparece nos logs | IT-03 |
@@ -121,10 +123,12 @@ Vetores (JSON): [{ seed, previousSeed, salt, rtp, cap, crashPoint }]  — hex mi
 - **UT-05** — Dados RTP 0,85, RTP 1,00, limite 0,5 e semente de 31 bytes, quando validados, então lançam InvalidRtp, InvalidRtp, InvalidCap e InvalidSeed.
 - **UT-06** — Dado 1.000.000 de rodadas a partir de uma cadeia com origem fixa, quando medida a fração com crash ≥ 2,00, então fica em RTP/2 ± 0,3 p.p.
 - **UT-07** — Dados 100.000 cálculos, quando medidos, então a média é ≤ 1 ms.
+- **UT-08** — Dado `length` 0 ou 1.000.001, quando `CreateChainAsync` é chamado, então lança `ArgumentOutOfRangeException` sem persistir cadeia.
 
 ### 7.3 Testes de Integração
-- **IT-01** — Dado PostgreSQL real, quando uma cadeia de 50.000 elos é criada, então o banco contém só a origem cifrada e 5 checkpoints, e `RevealAsync` da rodada 12.345 devolve a semente que encadeia com a 12.344.
-- **IT-02** — Dado um processo que avança 3 rodadas e é reiniciado, quando `NextRoundAsync` é chamado, então o índice é 4 e a semente obtida ≤ 20 ms.
+- **IT-01** — Dado PostgreSQL real, quando uma cadeia de 50.000 elos é criada, então o banco contém 1 linha de cadeia e só 5 elos cifrados (checkpoints a cada 10.000, `h_0` incluído; `h_50000` é o hash terminal público), e `RevealAsync` da rodada 12.345 devolve a semente que encadeia com a 12.344.
+- **IT-02** — Dado um processo que avança 3 rodadas e é reiniciado, quando `NextRoundAsync` é chamado, então o índice é 4 (sem repetir nem pular semente); e, após aquecimento, a mediana de 15 obtenções da semente a ~10.000 hashes do checkpoint (`RevealAsync` da rodada 4) é ≤ 20 ms, com as amostras na mensagem de falha. Testes cronometrados (IT-02, UT-07) rodam sem paralelismo com os demais.
+- **IT-06** — Dada uma cadeia de 50 elos, quando 20 chamadas de `NextRoundAsync` para a mesma sala rodam em paralelo, então os índices são exatamente 1..20, sem repetição, e os compromissos são distintos.
 - **IT-03** — Dada a captura de logs ativa, quando cadeia é criada, avançada e revelada, então nenhuma semente não revelada aparece em log.
 - **IT-04** — Dada uma cadeia de 3 elos já consumida, quando `NextRoundAsync`, então lança ChainExhausted.
 - **IT-05** — (Noturno) Dados 10 milhões de rodadas simuladas com RTP 0,97, quando o retorno de uma estratégia de cash-out fixo em 2,00x é medido, então fica em 0,97 ± 0,001.
@@ -187,12 +191,12 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
-| H2 Integração aprovada | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:06.76]     Dado PostgreSQL real, quando uma cadeia de 50.000 elos é criad) — 6104bb0 | 2026-10-08 |
+| G2 Green | PASS | build exit 0 (✓ built in 65ms); test exit 0 (Duration  1.12s (tests 98%, transform 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-08T23:42:39: Report generation took 0,1 seconds) — 708cd9a | 2026-10-08 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  748ms (tests 98%, transform 1%, import 1%)) — 708cd9a | 2026-10-08 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: APPROVED — re-review em 708cd9a, 0 blocker/major; mutação (§7.6) na SPEC-0016 — 708cd9a | 2026-10-08 |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 48ms); test exit 0 (Duration  1.09s (tests 98%, transform 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /private/tmp/claude-50); test_e2e exit 0 (3 passed (3.5s)); arch_test exit 0 (Duration  741ms (tests 98%, transform 1%, import 1%)); security_scan exit 0 (Ran 8 rules on 96 files: 0 findings.) — 93cdba6 | 2026-10-09 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-09 |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
 
@@ -242,3 +246,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0007`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (esclarecimento, sem mudança de versão) | 2026-10-08 | Codificação explicitada: HMAC com chave = 32 bytes crus da semente e mensagem = bytes crus do sal decodificado do hex; X = primeiros 52 bits de H em big-endian; vetores em hex minúsculo, `rtp`/`cap`/`crashPoint` como string decimal (2 casas para cap e crash) | O §4 não fixava a codificação do sal; o Test-writer escolheu a leitura de bytes crus, documentada em `tests/vectors/README.md` e reproduzida por gerador Python independente | SPEC-0008, SPEC-0010 (consomem os vetores; mesmo formato de array do §6) | Architect — esclarecimento dentro do contrato v1, coberto pela autorização do usuário para seguir sem paradas (2026-10-08) |
+| v1 (esclarecimento, sem mudança de versão) | 2026-10-08 | IT-02 mede a mediana de 15 obtenções da semente (não uma amostra de `NextRoundAsync`) e testes cronometrados rodam sem paralelismo; novos IT-06 (concorrência na mesma sala) e UT-08 (`length` fora de 1..1.000.000 → `ArgumentOutOfRangeException`); `IFairnessService.RevealAsync` documenta que só se revela após o crash | Review G4: amostra única instável na CI; serialização e limite de N sem teste | SPEC-0008 (deve revelar só após o crash — já previsto na rodada); persistência das chaves do Data Protection no Host vai para a SPEC-0012 | Architect — esclarecimento dentro do contrato v1, coberto pela autorização do usuário para seguir recomendações (2026-10-08) |
+| v1 (inalterado) | 2026-10-09 | Escopo: `.github/workflows/ci.yml` e `tests/backend/AppHost.Tests/Integration/EnvironmentStartupTests.cs` entram em `touches` só pelo commit b709b9d (testes cronometrados com `Category=Performance` numa etapa própria da CI, emenda da SPEC-0004) | pr-check confere cada spec citada no commit contra o próprio `touches` | Nenhuma | Architect — correção de escopo, coberta pela autorização do usuário para seguir recomendações (2026-10-09) |
