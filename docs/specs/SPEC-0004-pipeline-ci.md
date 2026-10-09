@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0002, SPEC-0003]
 consumes_contract: [SPEC-0006@1]
 contract_version: 1
-touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**"]
+touches: [".github/workflows/**", ".github/dependabot.yml", ".gitleaks.toml", ".semgrep/**", "tools/ci/**", "tests/ci/**"]
 adrs: [ADR-0011, ADR-0012, ADR-0013, ADR-0016]
 external: []
 size: M
@@ -162,7 +162,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:01.16]     Dado um workflow inseguro, quando tools/ci/check-workflows rod) — 367e6a8 | 2026-10-08 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -175,6 +175,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-08 | G2 | decisão | Proteção de branch e rulesets indisponíveis: repositório privado no GitHub Free (API retorna 403 'Upgrade to GitHub Pro or make this repository public'). Sem isso IT-06 (push direto rejeitado) e a parte de bloqueio do IT-02 não podem passar, e os checks obrigatórios do contrato §6 não são aplicados. | Test-writer consultou branches/main/protection e rules/branches/main com o token do dono (admin) | thomas: (a) assinar GitHub Pro, (b) tornar o repositório público, ou (c) emenda: manter privado sem proteção no servidor, CI só informativa e merges só pelo Architect após G5 |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
