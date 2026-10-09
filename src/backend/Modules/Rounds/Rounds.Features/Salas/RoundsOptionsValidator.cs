@@ -2,7 +2,10 @@ using Microsoft.Extensions.Options;
 
 namespace Apogeu.Rounds.Features.Salas;
 
-/// <summary>Validates <c>Rounds:Salas</c> at startup: room ids, RTP, cap, growth constant, phase durations and chain length.</summary>
+/// <summary>
+/// Validates <c>Rounds</c> at startup: room ids, RTP, cap, growth constant, phase durations and chain length of each room,
+/// the size of the connection pool and the deadline of a shared snapshot read.
+/// </summary>
 internal sealed class RoundsOptionsValidator : IValidateOptions<RoundsOptions>
 {
     /// <summary>Longest chain the Fairness module creates (SPEC-0007 §4).</summary>
@@ -56,6 +59,16 @@ internal sealed class RoundsOptionsValidator : IValidateOptions<RoundsOptions>
             {
                 failures.Add($"{key}:ChainLength must be between 1 and {MaxChainLength}.");
             }
+        }
+
+        if (options.MaxPoolSize is < 1 or > RoundsOptions.MaxPoolSizeLimit)
+        {
+            failures.Add($"Rounds:MaxPoolSize must be between 1 and {RoundsOptions.MaxPoolSizeLimit}.");
+        }
+
+        if (options.SnapshotReadTimeout <= TimeSpan.Zero)
+        {
+            failures.Add("Rounds:SnapshotReadTimeout must be positive.");
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
