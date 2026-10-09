@@ -4,12 +4,12 @@ title: "Carteira demo, livro-razão e contrato da carteira do operador"
 tier: full
 type: feature
 user_facing: false
-status: in-progress
+status: approved
 created: 2026-10-07
 parent: SPEC-0019
-depends_on: [SPEC-0009]
-consumes_contract: []
-contract_version: 1
+depends_on: [SPEC-0009, SPEC-0020]
+consumes_contract: [SPEC-0020@1]
+contract_version: 2
 touches: ["src/backend/Modules/Wallet/**", "tests/backend/Modules/Wallet.Tests/**", "docs/integration/**"]
 adrs: [ADR-0007, ADR-0001, ADR-0002, ADR-0010, ADR-0014, ADR-0015, ADR-0018]
 external: []
@@ -65,7 +65,7 @@ Implementa o módulo Wallet: a porta `IOperatorWallet` (débito, crédito, estor
 - **Custo:** N/A
 
 ## 6. Artefato A — Contrato
-**Interface:** `Wallet.Contracts` (v1) + REST do jogador + documento público da carteira do operador.
+**Interface:** `Wallet.Contracts` (v2) + REST do jogador + documento público da carteira do operador. `OperatorId`, `PlayerId`, `Currency` e `Money` vêm de `BuildingBlocks.Contracts` (criados pela SPEC-0020); `RoundId` de `Rounds.Contracts`; `BetId` é `Guid`. A aposta mínima vem de `IOperatorLimits` (SPEC-0020@1).
 
 ```text
 IOperatorWallet
@@ -75,16 +75,19 @@ IOperatorWallet
   Task<Balance> GetBalanceAsync(PlayerRef player, Currency currency, CancellationToken ct)
 WalletOperation { TransactionId, Player:PlayerRef{OperatorId, PlayerId}, Currency, Amount:Money (>0), RoundId, BetId }
 WalletRollback  { TransactionId, OriginalTransactionId, Player, Currency, RoundId, BetId }
-WalletResult = Ok(BalanceAfter) | InsufficientFunds(Balance) | Duplicate(OriginalResult) | Unavailable(retryable)
+WalletResult = Ok(BalanceAfter) | InsufficientFunds(Balance) | Duplicate(OriginalResult) | TransactionNotFound(OriginalTransactionId) | Unavailable(retryable)
+  // TransactionNotFound: estorno cujo débito original não existe — nada é lançado; é resultado final para quem estorna
+  //   (não há o que devolver; não reenviar). A corrida "débito atrasado depois do estorno" é do adaptador do operador real.
 TransactionId determinístico: "bet:{betId}:debit" | "bet:{betId}:credit" | "bet:{betId}:rollback"
+Saldo inicial demo (3.000,00 BRL) é implícito: não gera lançamento; o saldo = 3.000,00 + soma das partidas do jogador
 IDemoWallet
-  Task<Balance> RechargeAsync(PlayerRef player, Currency currency, CancellationToken ct)   // RECHARGE_NOT_ALLOWED se saldo ≥ aposta mínima
+  Task<Balance> RechargeAsync(PlayerRef player, Currency currency, CancellationToken ct)   // erro tipado RECHARGE_NOT_ALLOWED se saldo ≥ aposta mínima
 REST (sessão do jogador, SPEC-0009)
   GET  /api/v1/wallet/balance        → 200 { balance:Money, currency, mode:"demo" }
-  POST /api/v1/wallet/demo/recharge  → 200 { balance:Money, currency } | 409 RECHARGE_NOT_ALLOWED | 403 NOT_DEMO
+  POST /api/v1/wallet/demo/recharge  → 200 { balance:Money, currency } | 409 RECHARGE_NOT_ALLOWED | 403 NOT_DEMO   (erros no corpo problem+json `ErrorResponse` com `code`, padrão da SPEC-0009)
 Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl}/apogeu/v1/{balance|debit|credit|rollback},
   corpo JSON com transactionId, playerId, currency, amount (string decimal), roundId, betId; assinatura HMAC (esquema da SPEC-0009);
-  respostas { status:"OK"|"INSUFFICIENT_FUNDS"|"DUPLICATE"|"PLAYER_NOT_FOUND", balance, currency, transactionId }; idempotente por transactionId.
+  respostas { status:"OK"|"INSUFFICIENT_FUNDS"|"DUPLICATE"|"PLAYER_NOT_FOUND"|"TRANSACTION_NOT_FOUND", balance, currency, transactionId }; idempotente por transactionId.
 ```
 
 **Design:** N/A — sem interface.
@@ -99,11 +102,11 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 | Saldo insuficiente | débito maior que o saldo | InsufficientFunds, saldo inalterado | UT-02 |
 | Débito repetido | mesmo TransactionId | Duplicate com o resultado original, sem novo lançamento | UT-03, IT-02 |
 | Concorrência | 20 débitos iguais em paralelo | exatamente um efeito | IT-02 |
-| Crédito e estorno | crédito de prêmio; estorno de débito | saldo correto; estorno repetido não duplica; estorno de débito inexistente é recusado | UT-04, IT-03 |
+| Crédito e estorno | crédito de prêmio; estorno de débito | saldo correto; estorno repetido não duplica; estorno de débito inexistente → TransactionNotFound, sem lançamento | UT-04, IT-03 |
 | Recarga permitida | saldo < aposta mínima | saldo volta a 3.000,00 | UT-05, IT-04 |
 | Recarga negada | saldo ≥ aposta mínima | 409 RECHARGE_NOT_ALLOWED | UT-05, IT-04 |
 | Isolamento | sessão do jogador A | só vê e recarrega o próprio saldo; sem sessão → 401 | IT-04 |
-| Livro-razão imutável | tentativa de alterar/apagar lançamento | recusada pelo banco (só inserção) | IT-06 |
+| Livro-razão imutável | UPDATE/DELETE com a conexão do próprio módulo | recusado pelo banco (trigger de só inserção) | IT-06 |
 | Desempenho do débito | 500 débitos | p99 ≤ 20 ms | IT-05 |
 | Contrato publicado | respostas REST | conferem com o OpenAPI gerado | CT-01 |
 
@@ -115,7 +118,7 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 - **UT-01** — Dado um jogador sem lançamentos, quando o saldo demo é lido, então é 3.000,00 BRL.
 - **UT-02** — Dado saldo 3.000,00, quando débito de 10,00 e depois débito de 5.000,00, então Ok com 2.990,00 e InsufficientFunds com saldo inalterado; cada lançamento soma zero.
 - **UT-03** — Dado um débito aplicado, quando o mesmo TransactionId chega de novo, então Duplicate com o resultado original.
-- **UT-04** — Dado um débito de 10,00, quando crédito de 25,00 e estorno do débito (duas vezes), então saldo 3.025,00 após o crédito, +10,00 uma única vez no estorno, e estorno de débito inexistente é recusado.
+- **UT-04** — Dado um débito de 10,00, quando crédito de 25,00 e estorno do débito (duas vezes), então saldo 3.025,00 após o crédito, +10,00 uma única vez no estorno, e estorno de débito inexistente devolve TransactionNotFound sem lançamento.
 - **UT-05** — Dada aposta mínima 1,00, quando a recarga é pedida com saldo 0,50 e com saldo 1,00, então recarrega para 3.000,00 e recusa com RECHARGE_NOT_ALLOWED.
 
 ### 7.3 Testes de Integração
@@ -124,10 +127,10 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 - **IT-03** — Dado débito, crédito e estorno reais, quando repetidos, então o saldo final é o esperado e não há lançamento duplicado.
 - **IT-04** — Dado o Host real com sessões de dois jogadores, quando cada um lê o saldo e pede recarga, então cada um só vê o próprio saldo, recarga funciona abaixo do mínimo e retorna 409 acima; sem sessão → 401.
 - **IT-05** — Dados 500 débitos sequenciais com Postgres real, quando medidos, então p99 ≤ 20 ms (`Category=Performance`).
-- **IT-06** — Dado um lançamento gravado, quando se tenta UPDATE/DELETE direto no banco, então o banco recusa.
+- **IT-06** — Dado um lançamento gravado, quando se tenta UPDATE/DELETE direto no banco, com a mesma conexão do módulo usada pela aplicação, então o banco recusa com erro (trigger `BEFORE UPDATE OR DELETE` nas tabelas de lançamentos e partidas — vale também para o dono das tabelas e para o superusuário dos testes).
 
 ### 7.4 Testes de Contrato
-- **CT-01** — Dadas as respostas reais de IT-04, quando validadas contra o OpenAPI gerado, então conferem (contrato v1 consumido pelas SPEC-0022, 0023, 0024 e 0026).
+- **CT-01** — Dadas as respostas reais de IT-04, quando validadas contra o OpenAPI gerado, então conferem (contrato v2 consumido pelas SPEC-0022, 0023, 0024, 0025 e 0026).
 
 ### 7.5 Testes E2E
 - N/A — o saldo e a recarga aparecem para o jogador pela SPEC-0026, cujos E2E cobrem a jornada (user_facing: false — a jornada do jogador é provada pelos E2E da SPEC-0026, que consome este contrato).
@@ -141,7 +144,7 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 
 ## 8. Plano de Rollout
 - **Estratégia:** merge direto (demo local).
-- **Dados/schema:** schema `wallet` novo (migração inicial); privilégios de só inserção na tabela de lançamentos.
+- **Dados/schema:** schema `wallet` novo (migração inicial); tabelas de lançamentos e partidas só de inserção, garantidas por trigger `BEFORE UPDATE OR DELETE` que lança erro (privilégios não restringem o dono nem o superusuário).
 - **Compatibilidade:** N/A (API nova).
 - **Observabilidade:** métricas `wallet.operations{type,result}`, `wallet.duplicates`, `wallet.demo_recharges`; trace por TransactionId.
 - **Rollback:** reverter o merge commit e a migração (sem dados de produção).
@@ -199,6 +202,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-09 | G1 | spec | Contrato v1 incompleto: (D1) estorno de débito inexistente sem resultado em WalletResult nem no contrato público; (D2) OperatorId/Currency e a porta IOperatorLimits não existem e a SPEC-0021 não pode criá-los nem consumir a SPEC-0020; (D3) IT-06 não diz com que papel do banco o UPDATE/DELETE é recusado | Test-writer leu a spec, o contrato da SPEC-0020, ADR-0007, BuildingBlocks.Contracts e os testes de referência; nenhum commit | Architect: emenda da SPEC-0021 | Emenda v2 (2026-10-09): TransactionNotFound/TRANSACTION_NOT_FOUND; tipos compartilhados em BuildingBlocks.Contracts pela SPEC-0020 (emenda de escopo) e dependência da SPEC-0020; IT-06 por trigger com a conexão do módulo; consumidores SPEC-0022..0026 repinados em @2 | 2026-10-09 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -241,3 +245,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0021`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v2 | 2026-10-09 | (D1) `WalletResult.TransactionNotFound` e status público `TRANSACTION_NOT_FOUND` para estorno sem débito original; (D2) tipos compartilhados em `BuildingBlocks.Contracts` (SPEC-0020) e aposta mínima por `IOperatorLimits` — a spec passa a depender da SPEC-0020 e roda na onda seguinte, junto da SPEC-0022; (D3) livro-razão só de inserção por trigger, testado com a conexão do módulo; esclarecimentos: saldo inicial implícito (sem lançamento), erros REST em problem+json com `code` | IMP-01: SPEC_DEFECT do Test-writer no G1 (contrato v1 sem resultado para estorno recusado, tipos inexistentes, papel do banco indefinido no IT-06) | SPEC-0022, SPEC-0023, SPEC-0024, SPEC-0025, SPEC-0026 (pin @1 → @2; só acréscimo de caso) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09); a confirmar no resumo |

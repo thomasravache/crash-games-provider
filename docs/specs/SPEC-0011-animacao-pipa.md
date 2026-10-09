@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0010]
 consumes_contract: [SPEC-0010@1]
 contract_version: 1
-touches: ["src/frontend/packages/scene-kit/**", "src/frontend/apps/game-pipa/src/scene/**", "tests/e2e/pipa-visual/**", "tests/frontend/pipa/scene/**", "src/frontend/playwright.config.ts"]
+touches: ["src/frontend/packages/scene-kit/**", "src/frontend/apps/game-pipa/src/scene/**", "tests/e2e/pipa-visual/**", "tests/frontend/pipa/scene/**", "src/frontend/playwright.config.ts", ".github/workflows/visual-baselines.yml"]
 adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021]
 external: []
 size: M
@@ -193,7 +193,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 8dec4f4 (árvore suja) | 2026-10-07 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:43.72]     Dado um processo que avança 3 rodadas e é reiniciado, quando N) — b867610 | 2026-10-09 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -248,4 +248,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0011`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-09 | Escopo: `.github/workflows/visual-baselines.yml` (novo, `workflow_dispatch` + push em branch `sdd/**` que altere `tests/e2e/pipa-visual/**`) gera as imagens de referência no runner Linux da CI com `run-e2e.sh pipa-visual --project=chromium --update-snapshots=missing` e as publica como artefato; o usuário aprova as 6 imagens e elas são commitadas. Esclarecimentos: `frameTimes()` = duração do trabalho de cada quadro (ms), não o intervalo do rAF; IT-02 provado pelo gancho de teste (contexto vivo, canvas redesenhado e quadros novos em ≤ 1 s, mesma página); `freeze(t)` = ms desde o início da fase | G1: as imagens precisam do mesmo runner da CI (§7.6) e o `ci.yml` é da SPEC-0017; interpretações do Test-writer | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 | 1 (inalterado) | 2026-10-09 | Escopo: `tests/frontend/pipa/scene/**` (UT e CT no Vitest, onde vivem os testes do front) e `src/frontend/playwright.config.ts` (WebGL e imagens de referência dos testes visuais) | Despacho da onda 6: o `touches` não tinha onde colocar os unitários | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |

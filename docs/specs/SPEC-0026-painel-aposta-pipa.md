@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0010, SPEC-0024]
-consumes_contract: [SPEC-0020@1, SPEC-0021@1, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1]
+consumes_contract: [SPEC-0020@1, SPEC-0021@2, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1]
 contract_version: 2
 touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021]
@@ -37,7 +37,7 @@ Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com val
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0010 (cliente da Pipa, sessão, store da rodada).
-- **Contratos consumidos:** SPEC-0020@1 (limites), SPEC-0021@1 (saldo e recarga), SPEC-0022@1 (apostar e cancelar), SPEC-0023@1 (cash-out), SPEC-0024@1 (eventos de liquidação), SPEC-0025@1 (apostas ao vivo e histórico).
+- **Contratos consumidos:** SPEC-0020@1 (limites), SPEC-0021@2 (saldo e recarga), SPEC-0022@1 (apostar e cancelar), SPEC-0023@1 (cash-out), SPEC-0024@1 (eventos de liquidação), SPEC-0025@1 (apostas ao vivo e histórico).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -73,7 +73,7 @@ Painel (por painel 1 e 2)
   Erros do servidor (código → mensagem pt-BR): BET_BELOW_MIN, BET_ABOVE_MAX, INSUFFICIENT_FUNDS, PANEL_BUSY,
     CANCEL_NOT_ALLOWED, CASHOUT_TOO_LATE ("Cash-out tardio: a pipa já tinha sido cortada"), WALLET_UNAVAILABLE
 Saldo: "R$ 2.990,00 · DEMO"; botão "Recarregar demo" visível só quando saldo < aposta mínima
-Reconexão: saldo relido da carteira (SPEC-0021@1) e apostas abertas relidas de GET /api/v1/me/bets (SPEC-0025@1)
+Reconexão: saldo relido da carteira (SPEC-0021@2) e apostas abertas relidas de GET /api/v1/me/bets (SPEC-0025@1)
 Store (game-sdk/state): BetsState { panels:[PanelState, PanelState], balance:Money, limits }
 Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 ```
