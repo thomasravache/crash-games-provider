@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+"""Fails on high or critical NuGet vulnerabilities (SPEC-0004, ADR-0016). Stdlib only.
+
+Usage: tools/ci/nuget-vulnerabilities REPORT.json
+  REPORT.json = output of `dotnet list Apogeu.slnx package --vulnerable --include-transitive --format json`.
+
+`dotnet list package --vulnerable` exits 0 even when it finds vulnerabilities, so the report is evaluated here:
+any top-level or transitive package with a High or Critical advisory fails (exit 1); Low and Moderate are listed only.
+"""
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+BLOCKING = {"high", "critical"}
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 2:
+        print("usage: nuget-vulnerabilities REPORT.json", file=sys.stderr)
+        return 2
+    try:
+        report = json.loads(Path(argv[1]).read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError) as error:
+        print(f"nuget-vulnerabilities: cannot read {argv[1]}: {error}", file=sys.stderr)
+        return 2
+
+    findings: set[tuple[str, str, str, str]] = set()
+    for project in report.get("projects", []):
+        for framework in project.get("frameworks", []):
+            for kind in ("topLevelPackages", "transitivePackages"):
+                for package in framework.get(kind, []):
+                    for vulnerability in package.get("vulnerabilities", []):
+                        findings.add((
+                            package.get("id", "?"),
+                            package.get("resolvedVersion", "?"),
+                            str(vulnerability.get("severity", "?")),
+                            vulnerability.get("advisoryurl", ""),
+                        ))
+
+    blocking = 0
+    for package_id, version, severity, url in sorted(findings):
+        is_blocking = severity.lower() in BLOCKING
+        blocking += is_blocking
+        print(f"{'FAIL' if is_blocking else 'WARN'} {package_id} {version}: {severity} {url}")
+    print(f"nuget-vulnerabilities: {len(findings)} advisory(ies), {blocking} high or critical")
+    return 1 if blocking else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

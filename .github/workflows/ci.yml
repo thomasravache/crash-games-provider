@@ -1,0 +1,319 @@
+# Main pipeline (SPEC-0004, ADR-0011/0012/0013/0016). Checks of every PR to main: ci / backend, ci / frontend,
+# ci / e2e, ci / security, ci / contracts, ci / sdd (informative until SPEC-0015 makes them required on the server;
+# meanwhile the Architect merges only after G5 with every check green).
+# Change detection is per job (no workflow-level `paths:`), so a job without relevant changes reports "skipped",
+# which also satisfies a required check. security and sdd always run.
+# Every action is pinned by full commit SHA (tag in the comment); tools/ci/check-workflows enforces it.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read # paths-filter lists the files of the pull request through the API
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+      contracts: ${{ steps.filter.outputs.contracts }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            pipeline: &pipeline
+              - .github/workflows/**
+              - tools/ci/**
+            dotnet: &dotnet
+              - src/backend/**
+              - Apogeu.slnx
+              - Directory.Build.props
+              - Directory.Packages.props
+              - global.json
+              - nuget.config
+              - .config/**
+              - .editorconfig
+              - stryker-config.json
+            web: &web
+              - src/frontend/**
+            backend:
+              - *pipeline
+              - *dotnet
+              - tests/backend/**
+              - tests/ci/**
+              - .githooks/**
+              - .gitleaks.toml
+            frontend:
+              - *pipeline
+              - *web
+              - tests/frontend/**
+            e2e:
+              - *pipeline
+              - *web
+              - *dotnet
+              - tests/e2e/**
+            contracts:
+              - *pipeline
+              - *web
+              - *dotnet
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # repository tests (SPEC-0002) clone and inspect the history
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      # The .NET suite drives pnpm (repository and AppHost tests), so the front-end toolchain is installed too.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: src/frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - name: Install front-end dependencies
+        run: pnpm -C src/frontend install --frozen-lockfile
+      - name: Restore (lock files, locked mode)
+        run: dotnet restore Apogeu.slnx --locked-mode
+      - name: Build (warnings are errors)
+        run: dotnet build Apogeu.slnx --no-restore
+      - name: Format
+        run: dotnet format Apogeu.slnx --verify-no-changes --no-restore
+      # sdd-config `test` (.NET half): unit, integration (Testcontainers on the runner's Docker) and architecture,
+      # i.e. also `test_integration` and the .NET half of `arch_test`; coverage collected as in `coverage`.
+      - name: Test (unit, integration, architecture)
+        run: >-
+          dotnet test Apogeu.slnx --no-build
+          --filter "Category!=Nightly&Category!=CiLive"
+          --collect "XPlat Code Coverage"
+          --results-directory artifacts/coverage/raw
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-dotnet
+          path: artifacts/coverage/raw/**/coverage.cobertura.xml
+          retention-days: 3
+          if-no-files-found: ignore
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: src/frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - name: Install
+        run: pnpm -C src/frontend install --frozen-lockfile
+      - name: Build
+        run: pnpm -C src/frontend build
+      - name: Lint
+        run: pnpm -C src/frontend lint
+      - name: Typecheck
+        run: pnpm -C src/frontend typecheck
+      - name: Format
+        run: pnpm -C src/frontend format:check
+      - name: Test
+        run: pnpm -C src/frontend test
+      - name: Architecture
+        run: pnpm -C src/frontend test:arch
+
+  e2e:
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: src/frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - name: Install
+        run: pnpm -C src/frontend install --frozen-lockfile
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm -C src/frontend exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install browsers (Chromium, WebKit, Firefox)
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm -C src/frontend exec playwright install --with-deps chromium webkit firefox
+      - name: Install browser system dependencies
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm -C src/frontend exec playwright install-deps chromium webkit firefox
+      - name: E2E
+        run: pnpm -C src/frontend test:e2e
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-traces
+          path: artifacts/e2e
+          retention-days: 3
+          if-no-files-found: ignore
+
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+      SEMGREP_VERSION: 1.178.0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks scans the commits of the pull request
+          persist-credentials: false
+      - name: Install gitleaks (release binary, checksum verified)
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLo "$RUNNER_TEMP/$archive" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"
+          echo "$GITLEAKS_SHA256  $RUNNER_TEMP/$archive" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+      - name: gitleaks (working tree)
+        run: '"$RUNNER_TEMP/gitleaks" dir . --config .gitleaks.toml --no-banner --redact'
+      - name: gitleaks (commits of the pull request)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: '"$RUNNER_TEMP/gitleaks" git . --config .gitleaks.toml --no-banner --redact --log-opts="$BASE_SHA..HEAD"'
+      - name: Semgrep CE (SAST, rules in .semgrep)
+        run: pipx run --spec "semgrep==${SEMGREP_VERSION}" semgrep scan --config .semgrep --error --metrics=off --disable-version-check
+      - name: Workflows pinned by SHA with read-only permissions
+        run: tools/ci/check-workflows
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: src/frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - name: Restore
+        run: |
+          dotnet restore Apogeu.slnx --locked-mode
+          pnpm -C src/frontend install --frozen-lockfile
+      - name: NuGet vulnerabilities (high or critical fail)
+        run: |
+          dotnet list Apogeu.slnx package --vulnerable --include-transitive
+          dotnet list Apogeu.slnx package --vulnerable --include-transitive --format json > "$RUNNER_TEMP/nuget-vulnerable.json"
+          python3 tools/ci/nuget-vulnerabilities "$RUNNER_TEMP/nuget-vulnerable.json"
+      - name: npm vulnerabilities (high or critical fail)
+        run: pnpm -C src/frontend audit --audit-level high
+      - name: Licences (ADR-0016 + ADR-0022)
+        run: tools/ci/check-licenses
+
+  contracts:
+    needs: changes
+    if: needs.changes.outputs.contracts == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: src/frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - name: Restore
+        run: |
+          dotnet restore Apogeu.slnx --locked-mode
+          pnpm -C src/frontend install --frozen-lockfile
+      - name: contracts:check is defined (SPEC-0006@1)
+        run: |
+          if ! node -e 'process.exit(require("./src/frontend/package.json").scripts?.["contracts:check"] ? 0 : 1)'; then
+            echo "::error::src/frontend/package.json has no \"contracts:check\" script (SPEC-0006@1); the generated contracts cannot be verified."
+            exit 1
+          fi
+      - name: pnpm -C src/frontend contracts:check
+        run: pnpm -C src/frontend contracts:check
+
+  sdd:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # verify/pr-check compare with the target branch
+          persist-credentials: false
+      - name: Specs and ADRs valid (G0)
+        run: python3 tools/sdd/spec_graph.py validate --exclude-drafts
+      # Title and body enter through the environment, never interpolated into the script (script injection).
+      - name: PR linked to approved specs, gates G0–G4, TDD and scope
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: python3 tools/sdd/spec_graph.py pr-check --base "origin/${BASE_REF}"

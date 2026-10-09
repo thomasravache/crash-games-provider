@@ -1,0 +1,22 @@
+# gitleaks configuration (SPEC-0004, ADR-0012, ADR-0014). Default rule set of gitleaks, plus an allow-list limited to
+# build outputs and installed dependencies, which are never committed (.gitignore) but exist in a local `gitleaks dir .`.
+# Do not allow-list source paths: a secret in the code must fail the security job.
+title = "Apogeu gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Build outputs and installed dependencies (not versioned)"
+paths = [
+  '''(^|/)node_modules/''',
+  '''(^|/)bin/''',
+  '''(^|/)obj/''',
+  '''(^|/)dist/''',
+  '''(^|/)\.nuget/''',
+  '''^artifacts/''',
+  '''(^|/)coverage/''',
+  '''(^|/)playwright-report/''',
+  '''(^|/)test-results/''',
+  '''(^|/)StrykerOutput/''',
+]

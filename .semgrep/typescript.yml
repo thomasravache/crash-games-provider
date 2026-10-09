@@ -1,0 +1,34 @@
+# Semgrep CE rules for the front end (ADR-0012, SPEC-0004): code execution from strings, raw HTML injection and
+# cross-origin messaging of the game iframe (the operator page embeds the game).
+# Run: semgrep scan --config .semgrep --error
+rules:
+  - id: apogeu-ts-eval
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: Code built from a string (eval / new Function / string timers). Never execute strings.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+      - pattern: setTimeout("...", ...)
+      - pattern: setInterval("...", ...)
+
+  - id: apogeu-ts-raw-html
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Raw HTML injection (XSS). Render text through React; if HTML is unavoidable, sanitize it and document why.
+    pattern-either:
+      - pattern: <$EL dangerouslySetInnerHTML={...} />
+      - pattern: $X.innerHTML = $Y
+      - pattern: $X.outerHTML = $Y
+      - pattern: $X.insertAdjacentHTML(...)
+      - pattern: document.write(...)
+
+  - id: apogeu-ts-postmessage-wildcard
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      postMessage to any origin ("*") leaks game and session data to whatever page embeds the game.
+      Send to the operator origin received in the launch parameters.
+    pattern: $W.postMessage($MSG, "*", ...)
+
