@@ -1,4 +1,5 @@
 using Apogeu.BuildingBlocks.Contracts.Json;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Apogeu.Host.OpenApi;
 
@@ -10,10 +11,14 @@ internal static class OpenApiExtensions
 {
     public const string DocumentName = "v1";
 
-    /// <summary>Applies the contract JSON conventions to the HTTP APIs and registers the OpenAPI document.</summary>
+    /// <summary>
+    /// Applies the contract JSON conventions to the HTTP APIs and to the SignalR JSON hub protocol, and registers the
+    /// OpenAPI document.
+    /// </summary>
     public static IServiceCollection AddContractOpenApi(this IServiceCollection services)
     {
         services.ConfigureHttpJsonOptions(options => ContractJson.Configure(options.SerializerOptions));
+        services.Configure<JsonHubProtocolOptions>(options => ContractJson.Configure(options.PayloadSerializerOptions));
         services.AddOpenApi(DocumentName, options => options.AddSchemaTransformer<ContractScalarSchemaTransformer>());
         return services;
     }

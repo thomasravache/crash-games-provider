@@ -1,7 +1,6 @@
 using Apogeu.Backoffice.Features.Meta;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Apogeu.Backoffice.Features;
 
@@ -11,8 +10,6 @@ public static class BackofficeModule
     public static IServiceCollection AddBackofficeModule(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-
-        services.TryAddSingleton(TimeProvider.System);
 
         return services;
     }

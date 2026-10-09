@@ -6,6 +6,7 @@ using Apogeu.Operators.Features;
 using Apogeu.Rounds.Features;
 using Apogeu.ServiceDefaults;
 using Apogeu.Wallet.Features;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,9 @@ builder.AddRedisDependency(connectionName: "redis", healthCheckName: "redis");
 
 // ADR-0008: contract JSON conventions on the HTTP APIs and the OpenAPI document the TypeScript contracts come from.
 builder.Services.AddContractOpenApi();
+
+// Clock shared by every module (tests replace it); registered by the Host, not by a module.
+builder.Services.TryAddSingleton(TimeProvider.System);
 
 builder.Services.AddBackofficeModule();
 builder.Services.AddBettingModule();
