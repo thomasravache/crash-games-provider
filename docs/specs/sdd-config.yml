@@ -13,7 +13,7 @@ build: "pnpm -C src/frontend install --frozen-lockfile && dotnet build Apogeu.sl
 test: "dotnet test Apogeu.slnx --filter \"Category!=Nightly&Category!=CiLive&Category!=Performance\" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test"
 test_integration: "dotnet test Apogeu.slnx --filter Category=Integration"
 # E2E da jornada do usuário. Exemplos: "npx playwright test" | "npx cypress run" | "maestro test flows/"
-test_e2e: "pnpm -C src/frontend test:e2e"
+test_e2e: "tools/ci/run-e2e.sh"
 # Subconjunto rápido rodado após cada deploy (G6).
 smoke_test: ""
 lint: "dotnet format Apogeu.slnx --verify-no-changes && pnpm -C src/frontend lint && pnpm -C src/frontend format:check"
@@ -21,7 +21,7 @@ lint: "dotnet format Apogeu.slnx --verify-no-changes && pnpm -C src/frontend lin
 coverage: "rm -rf artifacts/coverage src/frontend/coverage && dotnet test Apogeu.slnx --filter \"Category!=Nightly&Category!=CiLive&Category!=Performance\" --collect \"XPlat Code Coverage\" --results-directory artifacts/coverage/raw && pnpm -C src/frontend test:coverage && dotnet tool restore && dotnet reportgenerator \"-reports:artifacts/coverage/raw/**/coverage.cobertura.xml;src/frontend/coverage/lcov.info\" -targetdir:artifacts/coverage \"-reporttypes:Cobertura;TextSummary;Html\" \"-assemblyfilters:-Apogeu.TestKit*;-Apogeu.Architecture.*;-Apogeu.Repository.*;-*.Tests;-*.StandIn\""
 coverage_min_changed_lines: 80
 # Opcional: mutation testing em código de domínio crítico (Stryker, PIT, mutmut).
-mutation: ""
+mutation: "PATH=/usr/local/share/dotnet:$PATH STRYKER_MUTANT_ID_CONTROL_VAR=ACTIVE_MUTATION_0 dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj --filter Category=Mutation"
 
 # --- Arquitetura e segurança (G3, G5) ---
 # Exemplos: "dotnet test --filter Category=Architecture" | "npx depcruise src" | "lint-imports"
