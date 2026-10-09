@@ -29,6 +29,7 @@
   <ItemGroup>
     <Compile Include="../Contracts.Tests/Support/OpenApiDocument.cs" Link="Support/Shared/OpenApiDocument.cs" />
     <Compile Include="../Contracts.Tests/Support/OpenApiSchemaValidator.cs" Link="Support/Shared/OpenApiSchemaValidator.cs" />
+    <Compile Include="../Repository.Tests/Support/RepositoryRoot.cs" Link="Support/Shared/RepositoryRoot.cs" />
   </ItemGroup>
 
 </Project>
