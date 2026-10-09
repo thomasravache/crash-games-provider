@@ -4,7 +4,7 @@ title: "Animação da cena da Pipa"
 tier: full
 type: feature
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0010]
