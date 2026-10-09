@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0003, SPEC-0005]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/Modules/Operators/**", "src/backend/BuildingBlocks/Security/**", "src/backend/AppHost/Realms/**", "src/backend/Host/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**"]
+touches: ["src/backend/Modules/Operators/**", "src/backend/BuildingBlocks/Security/**", "src/backend/AppHost/Realms/**", "src/backend/Host/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**", "src/backend/AppHost/Program.cs"]
 adrs: [ADR-0001, ADR-0014, ADR-0015, ADR-0019, ADR-0020]
 external: []
 size: M
@@ -198,6 +198,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-09 | G2 | spec | TEST_DEFECT: IT-01 e IT-04 comparam ExpiresAt com precisão sub-milissegundo, mas o contrato da SPEC-0006 serializa datas em milissegundos; e o AppHost (fora de touches) não injeta chaves do operador demo, chave de sessão e configuração do backoffice | Implementer confirmou que o cálculo é exato (relógio + 60 s / + 8 h) e só o fio trunca; nenhum arquivo de touches resolve | Architect: Test-writer ajusta o relógio de teste para milissegundo inteiro; emenda de escopo com src/backend/AppHost/Program.cs |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -240,4 +241,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0009`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (inalterado) | 2026-10-09 | Emenda de escopo: `touches` inclui `src/backend/AppHost/Program.cs`; IT-01/IT-04 comparam expiração em milissegundos (relógio de teste em milissegundo inteiro) | Sem as chaves do operador demo, a chave de sessão e a configuração do backoffice como parâmetros do Aspire, o lançamento demo não funciona no ambiente local; o contrato da SPEC-0006 transmite datas com precisão de milissegundo (IMP) | SPEC-0010 (usa o lançamento demo) | Architect — correção de escopo e de teste sem mudança de contrato, pela autorização do usuário para seguir pelo recomendado (2026-10-09) |
 | v1 (inalterado) | 2026-10-09 | Escopo: realm em `src/backend/AppHost/Realms/**` (onde o AppHost importa), `src/backend/Host/**` (pipeline de segurança), contratos gerados (`artifacts/openapi/**`, `src/frontend/packages/contracts/src/**`); `/backoffice/me` no `Operators.Features`; regra do 403 (token sem papel Apogeu) definida e isolamento entre operadores adiado para o épico do backoffice (sem recurso por operador nesta fase); IT-01 mede com a janela do limite de taxa avançada pelo relógio injetado; texto do §7.5 sem citar ID de outra spec | SPEC_DEFECTs do Test-writer (G1) | Nenhuma (a SPEC-0010 consome só lançamento e sessão) | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |
