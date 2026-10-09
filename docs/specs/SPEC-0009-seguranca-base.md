@@ -4,13 +4,13 @@ title: "Segurança base: lançamento demo, sessão do jogador e acesso"
 tier: full
 type: foundation
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0003, SPEC-0005]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/Modules/Operators/**", "src/backend/BuildingBlocks/Security/**", "src/backend/AppHost/keycloak/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**"]
+touches: ["src/backend/Modules/Operators/**", "src/backend/BuildingBlocks/Security/**", "src/backend/AppHost/Realms/**", "src/backend/Host/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**", "src/backend/AppHost/Program.cs"]
 adrs: [ADR-0001, ADR-0014, ADR-0015, ADR-0019, ADR-0020]
 external: []
 size: M
@@ -79,7 +79,8 @@ POST /api/v1/sessions
   200 { sessionToken, expiresAt, player:{ nickname }, salaId, currency, mode }
   401 LAUNCH_TOKEN_INVALID | 401 LAUNCH_TOKEN_EXPIRED | 401 LAUNCH_TOKEN_USED | 429 RATE_LIMITED
 Hub /hubs/rounds: access_token = sessionToken; JoinSala(salaId) ≠ claim sala → HubException(FORBIDDEN); sem token → 401
-GET /api/v1/backoffice/me (Bearer Keycloak) → 200 { userId, roles, operatorId? } | 401 | 403
+GET /api/v1/backoffice/me (Bearer Keycloak) → 200 { userId, roles, operatorId? } | 401 (sem token, emissor, audiência ou assinatura inválidos)
+                                           | 403 (token válido do realm sem nenhum papel Apogeu)
 GET /dev/launch-demo (só Development) → 302 launchUrl; em outros ambientes → 404
 launchUrl = {gameBaseUrl}/?lt={launchToken}
 ```
@@ -100,7 +101,7 @@ launchUrl = {gameBaseUrl}/?lt={launchToken}
 | Replay | mesma requisição assinada duas vezes | 409 REPLAY_DETECTED | IT-03 |
 | Troca por sessão | launchToken válido / reutilizado / expirado / inválido | 200 / 401 USED / 401 EXPIRED / 401 INVALID | IT-04 |
 | Hub restrito à sala | JoinSala de outra sala; sem token | FORBIDDEN; 401 | IT-05 |
-| Backoffice isolado | sem token; viewer do operador A pedindo dados de B; admin | 401; 403; 200 | IT-06 |
+| Backoffice isolado | sem token ou token inválido; token válido sem papel Apogeu; papéis válidos | 401; 403; 200 | IT-06 |
 | Segredos fora dos logs | lançamento e sessão | assinatura, segredo e tokens mascarados | IT-07 |
 | Limite de taxa e cabeçalhos | 61 lançamentos/min por chave; qualquer resposta | 429; cabeçalhos de segurança presentes | IT-08 |
 | Rota de desenvolvimento | `/dev/launch-demo` em Production | 404 | IT-09 |
@@ -116,12 +117,12 @@ launchUrl = {gameBaseUrl}/?lt={launchToken}
 - **UT-04** — Dado `mode:"real"`, quando o lançamento é validado, então REAL_MONEY_DISABLED.
 
 ### 7.3 Testes de Integração
-- **IT-01** — Dado o operador demo e Postgres/Redis reais, quando o lançamento é assinado corretamente, então 200 com launchUrl e p99 ≤ 100 ms em 200 chamadas.
+- **IT-01** — Dado o operador demo e Postgres/Redis reais, quando o lançamento é assinado corretamente, então 200 com launchUrl e p99 ≤ 100 ms em 200 chamadas (o relógio injetado avança a janela do limite de taxa a cada 50 chamadas, para medir o lançamento sem esbarrar no 429 do IT-08; `Category=Performance`).
 - **IT-02** — Dadas chave desconhecida, assinatura errada, timestamp fora, corpo sem `playerId` e `mode:"real"`, quando chamados, então 401 UNKNOWN_KEY, 401 INVALID_SIGNATURE, 401 TIMESTAMP_OUT_OF_WINDOW, 400 VALIDATION_ERROR e 403 REAL_MONEY_DISABLED.
 - **IT-03** — Dada a mesma requisição assinada enviada duas vezes dentro da janela, então a segunda recebe 409 REPLAY_DETECTED.
 - **IT-04** — Dado um launchToken, quando trocado, então 200 com JWT contendo `op`, `sala`, `cur`, `mode`; reutilizado → 401 LAUNCH_TOKEN_USED; após 61 s → EXPIRED; aleatório → INVALID.
 - **IT-05** — Dado um cliente SignalR com sessão da sala `demo`, quando `JoinSala("outra")`, então FORBIDDEN; sem token, então a conexão é recusada com 401.
-- **IT-06** — Dado o Keycloak real (Testcontainers) com o realm importado, quando `GET /backoffice/me` sem token → 401; `operator-viewer` do operador A consultando recurso do operador B → 403; `provider-admin` → 200.
+- **IT-06** — Dado o Keycloak real (Testcontainers) com o realm importado, quando `GET /backoffice/me` sem token → 401; token válido do realm sem nenhum papel Apogeu → 403; `operator-viewer`, `operator-admin` e `provider-admin` → 200 com os papéis. (O isolamento entre operadores — viewer de A pedindo dados de B — fica para o épico do backoffice, quando houver recurso por operador.)
 - **IT-07** — Dada a captura de logs, quando lançamento e sessão ocorrem, então segredo, assinatura, launchToken e sessionToken não aparecem.
 - **IT-08** — Dadas 61 chamadas de lançamento em 1 min com a mesma chave, então a 61ª recebe 429; toda resposta tem HSTS, `X-Content-Type-Options: nosniff` e CSP `frame-ancestors`.
 - **IT-09** — Dado o Host em Production, quando `GET /dev/launch-demo`, então 404; em Development, 302 para uma launchUrl válida.
@@ -130,7 +131,7 @@ launchUrl = {gameBaseUrl}/?lt={launchToken}
 - **CT-01** — Dado o OpenAPI gerado (SPEC-0006), quando as respostas reais de IT-01, IT-02 e IT-04 são validadas, então conferem com o contrato v1 (consumido pela SPEC-0010).
 
 ### 7.5 Testes E2E
-- N/A — a jornada do jogador (lançamento → jogo) é provada pelo E2E-01 da SPEC-0010, que consome este contrato; o backoffice não tem telas nesta fase (user_facing: false).
+- N/A — a jornada do jogador (lançamento → jogo) é provada pelos testes E2E da SPEC-0010, que consome este contrato; o backoffice não tem telas nesta fase (user_facing: false).
 
 ### 7.6 Outros
 - Checklist OWASP Top 10 aplicável no G4.
@@ -184,7 +185,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:02.77]     Dado um DTO com string?, quando o esquema é gerado, então a pr) — 07e1e4f | 2026-10-09 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -197,6 +198,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-09 | G2 | spec | TEST_DEFECT: IT-01 e IT-04 comparam ExpiresAt com precisão sub-milissegundo, mas o contrato da SPEC-0006 serializa datas em milissegundos; e o AppHost (fora de touches) não injeta chaves do operador demo, chave de sessão e configuração do backoffice | Implementer confirmou que o cálculo é exato (relógio + 60 s / + 8 h) e só o fio trunca; nenhum arquivo de touches resolve | Architect: Test-writer ajusta o relógio de teste para milissegundo inteiro; emenda de escopo com src/backend/AppHost/Program.cs | Emenda de escopo (2026-10-09, contrato v1 inalterado) — AppHost/Program.cs no escopo; Test-writer corrigiu o relógio de teste em 9fceecd | 2026-10-09 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -239,3 +241,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0009`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (inalterado) | 2026-10-09 | Emenda de escopo: `touches` inclui `src/backend/AppHost/Program.cs`; IT-01/IT-04 comparam expiração em milissegundos (relógio de teste em milissegundo inteiro) | Sem as chaves do operador demo, a chave de sessão e a configuração do backoffice como parâmetros do Aspire, o lançamento demo não funciona no ambiente local; o contrato da SPEC-0006 transmite datas com precisão de milissegundo (IMP) | SPEC-0010 (usa o lançamento demo) | Architect — correção de escopo e de teste sem mudança de contrato, pela autorização do usuário para seguir pelo recomendado (2026-10-09) |
+| v1 (inalterado) | 2026-10-09 | Escopo: realm em `src/backend/AppHost/Realms/**` (onde o AppHost importa), `src/backend/Host/**` (pipeline de segurança), contratos gerados (`artifacts/openapi/**`, `src/frontend/packages/contracts/src/**`); `/backoffice/me` no `Operators.Features`; regra do 403 (token sem papel Apogeu) definida e isolamento entre operadores adiado para o épico do backoffice (sem recurso por operador nesta fase); IT-01 mede com a janela do limite de taxa avançada pelo relógio injetado; texto do §7.5 sem citar ID de outra spec | SPEC_DEFECTs do Test-writer (G1) | Nenhuma (a SPEC-0010 consome só lançamento e sessão) | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |

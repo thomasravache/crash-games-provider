@@ -4,13 +4,13 @@ title: "Motor de rodada e salas em tempo real"
 tier: full
 type: foundation
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0003, SPEC-0005]
-consumes_contract: [SPEC-0007@1]
-contract_version: 1
-touches: ["src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "tests/load/rounds/**"]
+consumes_contract: [SPEC-0007@2]
+contract_version: 2
+touches: ["src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "tests/load/rounds/**", "artifacts/openapi/**", "src/frontend/packages/contracts/src/**", "Directory.Packages.props", "tools/contracts/frontend-modules.mjs"]
 adrs: [ADR-0001, ADR-0005, ADR-0010, ADR-0017, ADR-0018, ADR-0019]
 external: []
 size: M
@@ -40,14 +40,16 @@ Implementa o módulo Rounds: salas configuráveis, máquina de estados da rodada
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0003 (harness e fixtures) e SPEC-0005 (Redis/Postgres no Aspire, ServiceDefaults).
-- **Contratos consumidos:** SPEC-0007@1 — `NextRoundAsync`, `RevealAsync`, `ComputeCrashPoint`.
+- **Contratos consumidos:** SPEC-0007@2 — `NextRoundAsync`, `GetCrashPointAsync` (início do voo), `RevealAsync` (só depois do crash), `ComputeCrashPoint`.
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
 **Contexto:** projeto novo; ADR-0005 (salas, líder, horário do servidor), ADR-0018 (retomada), ADR-0019 (interpolação, metas).
 
 **Decisão:**
-- Multiplicador no instante `t` (ms desde o início do voo): `m(t) = e^(k·t)`, com `k` por sala (padrão 0,00006/ms ≈ 2x em 11,6 s). Instante do crash: `t_c = ln(crash)/k`. O servidor encerra o voo em `t_c` medido pelo `TimeProvider`.
+- Multiplicador no instante `t` (ms desde o início do voo): `m(t) = e^(k·t)`, com `k` por sala (padrão 0,00006/ms ≈ 2x em 11,6 s), exibido como `floor(m·100)/100`; para `t ≥ t_c`, `m = crash` exatamente. Instante do crash: `t_c = ln(crash)/k` (sem arredondar). O servidor encerra o voo em `t_c` medido pelo `TimeProvider`.
+- **Ponto de crash e semente (emenda v2):** ao iniciar o voo o condutor obtém o ponto com `GetCrashPointAsync` da SPEC-0007@2 e o guarda **só em memória**; nunca persiste nem transmite o ponto antes do crash. A retomada chama `GetCrashPointAsync` de novo (determinístico). `RevealAsync` é chamado só depois do crash, e só então ponto e semente são persistidos e publicados (ADR-0006, ADR-0014).
+- **Salas (emenda v2):** id em texto `^[a-z0-9-]{1,32}$` (ex.: `demo`), configurado em `Rounds:Salas:{id}` (RTP, limite, `growthK`, tempos, tamanho da cadeia — padrão 1.000.000; testes usam cadeia curta); o `SalaId` da Fairness é o UUID v5 do id com namespace fixo do módulo.
 - Tempos padrão: apostas 6 s, pausa pós-crash 3 s.
 - Liderança: chave `rounds:leader:{sala}` com TTL 5 s, renovada a cada 1 s; ao assumir, o líder lê a última rodada no Postgres e retoma (voo em andamento → continua com o mesmo `startedAt`; prazo de retomada excedido (30 s) → `Annulled`).
 - O hub só traduz mensagens; regras ficam nos slices e no domínio.
@@ -81,12 +83,19 @@ Servidor → cliente (grupo da sala)
   RoundSync     { roundId, serverTime, multiplier }        // a cada 200 ms durante o voo
   RoundCrashed  { roundId, crashPoint, crashedAt, revealedSeed }
   RoundAnnulled { roundId, reason }
-RoundSnapshot { sala:{id,rtp,cap,growthK}, current: {roundId,state,...}, history:[{roundId,roundNumber,crashPoint}] (últimas 20) }
+RoundSnapshot { sala:{id,rtp,cap,growthK},
+                current:{roundId, roundNumber, state: "betting"|"flying"|"crashed"|"annulled", commitment, bettingEndsAt,
+                         startedAt?, crashPoint?, crashedAt?, revealedSeed?},   // campos ausentes = null; crashPoint e
+                                                                                // revealedSeed só depois do crash
+                history:[{roundId,roundNumber,crashPoint}] (últimas 20) }
 REST
   GET /api/v1/salas/{salaId}/rounds?limit=1..100   → 200 [{roundId, roundNumber, crashPoint, crashedAt}] | 404 SALA_NOT_FOUND | 400 INVALID_LIMIT
   GET /api/v1/rounds/{roundId}/verification         → 200 {seed, previousSeed, salt, rtp, cap, crashPoint, terminalHash}
                                                       | 404 ROUND_NOT_FOUND | 409 ROUND_NOT_FINISHED
-Multiplicadores e RTP como string decimal (SPEC-0006).
+Tipos (SPEC-0006): multiplicadores e limite como `Multiplier`; `rtp` como string decimal de 2 casas ("0.97"); `growthK` como
+  string decimal ("0.00006"); instantes ISO-8601 UTC; `commitment` e `revealedSeed` em hex minúsculo.
+Erros: REST → ProblemDetails (RFC 9457) com extensão `code` (ex.: "SALA_NOT_FOUND"); hub → HubException cuja mensagem é o código.
+Antes do crash nenhuma mensagem, snapshot ou resposta REST contém `crashPoint` nem semente da rodada corrente.
 ```
 
 **Design:** N/A — sem interface.
@@ -116,27 +125,28 @@ Multiplicadores e RTP como string decimal (SPEC-0006).
 
 ### 7.2 Testes Unitários
 - **UT-01** — Dada uma rodada em Betting, quando as transições válidas ocorrem, então chega a Crashed; dada uma rodada Crashed, quando se tenta iniciar voo, então lança erro de domínio.
-- **UT-02** — Dados k = 0,00006 e crash 2,00, quando calculado `t_c`, então ≈ 11.552 ms; e m(11.552) arredondado para baixo a 2 casas = 2.00.
+- **UT-02** — Dados k = 0,00006 e crash 2,00, quando calculado `t_c`, então ≈ 11.552,45 ms (sem arredondar); m(t_c) = 2.00 pela regra `t ≥ t_c ⇒ m = crash`; e m(11.552 ms) exibido = 1.99.
 - **UT-03** — Dado crash 1.00, quando o voo inicia, então o condutor emite `RoundCrashed` sem `RoundSync`.
 - **UT-04** — Dado FakeTimeProvider em t = 5.000 ms de voo, quando o sync é emitido, então o multiplicador é floor(e^(0,3)·100)/100 = 1.34.
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dadas duas instâncias do condutor com Redis real, quando rodam 5 rodadas, então só uma conduz e os números de rodada são 1..5 sem repetição; ao matar a líder, a outra assume em ≤ 6 s.
-- **IT-02** — Dada uma rodada encerrada com Postgres real, quando `GET /verification`, então os dados passam no `Verify` da SPEC-0007; para rodada em voo, 409.
-- **IT-03** — Dado um cliente SignalR real (WebApplicationFactory + backplane Redis), quando acompanha uma rodada, então recebe Betting, Flying, Sync (≥ 1) e Crashed nessa ordem, com o `crashPoint` igual ao persistido.
+- **IT-02** — Dada uma rodada encerrada com Postgres real, quando `GET /verification`, então os dados passam no `Verify` da SPEC-0007; para rodada em voo, 409 com ProblemDetails `code` = ROUND_NOT_FINISHED, e nem o snapshot, nem o hub, nem o REST contêm `crashPoint` ou semente da rodada em voo.
+- **IT-03** — Dado um cliente SignalR real (`Microsoft.AspNetCore.SignalR.Client`, WebApplicationFactory com esquema de autenticação de teste + backplane Redis), quando acompanha uma rodada, então recebe Betting, Flying, Sync (≥ 1) e Crashed nessa ordem, com o `crashPoint` igual ao persistido.
 - **IT-04** — Dado o líder derrubado no meio do voo, quando outra instância assume, então a rodada termina no mesmo `crashPoint` e em `startedAt + t_c` (± 250 ms).
 - **IT-05** — Dado nenhum líder disponível por 31 s com rodada em voo, quando um líder assume, então a rodada fica `Annulled` com motivo e a métrica `rounds.annulled` incrementa.
 - **IT-06** — Dados id de sala desconhecido e `limit` 0/101, quando chamados hub e REST, então SALA_NOT_FOUND/404 e 400 INVALID_LIMIT.
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dado o contrato do hub v1 gerado (SPEC-0006), quando as mensagens reais de IT-03 são validadas contra o esquema gerado, então todas conferem (contrato consumido pela SPEC-0010).
-- **CT-02** — Dado o contrato SPEC-0007@1, quando o motor usa `NextRoundAsync`/`RevealAsync` e os vetores, então o ponto de crash publicado bate com `ComputeCrashPoint`.
+- **CT-02** — Dado o contrato SPEC-0007@1, quando o motor usa `NextRoundAsync`/`GetCrashPointAsync`/`RevealAsync` e os vetores, então o ponto de crash publicado bate com `ComputeCrashPoint` e `RevealAsync` só é chamado depois do crash da rodada.
 
 ### 7.5 Testes E2E
 - N/A — a jornada do jogador sobre este contrato é provada pelos E2E da SPEC-0010 (user_facing: false aqui).
 
 ### 7.6 Outros
-- Carga (k6, local via Aspire): 1.000 conexões numa sala por 10 rodadas; critério: `RoundCrashed` entregue a todos com p99 ≤ 200 ms e zero desconexões não intencionais.
+- Carga (k6, local via Aspire): 1.000 conexões numa sala por 10 rodadas; critério: `RoundCrashed` entregue a todos com p99 ≤ 200 ms e zero desconexões não intencionais. Script em `tests/load/rounds/`; roda sob demanda pela imagem oficial `grafana/k6` fixada por digest (sem instalação local), com a sessão do jogador da SPEC-0009 — por isso a execução e o resultado entram no Relatório de Entrega depois que a SPEC-0009 estiver integrada (G7 desta spec espera por ela).
+- Convenções da CI: integração com `Category=Integration`; asserções de tempo de relógio (IT-01 ≤ 6 s, IT-04 ± 250 ms) também com `Category=Performance`, em coleção sem paralelismo.
 
 **Dublês e dados de teste:** FakeTimeProvider nos unitários; Fairness real nos de integração (cadeia curta).
 
@@ -187,7 +197,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:51.93]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — 7d311ce | 2026-10-09 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -200,6 +210,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-09 | G1 | spec | D1: contrato SPEC-0007@1 não dá o ponto de crash antes do crash sem revelar a semente (ADR-0014); D2: UT-02 contraditório (m(11.552)=1,99); D3: arquivos gerados fora de touches; D4: RoundSnapshot.current, envelope de erro, tipo do RTP, growthK e id da sala indefinidos; D5: cliente SignalR fora dos ADRs; D6: teste de carga sem token antes da SPEC-0009 e sem k6 | Test-writer leu SPEC-0008, SPEC-0007, ADRs e o código; parou antes do scaffold | Architect (emenda) + thomas (autorização para seguir recomendações) | Emenda v2 da SPEC-0008 (D1–D6) + emenda v2 da SPEC-0007 (GetCrashPointAsync) + emenda do ADR-0005 (cliente SignalR nos testes) | 2026-10-09 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -242,3 +253,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0008`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v2 | 2026-10-09 | (D1) ponto de crash via `GetCrashPointAsync` da SPEC-0007@2, só em memória até o crash; `RevealAsync` só depois; (D2) UT-02 corrigido com a regra `t ≥ t_c ⇒ m = crash`; (D3) `touches` com os contratos gerados e `Directory.Packages.props`; (D4) `RoundSnapshot.current`, tipos de `rtp`/`growthK`, id da sala (texto + UUID v5) e erros (ProblemDetails `code`) definidos; (D5) cliente `Microsoft.AspNetCore.SignalR.Client` só nos testes (emenda do ADR-0005); (D6) carga por imagem k6 após a SPEC-0009 | IMP-01 (SPEC_DEFECT do Test-writer, 2026-10-09) | SPEC-0010 (pin → SPEC-0008@2, SPEC-0007@2) | Architect — recomendações aplicadas pela autorização do usuário (thomas, 2026-10-09); a confirmar no resumo da manhã |
+| v2 (inalterado) | 2026-10-09 | Escopo: `tools/contracts/frontend-modules.mjs` — `formatTypeScript` roda o Prettier até a saída estabilizar (uma passada não é idempotente para assinaturas longas do hub); a regressão é o IT-02 da SPEC-0006 (`contracts:check` no estado versionado), que falha no scaffold desta spec | D7 do Test-writer: o contrato gerado não satisfazia ao mesmo tempo `contracts:check` e `format:check` | SPEC-0006 (só a correção do gerador; contrato inalterado) | Architect — pela autorização do usuário para seguir recomendações (2026-10-09) |

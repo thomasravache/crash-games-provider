@@ -4,13 +4,13 @@ title: "Pipa demo: esqueleto andante do cliente"
 tier: full
 type: foundation
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0005, SPEC-0006]
-consumes_contract: [SPEC-0007@1, SPEC-0008@1, SPEC-0009@1]
+consumes_contract: [SPEC-0007@2, SPEC-0008@2, SPEC-0009@1]
 contract_version: 1
-touches: ["src/frontend/apps/game-pipa/**", "src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/packages/scene-kit/**", "tests/e2e/pipa/**"]
+touches: ["src/frontend/apps/game-pipa/**", "src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/packages/scene-kit/**", "tests/e2e/pipa/**", "tests/frontend/pipa/**", "tests/frontend/integration/pipa/**", "tests/frontend/arch/pipa-*", "src/frontend/package.json", "src/frontend/vitest.workspace.ts", "src/backend/AppHost/Program.cs", "src/backend/Host/Program.cs"]
 adrs: [ADR-0004, ADR-0006, ADR-0008, ADR-0019, ADR-0020]
 external: []
 size: M
@@ -39,7 +39,7 @@ Entrega o cliente do jogo Pipa em modo demo de ponta a ponta: o jogador entra pe
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0005 (apps servidos pelo Aspire) e SPEC-0006 (pacote `contracts`).
-- **Contratos consumidos:** SPEC-0007@1 (algoritmo e vetores para o verificador TS); SPEC-0008@1 (hub e REST de rodadas); SPEC-0009@1 (lançamento e sessão).
+- **Contratos consumidos:** SPEC-0007@2 (algoritmo e vetores para o verificador TS); SPEC-0008@2 (hub e REST de rodadas); SPEC-0009@1 (lançamento e sessão).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -113,8 +113,8 @@ Gancho de teste:  window.__APOGEU_TEST__ = { state(): RoundState }  (somente bui
 - **IT-01** — Dado o backend real subido pelo Aspire, quando o `game-sdk` (Node, sem navegador) troca um launchToken, conecta e acompanha uma rodada, então recebe snapshot, Betting, Flying e Crashed, e a store termina com o `crashPoint` do servidor.
 
 ### 7.4 Testes de Contrato
-- **CT-01** — Dado o contrato SPEC-0007@1 (vetores), quando o verificador TS recalcula todos os vetores, então os resultados são idênticos aos do C#.
-- **CT-02** — Dados os tipos gerados do hub (SPEC-0008@1), quando as mensagens reais de IT-01 são validadas em tempo de execução, então conferem.
+- **CT-01** — Dado o contrato SPEC-0007@2 (vetores), quando o verificador TS recalcula todos os vetores, então os resultados são idênticos aos do C#.
+- **CT-02** — Dados os tipos gerados do hub (SPEC-0008@2), quando as mensagens reais de IT-01 são validadas em tempo de execução, então conferem.
 - **CT-03** — Dados os tipos gerados de lançamento e sessão (SPEC-0009@1), quando o fluxo de IT-01 roda, então requisições e respostas conferem.
 
 ### 7.5 Testes E2E
@@ -180,7 +180,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — ? | 2026-10-07 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive" && pnpm -C src/frontend test` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/45]⎯) — 90d03d6 | 2026-10-09 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -235,3 +235,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0010`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v1 (inalterado) | 2026-10-09 | Emenda de escopo: `touches` inclui os testes do front (`tests/frontend/pipa/**`, `tests/frontend/integration/pipa/**`, `tests/frontend/arch/pipa-*`), `src/frontend/package.json`, `src/frontend/vitest.workspace.ts`, `src/backend/AppHost/Program.cs` (URL da API para o jogo) e `src/backend/Host/Program.cs` (CORS para a origem do jogo) | Os testes vivem onde o Vitest e o TestKit esperam; o esqueleto andante só funciona no Aspire com a URL da API injetada no jogo e CORS liberado | Nenhuma (contrato inalterado) | Architect — correção de escopo sem mudança de contrato, coberta pela autorização do usuário para seguir pelo recomendado (2026-10-09) |
+| v1 (inalterado) | 2026-10-09 | Pins revistos: SPEC-0007@2 (só acrescenta `GetCrashPointAsync`; vetores e algoritmo inalterados) e SPEC-0008@2 (`RoundSnapshot.current` definido; `crashPoint`/`revealedSeed` nulos até o crash; erros em ProblemDetails `code`; `rtp`/`growthK` como string decimal) | Emendas v2 das SPEC-0007 e SPEC-0008 | Nenhuma | Architect — revisão de consumidor, pela autorização do usuário (2026-10-09) |
