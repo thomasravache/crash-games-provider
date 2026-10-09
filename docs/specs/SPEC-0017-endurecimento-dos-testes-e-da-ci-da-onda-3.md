@@ -9,7 +9,7 @@ created: 2026-10-08
 parent: SPEC-0001
 depends_on: []
 consumes_contract: []
-touches: ["tests/backend/Contracts.Tests/**", "tests/ci/**", "tools/contracts/**", ".semgrepignore", "src/frontend/eslint.config.js", "src/frontend/package.json", ".github/workflows/ci.yml"]
+touches: ["tests/Directory.Build.props", "tests/**/packages.lock.json", "tools/contracts/HubContracts/packages.lock.json", "tests/backend/Contracts.Tests/**", "tests/ci/**", "tools/contracts/**", ".semgrepignore", "src/frontend/eslint.config.js", "src/frontend/package.json", ".github/workflows/ci.yml"]
 adrs: [ADR-0008, ADR-0011]
 external: []
 size: S
@@ -28,7 +28,7 @@ Achados minor/nit dos reviews G4 da onda 3 deixados fora do escopo: (1) testes c
 Contexto técnico: escopo das SPEC-0004 e SPEC-0006 fechado no G4; itens sem risco imediato.
 
 ## 3. Mudança Proposta
-Coleção xUnit única sem paralelismo (ou fixture compartilhada) para os testes com `WebApplicationFactory`; método de cliente com objeto/enum/data no hub de fixture; dois casos novos no UT-01; `.semgrepignore` (artifacts, coverage, node_modules, bin, obj, dist); `tools/contracts/*.mjs` no lint e format do front; aviso em stderr para tipos que não carregam; tratamento dos PRs do Dependabot no job `sdd` (ex.: `[no-spec]` via título configurado ou exceção para o autor dependabot); job `backend` com os testes em **etapas separadas no mesmo job** (um build só): (1) unitários + arquitetura (`Category!=Integration&Category!=Nightly&Category!=CiLive&Category!=Performance`), que para o job se falhar; (2) integração (`Category=Integration`); (3) performance (já existente, sem cobertura); a cobertura das etapas 1 e 2 vai para o mesmo diretório. Não muda contratos.
+Coleção xUnit única sem paralelismo (ou fixture compartilhada) para os testes com `WebApplicationFactory`; método de cliente com objeto/enum/data no hub de fixture; dois casos novos no UT-01; `.semgrepignore` (artifacts, coverage, node_modules, bin, obj, dist); `tools/contracts/*.mjs` no lint e format do front; aviso em stderr para tipos que não carregam; tratamento dos PRs do Dependabot no job `sdd` (ex.: `[no-spec]` via título configurado ou exceção para o autor dependabot); job `backend` com os testes em **etapas separadas no mesmo job** (um build só): (1) unitários + arquitetura (`Category!=Integration&Category!=Nightly&Category!=CiLive&Category!=Performance`), que para o job se falhar; (2) integração (`Category=Integration`); (3) performance (já existente, sem cobertura); a cobertura das etapas 1 e 2 vai para o mesmo diretório; `coverlet.collector` declarado uma vez em `tests/Directory.Build.props` para todo projeto de teste (`IsTestProject`), com os lock files atualizados, para a cobertura valer em Contracts.Tests, ServiceDefaults.Tests e AppHost.Tests (hoje só Architecture, Fairness e TestKit.Tests têm o coletor; os demais imprimem "Unable to find a datacollector with friendly name 'XPlat Code Coverage'" e não medem nada). Não muda contratos.
 
 **Padrão seguido:** testes existentes de `tests/backend/Contracts.Tests` e `tests/ci/Ci.Tests/Unit`.
 
@@ -41,6 +41,7 @@ Coleção xUnit única sem paralelismo (ou fixture compartilhada) para os testes
 - Caracterização: N/A — os testes atuais já cobrem o comportamento.
 - **UT-01** — Dado um workflow com `pull_request_target` ou `permissions: write-all`, quando `tools/ci/check-workflows` roda, então falha (novos casos do UT-01); dado um hub de fixture com método de cliente recebendo objeto com `Money`, `Multiplier`, data e enum, quando o contrato é gerado, então o TS tem `{ stake: Money; cashout: Multiplier; startedAt: string; phase: "betting" | "inFlight" }`.
 - **UT-02** — Dado `.github/workflows/ci.yml`, quando o job `backend` é lido, então tem as etapas unitários+arquitetura, integração e performance nessa ordem, cada uma com o filtro do §3, e a união dos filtros cobre todo teste fora de `Nightly` e `CiLive` (nenhum teste fica sem etapa).
+- **UT-03** — Dados todos os projetos de teste da solução (`IsTestProject=true`), quando suas referências de pacote são avaliadas, então todos têm `coverlet.collector`; e dado o comando `coverage` do sdd-config, quando roda, então a saída não contém "Unable to find a datacollector" e o relatório inclui os assemblies cobertos por Contracts.Tests, ServiceDefaults.Tests e AppHost.Tests.
 - Integração/E2E: N/A — mudanças de harness e CI cobertas pelos unitários e pelo próximo PR.
 
 ## 5. Questões em Aberto
@@ -118,3 +119,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
 | 1 | 2026-10-09 | Escopo: job `backend` em etapas (unitários+arquitetura → integração → performance) num único job, com UT-02 | Feedback mais rápido e falhas legíveis sem gastar minutos extras (pergunta do usuário sobre a CI do backend) | Nenhuma | thomas, 2026-10-09 (chat) |
+| 1 | 2026-10-09 | Escopo: `coverlet.collector` para todo projeto de teste via `tests/Directory.Build.props`, com UT-03 | Projetos sem o coletor não mediam cobertura (aviso "Unable to find a datacollector"), deixando o G2 subestimado no Contracts, ServiceDefaults e AppHost | Nenhuma | thomas, 2026-10-09 (chat) |
