@@ -27,7 +27,7 @@ public sealed class FairnessVectorsContractTests
     public void GivenTamperedVectorWhenValidatedAgainstSchemaThenItIsRejected()
     {
         var document = JsonNode.Parse(File.ReadAllText(FairnessVectors.VectorsPath))!;
-        var first = document["vectors"]![0]!.AsObject();
+        var first = document[0]!.AsObject();
         first["seed"] = first["seed"]!.GetValue<string>().ToUpperInvariant();
         first.Remove("crashPoint");
         using var tampered = JsonDocument.Parse(document.ToJsonString());

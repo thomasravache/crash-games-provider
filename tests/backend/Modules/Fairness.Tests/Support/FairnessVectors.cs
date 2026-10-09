@@ -13,7 +13,7 @@ internal static class FairnessVectors
     public static IReadOnlyList<FairnessVector> All()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(VectorsPath));
-        return [.. document.RootElement.GetProperty("vectors").EnumerateArray().Select(Read)];
+        return [.. document.RootElement.EnumerateArray().Select(Read)];
     }
 
     /// <summary>The vectors as theory rows (description, seed, previousSeed, salt, rtp, cap, crashPoint).</summary>
