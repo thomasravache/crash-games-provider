@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0010, SPEC-0024]
-consumes_contract: [SPEC-0020@1, SPEC-0021@2, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1]
+consumes_contract: [SPEC-0020@1, SPEC-0021@3, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1]
 contract_version: 3
 touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021]
@@ -30,6 +30,7 @@ Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com val
 - `game-sdk`: cliente do hub `/hubs/bets` e da API de carteira/histórico, store das apostas e do saldo (servidor como fonte da verdade; valores sempre como `Money` em string).
 - `game-ui`: dois painéis conforme o design "Pipa Crash" do Stitch, com estados por fase, validação local pelos limites (o servidor decide), mensagens de erro em pt-BR, saldo e recarga (abas de apostas: SPEC-0031).
 - Integração no HUD do `game-pipa`, substituindo o painel desabilitado da SPEC-0010.
+- Tique sonoro suave nos 3 últimos segundos da fase de apostas, pelo `GameAudio` da SPEC-0018 (o HUD conhece o prazo) — vindo da SPEC-0018 (Emenda; teste no UT-07 junto do tremor).
 - No crash, o texto "PIPA CORTADA!" do HUD treme por ≤ 300 ms (exceto com movimento reduzido) — vindo da SPEC-0011 (Emenda v3).
 - Acessibilidade WCAG 2.2 AA no painel (rótulos, foco, anúncios `aria-live` de aposta aceita, retirada e perda).
 
@@ -38,7 +39,7 @@ Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com val
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0010 (cliente da Pipa, sessão, store da rodada).
-- **Contratos consumidos:** SPEC-0020@1 (limites), SPEC-0021@2 (saldo e recarga), SPEC-0022@1 (apostar e cancelar), SPEC-0023@1 (cash-out), SPEC-0024@1 (eventos de liquidação), SPEC-0025@1 (apostas ao vivo e histórico).
+- **Contratos consumidos:** SPEC-0020@1 (limites), SPEC-0021@3 (saldo e recarga), SPEC-0022@1 (apostar e cancelar), SPEC-0023@1 (cash-out), SPEC-0024@1 (eventos de liquidação), SPEC-0025@1 (apostas ao vivo e histórico).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -74,7 +75,7 @@ Painel (por painel 1 e 2)
   Erros do servidor (código → mensagem pt-BR): BET_BELOW_MIN, BET_ABOVE_MAX, INSUFFICIENT_FUNDS, PANEL_BUSY,
     CANCEL_NOT_ALLOWED, CASHOUT_TOO_LATE ("Cash-out tardio: a pipa já tinha sido cortada"), WALLET_UNAVAILABLE
 Saldo: "R$ 2.990,00 · DEMO"; botão "Recarregar demo" visível só quando saldo < aposta mínima
-Reconexão: saldo relido da carteira (SPEC-0021@2) e apostas abertas relidas de GET /api/v1/me/bets (SPEC-0025@1)
+Reconexão: saldo relido da carteira (SPEC-0021@3) e apostas abertas relidas de GET /api/v1/me/bets (SPEC-0025@1)
 Store (game-sdk/state): BetsState { panels:[PanelState, PanelState], balance:Money, limits }
 Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 ```
