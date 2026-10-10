@@ -207,6 +207,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
 | IMP-01 | 2026-10-10 | G5 | spec | check-licenses reprova gsap 3.15.0 (Standard 'no charge' license): o ADR-0021 escolheu o GSAP com essa licença, mas a lista permitida do ADR-0016/ADR-0022 não a inclui | security_scan do G5 no resultado integrado (0133114); verificado que gitleaks, NuGet, pnpm audit e Semgrep passam | Architect: emenda do ADR-0022 e escopo da SPEC-0011 para tools/ci/check-licenses | Emenda do ADR-0022 (GSAP Standard License só para o pacote gsap) e de escopo da SPEC-0011; regressão b8e536e (red) e correção f7aa68a no check-licenses; check-licenses no workspace real: 0 problemas | 2026-10-10 |
+| IMP-02 | 2026-10-10 | G5 | spec | E2E-01 (quadros-chave) falha fora do Linux: as imagens aprovadas são do runner Linux da CI (§7.6) e o macOS não tem imagem de referência; o test_e2e local do G5 reprova | run-e2e.sh completo em a7331d6: 23 passam, 6 E2E-01 falham por imagem inexistente (darwin); no Linux da CI os 11 pipa-visual passam (run 37994294212) | Test-writer: E2E-01 roda só no Linux, pulado com motivo nos demais; a CI continua comparando |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
