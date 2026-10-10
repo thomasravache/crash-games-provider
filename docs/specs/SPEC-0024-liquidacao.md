@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0023]
-consumes_contract: [SPEC-0021@2]
+consumes_contract: [SPEC-0021@3]
 contract_version: 1
 touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**"]
 adrs: [ADR-0002, ADR-0007, ADR-0010, ADR-0017, ADR-0018]
@@ -37,7 +37,7 @@ Fecha cada rodada: no crash, apostas ativas sem cash-out viram perdidas; numa ro
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0023 (cash-out e créditos).
-- **Contratos consumidos:** SPEC-0021@2 (estorno idempotente).
+- **Contratos consumidos:** SPEC-0021@3 (estorno idempotente).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural

@@ -58,10 +58,10 @@ flowchart LR
 |---|---|---|---|---|---|---|
 | SPEC-0020 | Catálogo de jogos e limites por operador e moeda | full | feature | M | SPEC-0009 | — |
 | SPEC-0021 | Carteira demo, livro-razão e contrato da carteira do operador | full | feature | M | SPEC-0009, SPEC-0020 | SPEC-0020@1 |
-| SPEC-0022 | Apostar, aposta dupla e cancelamento | full | feature | M | SPEC-0008, SPEC-0009 | SPEC-0020@1, SPEC-0021@2 |
-| SPEC-0023 | Cash-out manual e automático | full | feature | M | SPEC-0022 | SPEC-0020@1, SPEC-0021@2 |
-| SPEC-0024 | Liquidação da rodada e estorno | full | feature | M | SPEC-0023 | SPEC-0021@2 |
-| SPEC-0025 | Apostas ao vivo e histórico pessoal | full | feature | M | SPEC-0024 | SPEC-0021@2 |
+| SPEC-0022 | Apostar, aposta dupla e cancelamento | full | feature | M | SPEC-0008, SPEC-0009 | SPEC-0020@1, SPEC-0021@3 |
+| SPEC-0023 | Cash-out manual e automático | full | feature | M | SPEC-0022 | SPEC-0020@1, SPEC-0021@3 |
+| SPEC-0024 | Liquidação da rodada e estorno | full | feature | M | SPEC-0023 | SPEC-0021@3 |
+| SPEC-0025 | Apostas ao vivo e histórico pessoal | full | feature | M | SPEC-0024 | SPEC-0021@3 |
 | SPEC-0026 | Painel de aposta da Pipa | full | feature | M | SPEC-0010, SPEC-0024 | SPEC-0020@1 … SPEC-0025@1 |
 | SPEC-0031 | Abas de apostas da Pipa | lite | feature | S | SPEC-0025, SPEC-0026 | SPEC-0025@1 |
 
