@@ -8,7 +8,7 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0008, SPEC-0009]
-consumes_contract: [SPEC-0020@1, SPEC-0021@2]
+consumes_contract: [SPEC-0020@1, SPEC-0021@3]
 contract_version: 1
 touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/Rounds.Contracts/**", "src/backend/Modules/Rounds/Rounds.Features/Conductor/**", "src/backend/Host/Program.cs"]
 adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0007, ADR-0008, ADR-0010, ADR-0015, ADR-0019]
@@ -38,7 +38,7 @@ Implementa o módulo Betting para aceitar apostas: até duas apostas por jogador
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0008 (motor e salas) e SPEC-0009 (sessão do jogador, hub autenticado).
-- **Contratos consumidos:** SPEC-0020@1 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@2 (`IOperatorWallet`: débito e estorno idempotentes).
+- **Contratos consumidos:** SPEC-0020@1 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@3 (`IOperatorWallet`: débito e estorno idempotentes).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -250,3 +250,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0022`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-10 | Esclarecimentos: o "limite da sala" do AUTO_CASHOUT_INVALID é o cap da sala no Rounds (o mesmo valor que o motor usa e persiste por rodada), não o padrão do catálogo; o débito de aposta queued vai com RoundId nulo (SPEC-0021@3); TransactionIds montados como `bet:{betId}:debit|rollback`; o IT-01 de saldo insuficiente usa um segundo jogador com saldo baixo no dublê da carteira (com a carteira real, o caso fica coberto pela SPEC-0021) | G1 do Test-writer: origem do limite da sala e RoundId do débito queued não definidos | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
