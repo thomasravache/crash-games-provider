@@ -1,8 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- Dependency injection and logging of the host. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Wallet.Contracts/Wallet.Contracts.csproj" />
     <ProjectReference Include="../Wallet.Domain/Wallet.Domain.csproj" />
+    <!-- Minimum bet per operator and currency (IOperatorLimits, SPEC-0020@1) for the demo recharge. -->
+    <ProjectReference Include="../../Operators/Operators.Contracts/Operators.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
