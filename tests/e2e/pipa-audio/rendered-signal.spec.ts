@@ -79,10 +79,14 @@ test("SPEC-0018:UT-05 sinal renderizado no Chromium (OfflineAudioContext real): 
           run();
         });
       };
+      // unlock() resumes the context itself: an OfflineAudioContext then renders ahead at once, so it gets a step of
+      // its own and nothing is scheduled after it in the same step (a deterministic harness).
       at(0, () => {
         audio.setMuted(false);
         audio.setVolume(1);
         void audio.unlock();
+      });
+      at(0.01, () => {
         audio.takeoff(Date.now());
         audio.setMultiplier(1);
       });
