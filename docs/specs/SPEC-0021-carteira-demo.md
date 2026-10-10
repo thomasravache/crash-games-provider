@@ -200,7 +200,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:02.01]     Dada uma falha transitória do banco durante um débito, quando ) — 963fe9f | 2026-10-10 |
 | G2 Green | PASS | build exit 0 (✓ built in 151ms); test exit 0 (Duration  1.35s (tests 67%, transform 20%, import 11%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T20:31:25: Report generation took 0,5 seconds) — 7e48e0d | 2026-10-10 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  767ms (tests 97%, transform 2%, import 1%)) — 7e48e0d | 2026-10-10 |
-| G4 Review | PENDING | | |
+| G4 Review | FAIL | CHANGES_REQUESTED (2ª revisão, 7e48e0d): FindRollbackOfAsync com corpo padrão + fallback no id fixo esconde estorno duplo nos dublês e a garantia no banco não tem teste; IsTransient amplo (erros permanentes e cancelamento viram Unavailable); round trips extras no estorno; estorno com id colidindo de outro tipo | 2026-10-10 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
