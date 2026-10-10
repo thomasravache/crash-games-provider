@@ -8,7 +8,7 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0009, SPEC-0020]
-consumes_contract: [SPEC-0020@1]
+consumes_contract: [SPEC-0020@2]
 contract_version: 4
 touches: ["src/backend/Modules/Wallet/**", "tests/backend/Modules/Wallet.Tests/**", "docs/integration/**"]
 adrs: [ADR-0007, ADR-0001, ADR-0002, ADR-0010, ADR-0014, ADR-0015, ADR-0018]
