@@ -10,7 +10,7 @@ parent: SPEC-0001
 depends_on: [SPEC-0011]
 consumes_contract: [SPEC-0010@1]
 contract_version: 1
-touches: ["src/frontend/packages/scene-kit/src/audio/**", "src/frontend/apps/game-pipa/src/audio/**", "src/frontend/apps/game-pipa/public/audio/**", "src/frontend/packages/game-ui/src/sound/**", "tests/e2e/pipa-audio/**", "tests/frontend/pipa/audio/**"]
+touches: ["src/frontend/packages/scene-kit/src/audio/**", "src/frontend/apps/game-pipa/src/audio/**", "src/frontend/apps/game-pipa/public/audio/**", "src/frontend/packages/game-ui/src/sound/**", "tests/e2e/pipa-audio/**", "tests/frontend/pipa/audio/**", "src/frontend/packages/scene-kit/src/index.ts", "src/frontend/packages/game-ui/src/index.ts", "src/frontend/packages/game-ui/src/hud.tsx", "src/frontend/apps/game-pipa/src/App.tsx", "src/frontend/apps/game-pipa/src/main.tsx", "src/frontend/.dependency-cruiser.cjs"]
 adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021, ADR-0024]
 external: []
 size: M
@@ -29,7 +29,7 @@ Dá som à rodada da Pipa com **custo zero**: vento que cresce com o multiplicad
 **Objetivos (dentro do escopo) — roteiro sonoro da rodada:**
 | Fase | Som | Comportamento |
 |---|---|---|
-| **Apostas** | vento leve em loop (ruído filtrado) | volume baixo e constante; contagem regressiva com tique suave nos 3 últimos segundos |
+| **Apostas** | vento leve em loop (ruído filtrado) | volume baixo e constante (o tique da contagem fica para a SPEC-0026, que conhece o prazo das apostas — Emenda) |
 | **Decolagem** | puxão/whoosh curto | ≤ 600 ms, acompanha o `takeoff` da cena |
 | **Voo** | vento cresce com o multiplicador; tom de tensão da linha sobe com log(m) | contínuo; marcos tocam um toque cuja altura sobe a cada marco, uma vez por rodada |
 | **Crash** | estalo seco da linha + queda descendente; corta o vento e a tensão | estalo ≤ 150 ms; queda ≤ 1,5 s; depois silêncio até o recomeço |
@@ -249,4 +249,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0018`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-10 | Escopo para ligar o som ao jogo: exports de `scene-kit` e `game-ui`, `hud.tsx` (botão de som), `App.tsx`/`main.tsx` (montagem, desbloqueio no primeiro gesto, gancho de teste) e `.dependency-cruiser.cjs` (regra do ADR-0024: só o scene-kit usa AudioContext). O tique da contagem nos 3 últimos segundos sai desta spec (o `GameAnimator`/`GameAudio` não recebe o prazo das apostas, como na SPEC-0011) e vira pendência da SPEC-0026. Esclarecimentos confirmados do contrato do Test-writer: `unlock(): Promise<void>` cria o contexto só no desbloqueio; opções `{createContext?, storage?, visibility?}`; "mudo" prevalece nos estados; nada no `cueLog` antes do desbloqueio, com mudo ou aba oculta; deixas wind/tick/takeoff/tension/milestone/snap/fall/silence/restart; ganho mestre é o único nó ligado ao destino; marco perdido com a aba oculta não é tocado depois; roteiro do crash agendado no relógio de áudio; regra de 6 dB comparando picos de deixas consecutivas (unitário) e RMS de janelas de 50 ms acima de −50 dBFS (renderizado) | G1 do Test-writer: arquivos de integração fora do `touches` e o tique sem prazo no contrato | SPEC-0026 (tique da contagem) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
 | 1 (inalterado) | 2026-10-10 | Escopo: `tests/frontend/pipa/audio/**` (UT e CT no Vitest). §7.6: no Vitest (Node, sem Web Audio) os UT/CT usam um dublê escrito à mão de `OfflineAudioContext`/`AudioParam` que registra a automação (curvas de ganho, agendamentos) e o UT-05 verifica a curva agendada (pico ≤ 0,8, nenhum degrau > 6 dB); a verificação do sinal renderizado de verdade roda uma vez no Chromium (`OfflineAudioContext` real via `page.evaluate`) em `tests/e2e/pipa-audio/**`, sob a tag do UT-05. Sem pacote novo (ADR-0024). IT-01 e E2E-04 restritos ao Chromium no próprio arquivo | IMP-01: Test-writer — Vitest descobre só `tests/frontend` e o Node não tem `OfflineAudioContext` | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
