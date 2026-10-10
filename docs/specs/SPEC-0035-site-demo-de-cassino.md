@@ -6,7 +6,7 @@ type: feature
 status: proposed
 created: 2026-10-10
 depends_on: [SPEC-0019]
-adrs: [ADR-0001, ADR-0007, ADR-0009, ADR-0025]
+adrs: [ADR-0001, ADR-0007, ADR-0009, ADR-0025, ADR-0027]
 external: []
 approved_by:
 approved_at:
@@ -41,10 +41,11 @@ Navegador → demo-site (React) → BFF do cassino (assina HMAC) → API Apogeu 
 <!-- Uma linha por spec filha. As colunas de dependência são informativas: a fonte da verdade é o frontmatter de cada filha. -->
 | Spec | Título | Tier | Tipo | Tamanho | Depende de | Consome contrato de |
 |---|---|---|---|---|---|---|
-| (a criar após Q1–Q3) | Entrada e sessão do cassino | full | feature | M | SPEC-0009 | — |
-| (a criar) | Lobby com catálogo | full | feature | M | SPEC-0020 | — |
-| (a criar) | Página do jogo e lançamento assinado | full | feature | M | SPEC-0026 | — |
-| (a criar, se Q3 = carteira do cassino) | Carteira do cassino (contrato do operador) | full | feature | M | SPEC-0021 | — |
+| SPEC-0043 | Backend do cassino e entrada | full | feature | M | SPEC-0009 | SPEC-0009@1 |
+| SPEC-0044 | Lobby com o catálogo da Apogeu | full | feature | M | SPEC-0043, SPEC-0020 | SPEC-0020@1 |
+| SPEC-0045 | Página do jogo com lançamento assinado | full | feature | M | SPEC-0044 | SPEC-0009@1 |
+| SPEC-0046 | Carteira seamless: adaptador HTTP da Apogeu | full | feature | M | SPEC-0021, SPEC-0024 | SPEC-0021@4 |
+| SPEC-0047 | Carteira própria do cassino (seamless) | full | feature | M | SPEC-0045, SPEC-0046 | SPEC-0021@4 |
 
 ## 5. Estratégia de Entrega
 - **Ambientes:** local (Aspire) até a SPEC-0012.
@@ -59,7 +60,10 @@ Navegador → demo-site (React) → BFF do cassino (assina HMAC) → API Apogeu 
 
 ## 7. Critérios de Aceite do Épico
 <!-- Verificáveis ponta a ponta. Cada critério cita o teste que o prova (`SPEC-NNNN:E2E-01`; IT para critérios que não são jornada). O épico só fecha com todos marcados e todas as filhas implemented/deprecated. -->
-- [ ] Os critérios de aceite são escritos com as filhas, após as respostas de Q1–Q3.
+- [ ] O jogador entra no cassino demo, escolhe a Pipa no lobby e joga no iframe com lançamento assinado — SPEC-0043:E2E-01, SPEC-0044:E2E-01, SPEC-0045:E2E-01
+- [ ] Nenhum segredo HMAC chega ao navegador e o cassino não referencia código da Apogeu — SPEC-0043:UT-02, SPEC-0043:UT-03
+- [ ] Com a carteira própria, o saldo do cassino reflete apostas e cash-outs — SPEC-0047:E2E-01
+- [ ] O adaptador seamless resiste a operador fora do ar sem duplicar créditos — SPEC-0046:IT-03, SPEC-0046:IT-04
 
 ## 8. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento. -->

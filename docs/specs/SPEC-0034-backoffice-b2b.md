@@ -6,7 +6,7 @@ type: feature
 status: proposed
 created: 2026-10-10
 depends_on: [SPEC-0019]
-adrs: [ADR-0001, ADR-0009, ADR-0015, ADR-0020, ADR-0025]
+adrs: [ADR-0001, ADR-0009, ADR-0015, ADR-0020, ADR-0025, ADR-0026]
 external: []
 approved_by:
 approved_at:
@@ -42,13 +42,13 @@ Leituras agregadas (painel, relatórios) vêm do **resumo imutável por rodada e
 <!-- Uma linha por spec filha. As colunas de dependência são informativas: a fonte da verdade é o frontmatter de cada filha. -->
 | Spec | Título | Tier | Tipo | Tamanho | Depende de | Consome contrato de |
 |---|---|---|---|---|---|---|
-| (a criar após Q1–Q5) | Shell, login e papéis | full | feature | M | SPEC-0009 | — |
-| (a criar) | Painel | full | feature | M | SPEC-0024 | — |
-| (a criar) | Operadores e chaves | full | feature | M | SPEC-0020 | — |
-| (a criar) | Catálogo e limites | full | feature | M | SPEC-0020 | — |
-| (a criar) | Rodadas e auditoria | full | feature | M | SPEC-0024 | — |
-| (a criar) | Apostas | full | feature | M | SPEC-0025 | — |
-| (a criar) | Relatórios | full | feature | M | SPEC-0024 | — |
+| SPEC-0036 | Shell, login, papéis e trilha de auditoria | full | feature | M | SPEC-0009 | — |
+| SPEC-0037 | Painel de desempenho | full | feature | M | SPEC-0036, SPEC-0024 | SPEC-0024@1 |
+| SPEC-0038 | Operadores, chaves e comissão | full | feature | M | SPEC-0036, SPEC-0020 | — |
+| SPEC-0039 | Catálogo e limites por operador | full | feature | M | SPEC-0036, SPEC-0020 | SPEC-0020@1 |
+| SPEC-0040 | Rodadas e auditoria provably fair | full | feature | M | SPEC-0036, SPEC-0024 | SPEC-0024@1 |
+| SPEC-0041 | Busca de apostas | full | feature | M | SPEC-0036, SPEC-0024 | SPEC-0024@1, SPEC-0021@4 |
+| SPEC-0042 | Relatórios e fechamento mensal | full | feature | M | SPEC-0036, SPEC-0038, SPEC-0024 | SPEC-0024@1 |
 
 ## 5. Estratégia de Entrega
 - **Ambientes:** local (Aspire) até a SPEC-0012.
@@ -63,7 +63,13 @@ Leituras agregadas (painel, relatórios) vêm do **resumo imutável por rodada e
 
 ## 7. Critérios de Aceite do Épico
 <!-- Verificáveis ponta a ponta. Cada critério cita o teste que o prova (`SPEC-NNNN:E2E-01`; IT para critérios que não são jornada). O épico só fecha com todos marcados e todas as filhas implemented/deprecated. -->
-- [ ] Os critérios de aceite são escritos com as filhas, após as respostas de Q1–Q5.
+- [ ] Admin entra por SSO e vê o shell com a identidade Apogeu nos temas claro e escuro — SPEC-0036:E2E-01, SPEC-0036:E2E-02
+- [ ] Usuário de operador vê só os próprios dados em todas as telas — SPEC-0036:IT-02, SPEC-0037:IT-03, SPEC-0041:IT-03, SPEC-0042:IT-03
+- [ ] Toda alteração fica na trilha de auditoria imutável — SPEC-0036:IT-03, SPEC-0036:IT-04
+- [ ] O painel mostra os mesmos totais do resumo das rodadas — SPEC-0037:E2E-01
+- [ ] Admin rotaciona a chave de um operador e altera limites que passam a valer no jogo — SPEC-0038:E2E-01, SPEC-0039:E2E-01
+- [ ] Suporte audita uma rodada e encontra uma aposta com suas transações — SPEC-0040:E2E-01, SPEC-0041:E2E-01
+- [ ] Financeiro gera o fechamento mensal com a comissão correta — SPEC-0042:E2E-01
 
 ## 8. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento. -->
