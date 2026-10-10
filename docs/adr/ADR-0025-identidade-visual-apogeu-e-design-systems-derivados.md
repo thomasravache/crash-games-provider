@@ -37,6 +37,8 @@ A Apogeu vai a mercado como provedor B2B, mas ainda não tem identidade visual: 
 
 **Paleta base (escuro):** fundo #0B1426; superfícies #111C33, #17233D, #1F2C4A; marca/ação #E0A526 (hover #C98F14, texto sobre ela #0B1426); secundária #5B7FD6; sucesso #2EB67D; erro #E5484D; alerta #F2A33A; informação/provably fair #22B8CF; texto #F2F5FA / #A3B1C9 / #66758F. A variante clara deriva destes tokens com o mesmo contraste mínimo.
 
+**Símbolo:** **Arco** (escolha de thomas em 2026-10-10, entre Arco, Zênite e Pico): uma curva fina subindo da esquerda e terminando num ponto dourado #E0A526 — a curva do multiplicador do crash chegando ao apogeu. Versões: logotipo horizontal (símbolo + "Apogeu Games" em Inter semibold), ícone quadrado (app/favicon) e monocromática branca. Prancha de referência no Stitch: screens/9168bb71fb444dcca5762a9767fb6e44.
+
 **Regras (verificáveis), valem para qualquer opção:**
 - Uma identidade Apogeu (paleta, tipografia, regras) e três aplicações derivadas: backoffice (sóbrio, denso, claro e escuro), lobby do site demo de cassino (neutro, destaca os jogos) e materiais comerciais. Cada jogo mantém tema próprio.
 - A cor da marca é usada só para ação principal, marca e navegação ativa; nunca para indicar valor positivo.
