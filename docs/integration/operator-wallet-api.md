@@ -1,7 +1,7 @@
 # API de carteira do operador (Apogeu) — v1
 
 > Contrato público da **carteira transparente** (seamless wallet) que o cassino implementa para jogar os crash games
-> Apogeu com saldo real. Origem: SPEC-0021 §6 (contrato v3), ADR-0007 (carteira transparente + livro-razão), assinatura
+> Apogeu com saldo real. Origem: SPEC-0021 §6 (contrato v4), ADR-0007 (carteira transparente + livro-razão), assinatura
 > da SPEC-0009 (ADR-0015). O adaptador HTTP do lado Apogeu ainda não está publicado; o modo demo já usa a mesma porta.
 
 ## 1. Modelo
@@ -65,7 +65,7 @@ integração operador → Apogeu, SPEC-0009):
 | `playerId` | string | ID pseudônimo do jogador que **você** enviou no lançamento; nenhum dado pessoal (ADR-0014). |
 | `currency` | string | Código ISO 4217 (por exemplo `BRL`). |
 | `amount` | string decimal | Valor positivo com duas casas, como string (`"10.00"`), nunca número de ponto flutuante. Ausente em `balance` e em `rollback` (o estorno devolve exatamente o valor do débito original). |
-| `roundId` | string (GUID) ou `null` | Rodada da aposta. **`roundId` nulo no débito de aposta para a próxima rodada** (aposta enfileirada, cuja rodada ainda não existe). Crédito e estorno sempre levam a rodada. Ausente em `balance`. |
+| `roundId` | string (GUID) ou `null` | Rodada da aposta. **`roundId` nulo no débito de aposta para a próxima rodada e no estorno desse débito** (aposta enfileirada, cuja rodada ainda não existe). O crédito sempre leva a rodada. Ausente em `balance`. |
 | `betId` | string (GUID) | Aposta a que a operação pertence. Ausente em `balance`. |
 | `originalTransactionId` | string | Só em `rollback`: o `transactionId` do débito a estornar (`bet:{betId}:debit`). |
 
