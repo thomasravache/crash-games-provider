@@ -1,3 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <!-- Error codes of the hub contract (SPEC-0022 §6). -->
+    <ProjectReference Include="../Betting.Contracts/Betting.Contracts.csproj" />
+    <!-- Shared scalars OperatorId, PlayerId and Currency (SPEC-0020) and RoundId of the Rounds contract (ADR-0001: only Contracts). -->
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
+    <ProjectReference Include="../../Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>

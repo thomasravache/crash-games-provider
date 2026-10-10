@@ -12,6 +12,17 @@
         "type": "Project"
       },
       "Apogeu.Betting.Domain": {
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Betting.Contracts": "[1.0.0, )",
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
+          "Apogeu.Rounds.Contracts": "[1.0.0, )"
+        }
+      },
+      "Apogeu.BuildingBlocks": {
+        "type": "Project"
+      },
+      "Apogeu.Rounds.Contracts": {
         "type": "Project"
       }
     }
