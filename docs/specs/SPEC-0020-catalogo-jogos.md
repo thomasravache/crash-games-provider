@@ -180,7 +180,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  3.63s (tests 99%, transform 1%)) — 17d1bc9 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 17d1bc9 — 0 blocker/major; minors: GET /games sem anti-replay e rate limit, contador operators.launch_rejected sem teste e em dobro, isolamento entre operadores sem IT, versão do cache por processo, numeric(18,2), Load síncrono — 38acd95 | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 153ms); test exit 0 (Duration  1.33s (tests 67%, transform 20%, import 11%, worker 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 3 m 36 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  817ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 294 files: 0 findings.) — 38a1eb3 | 2026-10-10 |
-| H2 Integração aprovada | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-10 |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
 
