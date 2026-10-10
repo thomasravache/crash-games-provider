@@ -198,7 +198,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  802ms (tests 97%, transform 2%, import 1%)) — 6cd9827 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em c815b4f — 0 blocker/major; minors: freeze/effectsLog no chunk de produção (inacessíveis), constante de crescimento duplicada, buffers de teste sem teto, gatilho do visual-baselines além da Emenda e browsers extras, suíte de contrato do GameAnimator criada aqui, comentário longo — c815b4f | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 147ms); test exit 0 (Duration  1.36s (tests 67%, transform 21%, import 11%, worker 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /Users/thomas/dev/repo); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  802ms (tests 96%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 294 files: 0 findings.) — 6d7a6e2 | 2026-10-10 |
-| H2 Integração aprovada | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-10 |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
 
