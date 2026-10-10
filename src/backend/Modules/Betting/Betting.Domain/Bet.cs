@@ -1,8 +1,7 @@
+using Apogeu.Betting.Contracts;
 using Apogeu.Rounds.Contracts;
 
 namespace Apogeu.Betting.Domain;
-
-#pragma warning disable MA0025 // Scaffold of SPEC-0022 (no logic yet): implemented in the green phase.
 
 /// <summary>
 /// A bet of a player in one panel (SPEC-0022 §6). A bet received before <c>BettingEndsAt</c> of the room's round (server
@@ -11,6 +10,12 @@ namespace Apogeu.Betting.Domain;
 /// </summary>
 public sealed class Bet
 {
+    /// <summary>The smallest automatic cash-out accepted (SPEC-0022 §4).</summary>
+    public const decimal MinAutoCashOut = 1.01m;
+
+    /// <summary>The largest number of decimal places of an amount (SPEC-0022 §4).</summary>
+    private const int AmountScale = 2;
+
     private Bet(Guid id, BetOwner owner, BetRequest request, BetStatus status, RoundId? roundId, long? roundNumber)
     {
         Id = id;
@@ -59,22 +64,125 @@ public sealed class Bet
         BetRules rules,
         RoundWindow? current,
         DateTimeOffset now,
-        IReadOnlyCollection<Bet> openBets) =>
-        throw new NotImplementedException();
+        IReadOnlyCollection<Bet> openBets)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(rules);
+        ArgumentNullException.ThrowIfNull(openBets);
+        if (request.Panel is not (1 or 2))
+        {
+            throw new ArgumentOutOfRangeException(nameof(request), request.Panel, "The panel of a bet is 1 or 2.");
+        }
+
+        if (Validate(request, rules) is { } code)
+        {
+            return new BetPlacementRejected(code);
+        }
+
+        // The phase boundary is the server clock: a bet received at BettingEndsAt is already for the next round.
+        var bet = current is { Phase: RoundPhase.Betting } open && now < open.BettingEndsAt
+            ? new Bet(betId, owner, request, BetStatus.Placed, open.RoundId, open.RoundNumber)
+            : new Bet(betId, owner, request, BetStatus.Queued, roundId: null, roundNumber: null);
+
+        return openBets.Any(bet.SharesPanelWith)
+            ? new BetPlacementRejected(BettingErrorCodes.PanelBusy)
+            : new BetPlacementAccepted(bet);
+    }
+
+    /// <summary>
+    /// Rebuilds a bet already accepted (persistence): no rule is checked again.
+    /// </summary>
+    public static Bet Restore(
+        Guid id,
+        BetOwner owner,
+        BetRequest request,
+        BetStatus status,
+        RoundId? roundId,
+        long? roundNumber)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentNullException.ThrowIfNull(request);
+        return new Bet(id, owner, request, status, roundId, roundNumber);
+    }
 
     /// <summary>
     /// The room opened the bets of <paramref name="opened"/>: a queued bet becomes placed in it (the player gets
     /// <c>BetActivated</c>). Returns whether the bet changed.
     /// </summary>
-    public bool Activate(RoundWindow opened) => throw new NotImplementedException();
+    public bool Activate(RoundWindow opened)
+    {
+        ArgumentNullException.ThrowIfNull(opened);
+        if (Status != BetStatus.Queued)
+        {
+            return false;
+        }
+
+        Status = BetStatus.Placed;
+        RoundId = opened.RoundId;
+        RoundNumber = opened.RoundNumber;
+        return true;
+    }
 
     /// <summary>The flight of <paramref name="roundId"/> started: a bet placed in it becomes active.</summary>
-    public void StartFlight(RoundId roundId) => throw new NotImplementedException();
+    public void StartFlight(RoundId roundId)
+    {
+        if (Status == BetStatus.Placed && RoundId == roundId)
+        {
+            Status = BetStatus.Active;
+        }
+    }
 
     /// <summary>
     /// Cancels the bet with its full amount refunded while it is queued, or placed in a round whose flight has not started;
     /// otherwise <c>CANCEL_NOT_ALLOWED</c>.
     /// </summary>
-    public BetCancellation Cancel(RoundWindow? current, DateTimeOffset now) => throw new NotImplementedException();
+    public BetCancellation Cancel(RoundWindow? current, DateTimeOffset now)
+    {
+        var allowed = Status switch
+        {
+            BetStatus.Queued => true,
+            BetStatus.Placed => current is { Phase: RoundPhase.Betting } open && open.RoundId == RoundId && now < open.BettingEndsAt,
+            _ => false,
+        };
+        if (!allowed)
+        {
+            return new BetCancellationRejected(BettingErrorCodes.CancelNotAllowed);
+        }
+
+        Status = BetStatus.Cancelled;
+        return new BetCancellationAccepted(Amount);
+    }
+
+    private static string? Validate(BetRequest request, BetRules rules)
+    {
+        if (request.Amount <= 0 || decimal.Round(request.Amount, AmountScale) != request.Amount)
+        {
+            return BettingErrorCodes.InvalidAmount;
+        }
+
+        if (request.Amount < rules.MinBet)
+        {
+            return BettingErrorCodes.BetBelowMin;
+        }
+
+        if (request.Amount > rules.MaxBet)
+        {
+            return BettingErrorCodes.BetAboveMax;
+        }
+
+        return request.AutoCashOut is { } autoCashOut && (autoCashOut < MinAutoCashOut || autoCashOut > rules.MaxAutoCashOut)
+            ? BettingErrorCodes.AutoCashOutInvalid
+            : null;
+    }
+
+    /// <summary>
+    /// Whether this new bet takes the panel of <paramref name="other"/>: a non-final bet of the same player in the same panel
+    /// for the same round, or, for a queued bet, another queued bet (both for the next round).
+    /// </summary>
+    private bool SharesPanelWith(Bet other) =>
+        other.Owner == Owner
+        && other.Panel == Panel
+        && other.Status != BetStatus.Cancelled
+        && (Status == BetStatus.Queued ? other.Status == BetStatus.Queued : other.RoundId == RoundId);
 }
-#pragma warning restore MA0025
