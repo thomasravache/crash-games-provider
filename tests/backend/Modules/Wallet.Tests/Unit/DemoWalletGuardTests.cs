@@ -149,5 +149,130 @@ public sealed class DemoWalletGuardTests
         Assert.Equal(ActivityStatusCode.Error, activity.Status);
     }
 
+    public static TheoryData<string> PermanentSqlStates => [PostgresErrorCodes.NumericValueOutOfRange, PostgresErrorCodes.UndefinedTable];
+
+    public static TheoryData<bool> Cancellations => [false, true];
+
+    public static TheoryData<string> OtherKinds => ["debit", "credit"];
+
+    [Fact(DisplayName = "Dado um débito de 10,00, quando o primeiro estorno tem id qualquer e o segundo o id determinístico bet:{betId}:rollback, então devolve uma única vez e o segundo é Duplicate do primeiro")]
+    [Trait("Spec", "SPEC-0021:UT-06")]
+    public async Task GivenArbitraryIdRollbackFirstWhenDeterministicRollbackArrivesThenRefundOnce()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var player = NewPlayer();
+        var bet = Guid.NewGuid();
+        AssertOk(await _wallet.DebitAsync(Debit(player, 10.00m, bet), ct), 2_990.00m);
+        var deterministic = Rollback(player, bet);
+        var arbitrary = deterministic with { TransactionId = new TransactionId("bet:" + bet.ToString("D") + ":rollback:retry") };
+
+        var firstResult = await _wallet.RollbackAsync(arbitrary, ct);
+        var secondResult = await _wallet.RollbackAsync(deterministic, ct);
+
+        AssertOk(firstResult, OpeningBalance);
+        AssertDuplicateOfOk(secondResult, OpeningBalance);
+        Assert.Equal(BrlBalance(OpeningBalance), await _wallet.GetBalanceAsync(player, Brl, ct));
+        var refund = Assert.Single(_ledger.Entries, entry => entry.Kind == LedgerEntryKind.Rollback);
+        Assert.Equal(arbitrary.TransactionId, refund.TransactionId);
+    }
+
+    [Theory(DisplayName = "Dado um débito e um crédito gravados, quando chega um estorno cujo TransactionId é o de um deles, então não devolve Duplicate desse outro lançamento")]
+    [MemberData(nameof(OtherKinds))]
+    [Trait("Spec", "SPEC-0021:UT-06")]
+    public async Task GivenRollbackReusingDebitOrCreditIdWhenItArrivesThenNotDuplicateOfThatEntry(string kind)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var player = NewPlayer();
+        var bet = Guid.NewGuid();
+        AssertOk(await _wallet.DebitAsync(Debit(player, 10.00m, bet), ct), 2_990.00m);
+        AssertOk(await _wallet.CreditAsync(Credit(player, 25.00m, bet), ct), 3_015.00m);
+        var reused = string.Equals(kind, "debit", StringComparison.Ordinal) ? DebitId(bet) : CreditId(bet);
+
+        var result = await _wallet.RollbackAsync(Rollback(player, bet) with { TransactionId = reused }, ct);
+
+        Assert.False(
+            result is WalletDuplicate,
+            $"A rollback whose id belongs to the {kind} must not answer WalletDuplicate of that {kind}: got {result}.");
+        Assert.DoesNotContain(_ledger.Entries, entry => entry.Kind == LedgerEntryKind.Rollback && entry.TransactionId == reused);
+    }
+
+    [Theory(DisplayName = "Dado um erro permanente do PostgreSQL durante um débito, quando a operação é executada, então a PostgresException propaga e não vira WalletUnavailable")]
+    [MemberData(nameof(PermanentSqlStates))]
+    [Trait("Spec", "SPEC-0021:UT-07")]
+    public async Task GivenPermanentPostgresErrorWhenDebitingThenItPropagates(string sqlState)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var wallet = new DemoWallet(
+            new FailingWalletLedger(() => new PostgresException("permanent failure (test)", "ERROR", "ERROR", sqlState)),
+            new FixedOperatorLimits(),
+            TimeProvider.System);
+
+        var outcome = await Record.ExceptionAsync(async () => _ = await wallet.DebitAsync(Debit(NewPlayer(), 10.00m, Guid.NewGuid()), ct).ConfigureAwait(false));
+
+        var error = Assert.IsType<PostgresException>(outcome);
+        Assert.Equal(sqlState, error.SqlState);
+    }
+
+    [Theory(DisplayName = "Dado o cancelamento do chamador durante um débito (inclusive com PostgresException 57014 interna), quando a operação é executada, então OperationCanceledException propaga e a Activity não fica com status Error")]
+    [MemberData(nameof(Cancellations))]
+    [Trait("Spec", "SPEC-0021:UT-07")]
+    public async Task GivenCallerCancellationWhenDebitingThenItPropagatesWithoutErroredTrace(bool wrapsQueryCanceled)
+    {
+        using var caller = new CancellationTokenSource();
+        await caller.CancelAsync();
+        var token = caller.Token;
+        Func<Exception> fault = wrapsQueryCanceled
+            ? () => new OperationCanceledException(
+                "Query was cancelled (test).",
+                new PostgresException("canceling statement due to user request", "ERROR", "ERROR", PostgresErrorCodes.QueryCanceled),
+                token)
+            : () => new OperationCanceledException(token);
+        var wallet = new DemoWallet(new FailingWalletLedger(fault), new FixedOperatorLimits(), TimeProvider.System);
+        var debit = Debit(NewPlayer(), 10.00m, Guid.NewGuid());
+        using var trace = new WalletTrace(debit.TransactionId);
+
+        var outcome = await Record.ExceptionAsync(async () => _ = await wallet.DebitAsync(debit, token).ConfigureAwait(false));
+
+        Assert.True(outcome is OperationCanceledException, $"Expected the cancellation to propagate, got {(outcome is null ? "no exception" : outcome.GetType().Name)}.");
+        Assert.NotEqual(ActivityStatusCode.Error, trace.Single().Status);
+    }
+
+    /// <summary>Records the activities of the wallet source tagged with one transaction id.</summary>
+    private sealed class WalletTrace : IDisposable
+    {
+        private readonly List<Activity> _stopped = [];
+        private readonly ActivityListener _listener;
+
+        public WalletTrace(TransactionId transactionId)
+        {
+            _listener = new ActivityListener
+            {
+                ShouldListenTo = source => string.Equals(source.Name, WalletMetrics.MeterName, StringComparison.Ordinal),
+                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+                ActivityStopped = activity =>
+                {
+                    if (string.Equals(activity.GetTagItem("wallet.transaction_id") as string, transactionId.Value, StringComparison.Ordinal))
+                    {
+                        lock (_stopped)
+                        {
+                            _stopped.Add(activity);
+                        }
+                    }
+                },
+            };
+            ActivitySource.AddActivityListener(_listener);
+        }
+
+        public Activity Single()
+        {
+            lock (_stopped)
+            {
+                return Assert.Single(_stopped);
+            }
+        }
+
+        public void Dispose() => _listener.Dispose();
+    }
+
     private static decimal Parse(string amount) => decimal.Parse(amount, System.Globalization.CultureInfo.InvariantCulture);
 }

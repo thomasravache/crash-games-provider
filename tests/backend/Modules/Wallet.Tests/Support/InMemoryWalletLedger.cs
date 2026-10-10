@@ -33,6 +33,14 @@ internal sealed class InMemoryWalletLedger : IWalletLedger
         }
     }
 
+    public Task<LedgerEntry?> FindRollbackOfAsync(TransactionId originalTransactionId, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(_entries.Find(entry => entry.Kind == LedgerEntryKind.Rollback && entry.OriginalTransactionId == originalTransactionId));
+        }
+    }
+
     public Task<Money> SumAsync(LedgerAccount account, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(account);
