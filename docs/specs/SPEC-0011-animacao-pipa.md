@@ -197,7 +197,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 154ms); test exit 0 (Duration  1.39s (tests 69%, transform 19%, import 11%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T18:48:49: Report generation took 0,3 seconds) — 6cd9827 | 2026-10-09 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  802ms (tests 97%, transform 2%, import 1%)) — 6cd9827 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em c815b4f — 0 blocker/major; minors: freeze/effectsLog no chunk de produção (inacessíveis), constante de crescimento duplicada, buffers de teste sem teto, gatilho do visual-baselines além da Emenda e browsers extras, suíte de contrato do GameAnimator criada aqui, comentário longo — c815b4f | 2026-10-09 |
-| G5 Integração & CI | PENDING | | |
+| G5 Integração & CI | FAIL | build exit 0 (✓ built in 150ms); test exit 0 (Duration  1.35s (tests 70%, transform 19%, import 10%, worker 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /Users/thomas/dev/repo); test_e2e exit 1 (Distributed application started. Press Ctrl+C to shut down.); arch_test exit 0 (Duration  805ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 294 files: 0 findings.) — 550403d | 2026-10-10 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
