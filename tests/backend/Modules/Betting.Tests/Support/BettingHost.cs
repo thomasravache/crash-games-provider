@@ -1,4 +1,5 @@
 using Apogeu.BuildingBlocks.Contracts;
+using Apogeu.Rounds.Features.Conductor;
 using Apogeu.Wallet.Contracts;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -8,8 +9,10 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
 using StackExchange.Redis;
+using Xunit;
 
 namespace Apogeu.Betting.Tests.Support;
 
@@ -21,14 +24,26 @@ namespace Apogeu.Betting.Tests.Support;
 internal sealed class BettingHost : IAsyncDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
-    private readonly DirectoryInfo _keys;
-    private readonly string _signingKey = BettingSessions.NewSigningKey();
+    private readonly SharedKeys _keys;
+    private readonly string _signingKey;
+    private readonly string _redis;
+    private readonly BettingSala _sala;
     private bool _disposed;
 
-    private BettingHost(string database, string redis, DirectoryInfo keys, IOperatorWallet wallet, BettingSala sala, Action<IServiceCollection>? services)
+    private BettingHost(
+        string database,
+        string redis,
+        SharedKeys keys,
+        string signingKey,
+        IOperatorWallet wallet,
+        BettingSala sala,
+        Action<IServiceCollection>? services)
     {
         DatabaseConnectionString = database;
         _keys = keys;
+        _signingKey = signingKey;
+        _redis = redis;
+        _sala = sala;
         Wallet = wallet;
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
         {
@@ -45,7 +60,10 @@ internal sealed class BettingHost : IAsyncDisposable
             host.UseSetting(section + "ChainLength", sala.ChainLength.ToString(System.Globalization.CultureInfo.InvariantCulture));
             host.ConfigureTestServices(test =>
             {
-                test.AddDataProtection().SetApplicationName("Apogeu.Betting.Tests").PersistKeysToFileSystem(keys);
+                test.AddDataProtection().SetApplicationName("Apogeu.Betting.Tests").PersistKeysToFileSystem(keys.Directory);
+
+                // A host that is "killed" (IT-08) stops promptly even with an invocation stuck in the wallet.
+                test.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(2));
                 test.RemoveAll<IOperatorWallet>();
                 test.AddSingleton(wallet);
                 services?.Invoke(test);
@@ -74,8 +92,50 @@ internal sealed class BettingHost : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(containers);
         await FlushRedisAsync(containers.Redis.ConnectionString).ConfigureAwait(false);
         var database = await CreateDatabaseAsync(containers.Postgres.ConnectionString, ct).ConfigureAwait(false);
-        var keys = Directory.CreateTempSubdirectory("apogeu-betting-keys-");
-        var host = new BettingHost(database, containers.Redis.ConnectionString, keys, wallet ?? new FakeOperatorWallet(), sala ?? new BettingSala(), services);
+        var host = new BettingHost(
+            database,
+            containers.Redis.ConnectionString,
+            SharedKeys.Create(),
+            BettingSessions.NewSigningKey(),
+            wallet ?? new FakeOperatorWallet(),
+            sala ?? new BettingSala(),
+            services);
+        return await StartedAsync(host).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Another instance of the Host on the same PostgreSQL database, Redis, Data Protection key ring, session key and wallet
+    /// double as <paramref name="first"/> (IT-08, IT-11): the instances compete for the leadership of the room.
+    /// </summary>
+    public static Task<BettingHost> StartPeerAsync(BettingHost first, Action<IServiceCollection>? services = null)
+    {
+        ArgumentNullException.ThrowIfNull(first);
+        var peer = new BettingHost(
+            first.DatabaseConnectionString,
+            first._redis,
+            first._keys.Share(),
+            first._signingKey,
+            first.Wallet,
+            first._sala,
+            services);
+        return StartedAsync(peer);
+    }
+
+    /// <summary>Whether this instance conducts the room <c>demo</c> (SPEC-0008 leadership).</summary>
+    public bool IsLeading => Services.GetRequiredService<IRoundsLeadership>().IsLeading(BettingSala.SalaId);
+
+    /// <summary>
+    /// "Kills" the instance (IT-08): stops it without waiting for the invocations in flight, at most
+    /// <paramref name="timeout"/>; what it had not committed is lost.
+    /// </summary>
+    public async Task KillAsync(TimeSpan timeout)
+    {
+        var stopping = DisposeAsync().AsTask();
+        await Task.WhenAny(stopping, Task.Delay(timeout, TestContext.Current.CancellationToken)).ConfigureAwait(false);
+    }
+
+    private static async Task<BettingHost> StartedAsync(BettingHost host)
+    {
         try
         {
             // Starts the host now: migrations, the Development seed, leader election and the conductor run here.
@@ -145,6 +205,24 @@ internal sealed class BettingHost : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// The status of the bet <paramref name="betId"/> in <c>betting.bets</c>, or <see langword="null"/> when no row was kept.
+    /// </summary>
+    public async Task<string?> BetStatusAsync(Guid betId, CancellationToken ct)
+    {
+        var connection = new NpgsqlConnection(DatabaseConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
+            var command = new NpgsqlCommand("SELECT status FROM betting.bets WHERE id = @id", connection);
+            await using (command.ConfigureAwait(false))
+            {
+                command.Parameters.AddWithValue("id", betId);
+                return await command.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+            }
+        }
+    }
+
     private HubConnection Connection(string path, string? session)
     {
         var server = _factory.Server;
@@ -198,14 +276,13 @@ internal sealed class BettingHost : IAsyncDisposable
         }
 
         _disposed = true;
-        await _factory.DisposeAsync().ConfigureAwait(false);
         try
         {
-            _keys.Delete(recursive: true);
+            await _factory.DisposeAsync().ConfigureAwait(false);
         }
-        catch (IOException)
+        finally
         {
-            // Best effort: a leftover temp directory must not fail the run.
+            _keys.Release();
         }
     }
 }

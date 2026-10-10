@@ -147,5 +147,17 @@ public sealed class BetPlacementTests
         Assert.Equal(BetStatus.Placed, Bets.Accepted(placement).Status);
     }
 
+    [Theory(DisplayName = "Dado um painel diferente de 1 e 2, quando a aposta é validada, então INVALID_PANEL")]
+    [Trait("Spec", "SPEC-0022:UT-04")]
+    [InlineData(3)]
+    [InlineData(0)]
+    public void GivenPanelOtherThanOneOrTwoWhenValidatedThenInvalidPanel(int panel)
+    {
+        var placement = Bets.Place(Bets.Request(panel: panel), Bets.Betting(), Bets.BettingEndsAt.AddSeconds(-3));
+
+        // INVALID_PANEL is new in the contract v3 (emenda 3): literal, so the test compiles before the constant exists.
+        Assert.Equal("INVALID_PANEL", Bets.Rejected(placement));
+    }
+
     private static decimal Parse(string value) => decimal.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
 }

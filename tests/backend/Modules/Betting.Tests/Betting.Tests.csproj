@@ -33,6 +33,8 @@
     <ProjectReference Include="../../../../src/backend/Modules/Betting/Betting.Domain/Betting.Domain.csproj" />
     <ProjectReference Include="../../../../src/backend/Modules/Betting/Betting.Features/Betting.Features.csproj" />
     <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+    <!-- IT-11: which instance conducts the room (SPEC-0008 leadership). -->
+    <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Features/Rounds.Features.csproj" />
     <ProjectReference Include="../../../../src/backend/Modules/Wallet/Wallet.Contracts/Wallet.Contracts.csproj" />
     <!-- IT-05 annuls a round through a decorator of the real Fairness service (crash point mismatch, SPEC-0008). -->
     <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Contracts/Fairness.Contracts.csproj" />
