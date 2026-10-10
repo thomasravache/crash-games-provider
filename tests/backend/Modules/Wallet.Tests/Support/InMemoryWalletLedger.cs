@@ -43,18 +43,25 @@ internal sealed class InMemoryWalletLedger : IWalletLedger
         }
     }
 
-    public Task<bool> TryAppendAsync(LedgerEntry entry, CancellationToken cancellationToken)
+    public Task<LedgerAppendOutcome> TryAppendAsync(LedgerEntry entry, Money expectedPlayerSum, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
+        var playerAccount = LedgerAccount.OfPlayer(entry.Player, entry.Currency);
         lock (_gate)
         {
             if (_entries.Exists(existing => existing.TransactionId == entry.TransactionId))
             {
-                return Task.FromResult(false);
+                return Task.FromResult(LedgerAppendOutcome.DuplicateTransaction);
+            }
+
+            var sum = _entries.SelectMany(existing => existing.Postings).Where(posting => posting.Account == playerAccount).Sum(posting => posting.Amount.Value);
+            if (sum != expectedPlayerSum.Value)
+            {
+                return Task.FromResult(LedgerAppendOutcome.StaleBalance);
             }
 
             _entries.Add(entry);
-            return Task.FromResult(true);
+            return Task.FromResult(LedgerAppendOutcome.Appended);
         }
     }
 }

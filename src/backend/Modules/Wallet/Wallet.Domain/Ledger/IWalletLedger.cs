@@ -15,8 +15,10 @@ public interface IWalletLedger
     Task<Money> SumAsync(LedgerAccount account, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Inserts <paramref name="entry"/> and its postings atomically; returns <see langword="false"/> and writes nothing
-    /// when an entry with the same transaction id already exists (also under concurrency).
+    /// Inserts <paramref name="entry"/> and its postings atomically, only if the account of the entry's player still sums to
+    /// <paramref name="expectedPlayerSum"/> (optimistic check, serialized per account, so two different debits that together
+    /// exceed the balance never both apply). Writes nothing and returns <see cref="LedgerAppendOutcome.DuplicateTransaction"/>
+    /// when an entry with the same transaction id exists, or <see cref="LedgerAppendOutcome.StaleBalance"/> when the sum changed.
     /// </summary>
-    Task<bool> TryAppendAsync(LedgerEntry entry, CancellationToken cancellationToken);
+    Task<LedgerAppendOutcome> TryAppendAsync(LedgerEntry entry, Money expectedPlayerSum, CancellationToken cancellationToken);
 }

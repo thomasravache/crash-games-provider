@@ -15,6 +15,6 @@ internal sealed class PostgresWalletLedger : IWalletLedger
 
     public Task<Money> SumAsync(LedgerAccount account, CancellationToken cancellationToken) => throw new NotImplementedException();
 
-    public Task<bool> TryAppendAsync(LedgerEntry entry, CancellationToken cancellationToken) => throw new NotImplementedException();
+    public Task<LedgerAppendOutcome> TryAppendAsync(LedgerEntry entry, Money expectedPlayerSum, CancellationToken cancellationToken) => throw new NotImplementedException();
 }
 #pragma warning restore MA0025
