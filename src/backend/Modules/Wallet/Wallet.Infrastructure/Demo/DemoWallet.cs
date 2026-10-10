@@ -81,9 +81,13 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
 
         return TracedAsync(WalletResultNames.Rollback, op.TransactionId, async () =>
         {
-            if (await RefundOfAsync(op, original: null, ct).ConfigureAwait(false) is { } duplicate)
+            // The rollback's own id: a repeat of it is a duplicate; an id already used by a debit or a credit (or by the
+            // refund of another debit) is not this refund, so nothing is given back.
+            if (await _ledger.FindAsync(op.TransactionId, ct).ConfigureAwait(false) is { } sameId)
             {
-                return duplicate;
+                return IsRefundOf(sameId, op.OriginalTransactionId)
+                    ? new WalletDuplicate(OkOf(sameId))
+                    : new WalletTransactionNotFound(op.OriginalTransactionId);
             }
 
             var account = LedgerAccount.OfPlayer(op.Player, op.Currency);
@@ -98,7 +102,7 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
             }
 
             // A debit is refunded once, whatever the id of the rollback: an earlier refund of it is the result.
-            if (await RefundOfAsync(op, original, ct).ConfigureAwait(false) is { } refunded)
+            if (await RefundOfAsync(op.OriginalTransactionId, ct).ConfigureAwait(false) is { } refunded)
             {
                 return refunded;
             }
@@ -109,7 +113,7 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
 
             var draft = new EntryDraft(
                 op.TransactionId, LedgerEntryKind.Rollback, op.Player, op.Currency, op.RoundId, op.BetId, op.OriginalTransactionId, refund);
-            return await PostAsync(draft, refuseBelow: null, token => RefundOfAsync(op, original, token), ct).ConfigureAwait(false);
+            return await PostAsync(draft, refuseBelow: null, token => RefundOfAsync(op.OriginalTransactionId, token), ct).ConfigureAwait(false);
         });
     }
 
@@ -161,10 +165,25 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
         }
     }
 
-    /// <summary>Whether <paramref name="error"/> is a transient failure of the ledger's database (connection lost, timeout).</summary>
-    private static bool IsTransient(Exception error) =>
-        error is NpgsqlException or TimeoutException
-        || error.InnerException is NpgsqlException or TimeoutException;
+    /// <summary>
+    /// Whether <paramref name="error"/> (or its inner exception) is a transient failure of the ledger's database: a timeout,
+    /// an <see cref="NpgsqlException"/> Npgsql marks transient, or one raised on the client side without a verdict of the
+    /// server (connection lost or refused). A <see cref="PostgresException"/> the server raised for good (out of range,
+    /// missing table, the insert-only trigger) is not transient and propagates.
+    /// </summary>
+    private static bool IsTransient(Exception error) => IsTransientCause(error) || (error.InnerException is { } inner && IsTransientCause(inner));
+
+    private static bool IsTransientCause(Exception error) => error switch
+    {
+        TimeoutException => true,
+        NpgsqlException { IsTransient: true } => true,
+        PostgresException => false,
+        NpgsqlException => true,
+        _ => false,
+    };
+
+    private static bool IsRefundOf(LedgerEntry entry, TransactionId originalTransactionId) =>
+        entry is { Kind: LedgerEntryKind.Rollback } && entry.OriginalTransactionId == originalTransactionId;
 
     private static Balance BalanceOf(Money sum, Currency currency) => new(new Money(OpeningBalance + sum.Value), currency);
 
@@ -217,33 +236,11 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
     private async Task<WalletDuplicate?> DuplicateOfAsync(TransactionId transactionId, CancellationToken ct) =>
         await _ledger.FindAsync(transactionId, ct).ConfigureAwait(false) is { } existing ? new WalletDuplicate(OkOf(existing)) : null;
 
-    /// <summary>
-    /// <see cref="WalletDuplicate"/> with the refund already recorded for the debit of <paramref name="op"/>: under the
-    /// rollback's own id, under any id the ledger indexes by the original debit, or under the deterministic rollback id of
-    /// the debited bet (<c>bet:{betId}:rollback</c>) when it reverses that same debit.
-    /// </summary>
-    private async Task<WalletDuplicate?> RefundOfAsync(WalletRollback op, LedgerEntry? original, CancellationToken ct)
-    {
-        if (await DuplicateOfAsync(op.TransactionId, ct).ConfigureAwait(false) is { } sameId)
-        {
-            return sameId;
-        }
-
-        if (original is null)
-        {
-            return null;
-        }
-
-        var refund = await _ledger.FindRollbackOfAsync(op.OriginalTransactionId, ct).ConfigureAwait(false);
-        if (refund is null && original.BetId is { } betId && TransactionId.ForRollback(betId) is var canonical && canonical != op.TransactionId)
-        {
-            refund = await _ledger.FindAsync(canonical, ct).ConfigureAwait(false);
-        }
-
-        return refund is { Kind: LedgerEntryKind.Rollback } && refund.OriginalTransactionId == op.OriginalTransactionId
+    /// <summary><see cref="WalletDuplicate"/> with the refund already recorded for the debit <paramref name="originalTransactionId"/>, whatever its id.</summary>
+    private async Task<WalletDuplicate?> RefundOfAsync(TransactionId originalTransactionId, CancellationToken ct) =>
+        await _ledger.FindRollbackOfAsync(originalTransactionId, ct).ConfigureAwait(false) is { } refund && IsRefundOf(refund, originalTransactionId)
             ? new WalletDuplicate(OkOf(refund))
             : null;
-    }
 
     /// <summary>
     /// Runs <paramref name="operation"/> in an activity tagged with its transaction id (never amounts or tokens). A transient
@@ -261,13 +258,18 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
         {
             result = await operation().ConfigureAwait(false);
         }
+        catch (OperationCanceledException)
+        {
+            // The caller gave up: not a failure of the wallet, so the activity is not marked Error.
+            throw;
+        }
         catch (Exception error) when (IsTransient(error))
         {
             activity?.AddException(error);
             activity?.SetStatus(ActivityStatusCode.Error, error.GetType().Name);
             result = new WalletUnavailable(Retryable: true);
         }
-        catch (Exception error) when (error is not OperationCanceledException)
+        catch (Exception error)
         {
             activity?.AddException(error);
             activity?.SetStatus(ActivityStatusCode.Error, error.GetType().Name);

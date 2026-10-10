@@ -12,8 +12,10 @@ namespace Apogeu.Wallet.Infrastructure.Persistence.Migrations
         {
             // SPEC-0021 §5 (IT-05, IT-07): the append of an entry in one round trip. The advisory lock serializes the appends of
             // one player account; each later statement of a VOLATILE function takes a fresh READ COMMITTED snapshot, so it sees
-            // what the previous holder of the lock committed. Returns 'appended', 'duplicate' (the transaction id exists) or
-            // 'stale' (the player's sum is not the expected one); nothing is written unless 'appended'.
+            // what the previous holder of the lock committed. Returns 'appended', 'duplicate' (the transaction id exists, or a
+            // unique index refused the entry: the primary key, or ux_ledger_entries_rollback_original of the migration
+            // SingleRefundPerDebit for a second refund of the same debit) or 'stale' (the player's sum is not the expected one);
+            // nothing is written unless 'appended'.
             migrationBuilder.Sql("""
                 CREATE FUNCTION wallet.try_append_entry(
                     p_transaction_id text,

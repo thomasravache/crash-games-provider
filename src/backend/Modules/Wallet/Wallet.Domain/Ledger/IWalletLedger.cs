@@ -13,12 +13,9 @@ public interface IWalletLedger
 
     /// <summary>
     /// The rollback entry recorded for the debit <paramref name="originalTransactionId"/>, whatever its own transaction id, or
-    /// <see langword="null"/>. A debit is refunded at most once (SPEC-0021 UT-06). The default answers
-    /// <see langword="null"/> for a ledger that does not index rollbacks by their original debit; the adapter then also looks
-    /// up the deterministic rollback id of the bet (<c>bet:{betId}:rollback</c>).
+    /// <see langword="null"/>: a debit is refunded at most once (SPEC-0021 UT-06, IT-08).
     /// </summary>
-    Task<LedgerEntry?> FindRollbackOfAsync(TransactionId originalTransactionId, CancellationToken cancellationToken) =>
-        Task.FromResult<LedgerEntry?>(null);
+    Task<LedgerEntry?> FindRollbackOfAsync(TransactionId originalTransactionId, CancellationToken cancellationToken);
 
     /// <summary>Sum of every posting of <paramref name="account"/> (zero when it has none).</summary>
     Task<Money> SumAsync(LedgerAccount account, CancellationToken cancellationToken);
