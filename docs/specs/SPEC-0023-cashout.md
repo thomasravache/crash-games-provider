@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0022]
-consumes_contract: [SPEC-0020@1, SPEC-0021@3]
+consumes_contract: [SPEC-0020@1, SPEC-0021@4]
 contract_version: 1
 touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019]
@@ -39,7 +39,7 @@ Implementa o cash-out manual e o automático. A decisão é tomada pelo **líder
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0022 (apostas e eventos do motor).
-- **Contratos consumidos:** SPEC-0020@1 (ganho máximo por moeda); SPEC-0021@3 (crédito idempotente).
+- **Contratos consumidos:** SPEC-0020@1 (ganho máximo por moeda); SPEC-0021@4 (crédito idempotente).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
