@@ -4,13 +4,13 @@ title: "Som da Pipa"
 tier: full
 type: feature
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-09
 parent: SPEC-0001
 depends_on: [SPEC-0011]
 consumes_contract: [SPEC-0010@1]
 contract_version: 1
-touches: ["src/frontend/packages/scene-kit/src/audio/**", "src/frontend/apps/game-pipa/src/audio/**", "src/frontend/apps/game-pipa/public/audio/**", "src/frontend/packages/game-ui/src/sound/**", "tests/e2e/pipa-audio/**"]
+touches: ["src/frontend/packages/scene-kit/src/audio/**", "src/frontend/apps/game-pipa/src/audio/**", "src/frontend/apps/game-pipa/public/audio/**", "src/frontend/packages/game-ui/src/sound/**", "tests/e2e/pipa-audio/**", "tests/frontend/pipa/audio/**"]
 adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021, ADR-0024]
 external: []
 size: M
@@ -143,7 +143,7 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.audio.cueLog() | .state() 
 
 **Dublês e dados de teste:** `OfflineAudioContext` nos unitários (renderização determinística sem alto-falante); relógio do servidor simulado nos UT; backend real no IT e nos E2E.
 
-**Ambiente de execução:** Vitest com `OfflineAudioContext` (UT, CT); Playwright Chromium no CI (IT, E2E).
+**Ambiente de execução:** Vitest com dublê de `OfflineAudioContext` (UT, CT — Emenda IMP-01); Chromium real para o sinal renderizado do UT-05; Playwright Chromium no CI (IT, E2E).
 
 ## 8. Plano de Rollout
 - **Estratégia:** merge direto (demo local); som ligado por padrão após o primeiro gesto, com botão de mudo visível.
@@ -206,6 +206,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-10 | G1 | spec | Sem caminho no touches para os testes do Vitest (raiz tests/frontend) e o §7.6 pede OfflineAudioContext no Vitest, que roda no Node sem Web Audio | Test-writer leu vitest.workspace.ts, tsconfig dos pacotes, Node 24 (OfflineAudioContext indefinido) e as dependências; nenhum commit | Architect: emenda de escopo e do §7.6 | Emenda (2026-10-10): tests/frontend/pipa/audio/** no touches; dublê de OfflineAudioContext no Vitest e sinal renderizado do UT-05 no Chromium | 2026-10-10 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -248,3 +249,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0018`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-10 | Escopo: `tests/frontend/pipa/audio/**` (UT e CT no Vitest). §7.6: no Vitest (Node, sem Web Audio) os UT/CT usam um dublê escrito à mão de `OfflineAudioContext`/`AudioParam` que registra a automação (curvas de ganho, agendamentos) e o UT-05 verifica a curva agendada (pico ≤ 0,8, nenhum degrau > 6 dB); a verificação do sinal renderizado de verdade roda uma vez no Chromium (`OfflineAudioContext` real via `page.evaluate`) em `tests/e2e/pipa-audio/**`, sob a tag do UT-05. Sem pacote novo (ADR-0024). IT-01 e E2E-04 restritos ao Chromium no próprio arquivo | IMP-01: Test-writer — Vitest descobre só `tests/frontend` e o Node não tem `OfflineAudioContext` | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |

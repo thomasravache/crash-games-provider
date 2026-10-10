@@ -4,7 +4,7 @@ title: Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps)
 tier: lite
 type: fix
 user_facing: false
-status: proposed
+status: approved
 created: 2026-10-09
 parent:
 depends_on: []
@@ -13,8 +13,8 @@ touches: ["tests/e2e/pipa/performance/**", "src/frontend/playwright.config.ts", 
 adrs: [ADR-0019]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-10
 ---
 
 # SPEC-0030 — Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps)
@@ -60,6 +60,18 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
 
+<!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
+
+**Fase 1: Jornada E2E**
+- [ ] Red: E2E-01, E2E-02 falhando pelo motivo certo
+- [ ] Green: jornada completa passando localmente
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
 | Gate | Status | Evidência | Data |
@@ -101,6 +113,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Disponível no ambiente-alvo via pipeline (G6)
 - [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
 - [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 
