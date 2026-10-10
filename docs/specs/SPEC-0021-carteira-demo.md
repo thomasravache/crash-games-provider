@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0009, SPEC-0020]
 consumes_contract: [SPEC-0020@1]
-contract_version: 2
+contract_version: 3
 touches: ["src/backend/Modules/Wallet/**", "tests/backend/Modules/Wallet.Tests/**", "docs/integration/**"]
 adrs: [ADR-0007, ADR-0001, ADR-0002, ADR-0010, ADR-0014, ADR-0015, ADR-0018]
 external: []
@@ -73,7 +73,8 @@ IOperatorWallet
   Task<WalletResult> CreditAsync(WalletOperation op, CancellationToken ct)
   Task<WalletResult> RollbackAsync(WalletRollback op, CancellationToken ct)   // estorna um débito anterior pelo TransactionId dele
   Task<Balance> GetBalanceAsync(PlayerRef player, Currency currency, CancellationToken ct)
-WalletOperation { TransactionId, Player:PlayerRef{OperatorId, PlayerId}, Currency, Amount:Money (>0), RoundId, BetId }
+WalletOperation { TransactionId, Player:PlayerRef{OperatorId, PlayerId}, Currency, Amount:Money (>0), RoundId?, BetId }
+  // RoundId é nulo só no débito de uma aposta para a próxima rodada (queued); crédito e estorno levam a rodada
 WalletRollback  { TransactionId, OriginalTransactionId, Player, Currency, RoundId, BetId }
 WalletResult = Ok(BalanceAfter) | InsufficientFunds(Balance) | Duplicate(OriginalResult) | TransactionNotFound(OriginalTransactionId) | Unavailable(retryable)
   // TransactionNotFound: estorno cujo débito original não existe — nada é lançado; é resultado final para quem estorna
@@ -86,7 +87,7 @@ REST (sessão do jogador, SPEC-0009)
   GET  /api/v1/wallet/balance        → 200 { balance:Money, currency, mode:"demo" }
   POST /api/v1/wallet/demo/recharge  → 200 { balance:Money, currency } | 409 RECHARGE_NOT_ALLOWED | 403 NOT_DEMO   (erros no corpo problem+json `ErrorResponse` com `code`, padrão da SPEC-0009)
 Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl}/apogeu/v1/{balance|debit|credit|rollback},
-  corpo JSON com transactionId, playerId, currency, amount (string decimal), roundId, betId; assinatura HMAC (esquema da SPEC-0009);
+  corpo JSON com transactionId, playerId, currency, amount (string decimal), roundId (nulo no débito de aposta para a próxima rodada), betId; assinatura HMAC (esquema da SPEC-0009);
   respostas { status:"OK"|"INSUFFICIENT_FUNDS"|"DUPLICATE"|"PLAYER_NOT_FOUND"|"TRANSACTION_NOT_FOUND", balance, currency, transactionId }; idempotente por transactionId.
 ```
 
@@ -247,5 +248,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0021`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v3 | 2026-10-10 | `WalletOperation.RoundId` opcional: nulo só no débito de uma aposta para a próxima rodada (queued), cuja rodada ainda não existe; crédito e estorno sempre levam a rodada; o documento público reflete isso | G1 da SPEC-0022: o débito acontece na hora da aposta (inclusive queued) e o contrato v2 exigia RoundId | SPEC-0022..SPEC-0026 (pin @2 → @3; só afrouxa um campo) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
 | v2 (inalterado) | 2026-10-10 | Correção do UT-04 (3.015,00 após o crédito, 3.025,00 após o estorno); novo IT-07 (dois débitos diferentes simultâneos nunca deixam o saldo negativo — aposta dupla); IT-04 cobre 403 NOT_DEMO. Esclarecimentos confirmados: TransactionId com Guid no formato "D"; `currency` como string ISO; 20 débitos iguais → um WalletOk e 19 WalletDuplicate com o mesmo resultado; estorno repetido → WalletDuplicate(WalletOk); recarga é lançamento balanceado (jogador +x, casa −x); cada lançamento tem exatamente duas partidas | G1 do Test-writer: erro de conta no UT-04, corrida de débitos distintos sem teste (risco de saldo negativo) e código do contrato sem teste | Nenhuma (contrato inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
 | v2 | 2026-10-09 | (D1) `WalletResult.TransactionNotFound` e status público `TRANSACTION_NOT_FOUND` para estorno sem débito original; (D2) tipos compartilhados em `BuildingBlocks.Contracts` (SPEC-0020) e aposta mínima por `IOperatorLimits` — a spec passa a depender da SPEC-0020 e roda na onda seguinte, junto da SPEC-0022; (D3) livro-razão só de inserção por trigger, testado com a conexão do módulo; esclarecimentos: saldo inicial implícito (sem lançamento), erros REST em problem+json com `code` | IMP-01: SPEC_DEFECT do Test-writer no G1 (contrato v1 sem resultado para estorno recusado, tipos inexistentes, papel do banco indefinido no IT-06) | SPEC-0022, SPEC-0023, SPEC-0024, SPEC-0025, SPEC-0026 (pin @1 → @2; só acréscimo de caso) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09); a confirmar no resumo |
