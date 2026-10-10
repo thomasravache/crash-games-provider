@@ -1,3 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <!-- Shared scalars OperatorId, PlayerId, Currency and Money (SPEC-0020) and RoundId of the Rounds contract (SPEC-0021 §6, v2). -->
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
+    <ProjectReference Include="../../Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>
