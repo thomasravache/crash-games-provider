@@ -1,7 +1,7 @@
 ---
 id: ADR-0025
 title: Identidade visual Apogeu e design systems derivados
-status: proposed
+status: accepted
 origin: decision
 date: 2026-10-10
 pillars: []
@@ -33,7 +33,11 @@ A Apogeu vai a mercado como provedor B2B, mas ainda não tem identidade visual: 
 - **C — Índigo + turquesa** (SaaS moderno).
 
 ## Resultado da Decisão
-**Opção escolhida:** a definir por thomas após comparar a mesma tela (catálogo e limites) nas direções A e B no Stitch. Recomendação do Architect: **A**, porque o dourado conta a história do nome (o sol no apogeu), o azul-noite passa a confiança de fintech que o comprador B2B espera, e o acento não colide com as cores de status.
+**Opção escolhida:** **A — azul-noite + dourado** (escolha de thomas em 2026-10-10, após comparar a mesma tela de catálogo nas direções A e B no Stitch), porque o dourado conta a história do nome (o sol no apogeu), o azul-noite passa a confiança de fintech que o comprador B2B espera e o acento não colide com as cores de status — na comparação, a direção B misturava o verde da marca com o verde de "assinatura válida".
+
+**Paleta base (escuro):** fundo #0B1426; superfícies #111C33, #17233D, #1F2C4A; marca/ação #E0A526 (hover #C98F14, texto sobre ela #0B1426); secundária #5B7FD6; sucesso #2EB67D; erro #E5484D; alerta #F2A33A; informação/provably fair #22B8CF; texto #F2F5FA / #A3B1C9 / #66758F. A variante clara deriva destes tokens com o mesmo contraste mínimo.
+
+**Símbolo:** **Arco** (escolha de thomas em 2026-10-10, entre Arco, Zênite e Pico): uma curva fina subindo da esquerda e terminando num ponto dourado #E0A526 — a curva do multiplicador do crash chegando ao apogeu. Versões: logotipo horizontal (símbolo + "Apogeu Games" em Inter semibold), ícone quadrado (app/favicon) e monocromática branca. Prancha de referência no Stitch: screens/9168bb71fb444dcca5762a9767fb6e44.
 
 **Regras (verificáveis), valem para qualquer opção:**
 - Uma identidade Apogeu (paleta, tipografia, regras) e três aplicações derivadas: backoffice (sóbrio, denso, claro e escuro), lobby do site demo de cassino (neutro, destaca os jogos) e materiais comerciais. Cada jogo mantém tema próprio.
@@ -41,6 +45,7 @@ A Apogeu vai a mercado como provedor B2B, mas ainda não tem identidade visual: 
 - Cores semânticas (sucesso, erro, alerta, informação/provably fair) são reservadas a status e sempre acompanhadas de ícone ou texto.
 - Tipografia: Inter (interface) e JetBrains Mono (valores, multiplicadores, hashes, IDs); valores em formato pt-BR.
 - Contraste mínimo WCAG 2.2 AA em todo texto; sem neon nem glow no backoffice.
+- Valores (dinheiro, multiplicadores) ficam em texto neutro, nunca na cor da marca (ajuste observado na tela de referência: "10.000x" e "R$ 100.000,00" não devem ser dourados).
 - Toda tela nova de backoffice ou site demo nasce no Stitch com o design system derivado e é aprovada por thomas antes da spec (como a Pipa).
 
 ### Consequências
@@ -62,4 +67,4 @@ Quando as specs de backoffice e site demo forem implementadas: tokens num pacote
 
 ## Mais Informações
 <!-- Fontes oficiais consultadas, versão estável/LTS e janela de suporte, com a data da verificação. Se não foi possível verificar, diga explicitamente. Links para specs relacionadas. -->
-Projeto Stitch "Crash Provider — Plataforma" (13535251118740279031): design system "Apogeu — Backoffice (A: azul-noite + dourado)" (assets/2261923743028585933, criado em 2026-10-10) e o rascunho "Apex Engine Backoffice" (direção B). https://www.w3.org/TR/WCAG22/ — critérios 1.4.3 (contraste de texto) e 1.4.11 (contraste de componentes) — não verificado nesta sessão (2026-10-10). Relacionadas: ADR-0020 (acessibilidade), ADR-0021 (animação), design system "Pipa Crash" (SPEC-0010).
+Projeto Stitch "Apogeu Games — Identidade e Backoffice" (1861192770945985645): design systems "Apogeu A — azul-noite + dourado" (assets/917051048501046627, escolhido) e "Apogeu B — grafite + esmeralda" (assets/6684439712689342949); tela de referência "Catálogo e limites por operador" nas duas direções (screens/247b4af2c5d14c398543775bfca5585e e c3abdf2241b449fc9a94f22932794739), criadas em 2026-10-10. Rascunho anterior: projeto "Crash Provider — Plataforma" (13535251118740279031), "Apex Engine Backoffice". https://www.w3.org/TR/WCAG22/ — critérios 1.4.3 (contraste de texto) e 1.4.11 (contraste de componentes) — não verificado nesta sessão (2026-10-10). Relacionadas: ADR-0020 (acessibilidade), ADR-0021 (animação), design system "Pipa Crash" (SPEC-0010).
