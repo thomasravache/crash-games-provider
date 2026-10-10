@@ -79,6 +79,11 @@ namespace Apogeu.Wallet.Infrastructure.Persistence.Migrations
                     b.HasKey("TransactionId")
                         .HasName("pk_ledger_entries");
 
+                    b.HasIndex("OriginalTransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ledger_entries_rollback_original")
+                        .HasFilter("kind = 'Rollback'");
+
                     b.ToTable("ledger_entries", "wallet", t =>
                         {
                             t.HasCheckConstraint("ck_ledger_entries_kind", "kind IN ('Debit', 'Credit', 'Rollback', 'Recharge')");

@@ -34,6 +34,11 @@ internal sealed class WalletDbContext(DbContextOptions<WalletDbContext> options)
             entity.Property(e => e.OriginalTransactionId).HasColumnName("original_transaction_id").HasMaxLength(128);
             entity.Property(e => e.BalanceAfter).HasColumnName("balance_after").HasPrecision(AmountPrecision, AmountScale);
             entity.Property(e => e.RecordedAt).HasColumnName("recorded_at");
+            // A debit is refunded at most once, whatever the id of the rollback (SPEC-0021 UT-06).
+            entity.HasIndex(e => e.OriginalTransactionId)
+                .IsUnique()
+                .HasFilter("kind = 'Rollback'")
+                .HasDatabaseName("ux_ledger_entries_rollback_original");
             entity.HasMany(e => e.Postings).WithOne().HasForeignKey(p => p.TransactionId)
                 .HasConstraintName("fk_ledger_postings_ledger_entries_transaction_id")
                 .OnDelete(DeleteBehavior.Restrict);

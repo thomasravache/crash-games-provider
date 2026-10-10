@@ -6,6 +6,7 @@ using Apogeu.Rounds.Contracts;
 using Apogeu.Wallet.Contracts;
 using Apogeu.Wallet.Domain.Ledger;
 using Apogeu.Wallet.Infrastructure.Observability;
+using Npgsql;
 
 namespace Apogeu.Wallet.Infrastructure.Demo;
 
@@ -29,6 +30,12 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
 
     private const string RechargePrefix = "demo-recharge:";
 
+    /// <summary>Smallest amount of the port: one cent.</summary>
+    private const decimal MinAmount = 0.01m;
+
+    /// <summary>Decimal places of the amounts of the port and of the ledger.</summary>
+    private const int AmountScale = 2;
+
     private readonly IWalletLedger _ledger;
     private readonly IOperatorLimits _limits;
     private readonly TimeProvider _clock;
@@ -49,23 +56,23 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
     public Task<WalletResult> DebitAsync(WalletOperation op, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(op);
-        RequirePositive(op.Amount);
+        RequireCents(op.Amount.Value, nameof(op));
 
         return TracedAsync(
             WalletResultNames.Debit,
             op.TransactionId,
-            () => PostAsync(Draft(op, LedgerEntryKind.Debit, -op.Amount.Value), refuseBelow: op.Amount.Value, ct));
+            () => PostAsync(Draft(op, LedgerEntryKind.Debit, -op.Amount.Value), refuseBelow: op.Amount.Value, token => DuplicateOfAsync(op.TransactionId, token), ct));
     }
 
     public Task<WalletResult> CreditAsync(WalletOperation op, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(op);
-        RequirePositive(op.Amount);
+        RequireCents(op.Amount.Value, nameof(op));
 
         return TracedAsync(
             WalletResultNames.Credit,
             op.TransactionId,
-            () => PostAsync(Draft(op, LedgerEntryKind.Credit, op.Amount.Value), refuseBelow: null, ct));
+            () => PostAsync(Draft(op, LedgerEntryKind.Credit, op.Amount.Value), refuseBelow: null, token => DuplicateOfAsync(op.TransactionId, token), ct));
     }
 
     public Task<WalletResult> RollbackAsync(WalletRollback op, CancellationToken ct)
@@ -74,7 +81,7 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
 
         return TracedAsync(WalletResultNames.Rollback, op.TransactionId, async () =>
         {
-            if (await DuplicateOfAsync(op.TransactionId, ct).ConfigureAwait(false) is { } duplicate)
+            if (await RefundOfAsync(op, original: null, ct).ConfigureAwait(false) is { } duplicate)
             {
                 return duplicate;
             }
@@ -90,9 +97,19 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
                 return new WalletTransactionNotFound(op.OriginalTransactionId);
             }
 
+            // A debit is refunded once, whatever the id of the rollback: an earlier refund of it is the result.
+            if (await RefundOfAsync(op, original, ct).ConfigureAwait(false) is { } refunded)
+            {
+                return refunded;
+            }
+
+            // The refund gives back exactly the debit, which must itself be a valid amount of the port.
+            var refund = -debited.Amount.Value;
+            RequireCents(refund, nameof(op));
+
             var draft = new EntryDraft(
-                op.TransactionId, LedgerEntryKind.Rollback, op.Player, op.Currency, op.RoundId, op.BetId, op.OriginalTransactionId, -debited.Amount.Value);
-            return await PostAsync(draft, refuseBelow: null, ct).ConfigureAwait(false);
+                op.TransactionId, LedgerEntryKind.Rollback, op.Player, op.Currency, op.RoundId, op.BetId, op.OriginalTransactionId, refund);
+            return await PostAsync(draft, refuseBelow: null, token => RefundOfAsync(op, original, token), ct).ConfigureAwait(false);
         });
     }
 
@@ -132,13 +149,22 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
         throw new InvalidOperationException("The demo balance kept changing during the recharge; try again.");
     }
 
-    private static void RequirePositive(Money amount)
+    /// <summary>
+    /// An amount of the port is a whole number of cents, at least 0,01 (SPEC-0021 UT-06): the ledger keeps two decimal places,
+    /// so anything finer would be rounded in silence and the balance reported would differ from the postings.
+    /// </summary>
+    private static void RequireCents(decimal amount, string paramName)
     {
-        if (amount.Value <= 0m)
+        if (amount < MinAmount || decimal.Round(amount, AmountScale) != amount)
         {
-            throw new ArgumentOutOfRangeException(nameof(amount), amount.Value, "The amount of a wallet operation must be greater than zero.");
+            throw new ArgumentOutOfRangeException(paramName, "The amount of a wallet operation must be a whole number of cents, at least 0.01.");
         }
     }
+
+    /// <summary>Whether <paramref name="error"/> is a transient failure of the ledger's database (connection lost, timeout).</summary>
+    private static bool IsTransient(Exception error) =>
+        error is NpgsqlException or TimeoutException
+        || error.InnerException is NpgsqlException or TimeoutException;
 
     private static Balance BalanceOf(Money sum, Currency currency) => new(new Money(OpeningBalance + sum.Value), currency);
 
@@ -157,7 +183,8 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
     /// and a refusal for funds is only returned after checking that the id is not already recorded. The id is looked up
     /// only in those two cases, so a new operation costs one read of the sum and one append.
     /// </remarks>
-    private async Task<WalletResult> PostAsync(EntryDraft draft, decimal? refuseBelow, CancellationToken ct)
+    private async Task<WalletResult> PostAsync(
+        EntryDraft draft, decimal? refuseBelow, Func<CancellationToken, Task<WalletDuplicate?>> duplicateOf, CancellationToken ct)
     {
         var account = LedgerAccount.OfPlayer(draft.Player, draft.Currency);
         for (var attempt = 0; attempt < MaxAttempts; attempt++)
@@ -166,7 +193,7 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
             var balance = BalanceOf(sum, draft.Currency);
             if (balance.Amount.Value < refuseBelow)
             {
-                return (WalletResult?)await DuplicateOfAsync(draft.TransactionId, ct).ConfigureAwait(false)
+                return (WalletResult?)await duplicateOf(ct).ConfigureAwait(false)
                     ?? new WalletInsufficientFunds(balance);
             }
 
@@ -175,7 +202,7 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
             {
                 case LedgerAppendOutcome.Appended:
                     return OkOf(entry);
-                case LedgerAppendOutcome.DuplicateTransaction when await DuplicateOfAsync(draft.TransactionId, ct).ConfigureAwait(false) is { } duplicate:
+                case LedgerAppendOutcome.DuplicateTransaction when await duplicateOf(ct).ConfigureAwait(false) is { } duplicate:
                     return duplicate;
                 default:
                     // Another entry of the player got in first: decide again on the fresh sum.
@@ -190,13 +217,63 @@ public sealed class DemoWallet : IOperatorWallet, IDemoWallet
     private async Task<WalletDuplicate?> DuplicateOfAsync(TransactionId transactionId, CancellationToken ct) =>
         await _ledger.FindAsync(transactionId, ct).ConfigureAwait(false) is { } existing ? new WalletDuplicate(OkOf(existing)) : null;
 
+    /// <summary>
+    /// <see cref="WalletDuplicate"/> with the refund already recorded for the debit of <paramref name="op"/>: under the
+    /// rollback's own id, under any id the ledger indexes by the original debit, or under the deterministic rollback id of
+    /// the debited bet (<c>bet:{betId}:rollback</c>) when it reverses that same debit.
+    /// </summary>
+    private async Task<WalletDuplicate?> RefundOfAsync(WalletRollback op, LedgerEntry? original, CancellationToken ct)
+    {
+        if (await DuplicateOfAsync(op.TransactionId, ct).ConfigureAwait(false) is { } sameId)
+        {
+            return sameId;
+        }
+
+        if (original is null)
+        {
+            return null;
+        }
+
+        var refund = await _ledger.FindRollbackOfAsync(op.OriginalTransactionId, ct).ConfigureAwait(false);
+        if (refund is null && original.BetId is { } betId && TransactionId.ForRollback(betId) is var canonical && canonical != op.TransactionId)
+        {
+            refund = await _ledger.FindAsync(canonical, ct).ConfigureAwait(false);
+        }
+
+        return refund is { Kind: LedgerEntryKind.Rollback } && refund.OriginalTransactionId == op.OriginalTransactionId
+            ? new WalletDuplicate(OkOf(refund))
+            : null;
+    }
+
+    /// <summary>
+    /// Runs <paramref name="operation"/> in an activity tagged with its transaction id (never amounts or tokens). A transient
+    /// database failure becomes <see cref="WalletUnavailable"/> (retryable: the same id may be resent) and the activity ends
+    /// with status Error and the exception recorded (SPEC-0021 UT-07).
+    /// </summary>
     private async Task<WalletResult> TracedAsync(string type, TransactionId transactionId, Func<Task<WalletResult>> operation)
     {
         using var activity = WalletMetrics.ActivitySource.StartActivity("wallet." + type, ActivityKind.Internal);
         activity?.SetTag("wallet.transaction_id", transactionId.Value);
         activity?.SetTag("wallet.adapter", "demo");
 
-        var result = await operation().ConfigureAwait(false);
+        WalletResult result;
+        try
+        {
+            result = await operation().ConfigureAwait(false);
+        }
+        catch (Exception error) when (IsTransient(error))
+        {
+            activity?.AddException(error);
+            activity?.SetStatus(ActivityStatusCode.Error, error.GetType().Name);
+            result = new WalletUnavailable(Retryable: true);
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            activity?.AddException(error);
+            activity?.SetStatus(ActivityStatusCode.Error, error.GetType().Name);
+            throw;
+        }
+
         var name = WalletResultNames.Of(result);
         activity?.SetTag("wallet.result", name);
         _metrics?.Operation(type, name);

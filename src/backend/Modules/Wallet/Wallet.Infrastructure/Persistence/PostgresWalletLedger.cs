@@ -34,6 +34,20 @@ internal sealed class PostgresWalletLedger(IDbContextFactory<WalletDbContext> co
         }
     }
 
+    public async Task<LedgerEntry?> FindRollbackOfAsync(TransactionId originalTransactionId, CancellationToken cancellationToken)
+    {
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            var kind = nameof(LedgerEntryKind.Rollback);
+            var record = await db.Entries.AsNoTracking()
+                .Include(e => e.Postings)
+                .SingleOrDefaultAsync(e => e.Kind == kind && e.OriginalTransactionId == originalTransactionId.Value, cancellationToken)
+                .ConfigureAwait(false);
+            return record is null ? null : ToEntry(record);
+        }
+    }
+
     public async Task<Money> SumAsync(LedgerAccount account, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(account);
