@@ -5,12 +5,19 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Handlers of the round events and the durable reversal of uncertain debits (ADR-0002). -->
+    <PackageReference Include="WolverineFx" />
+    <!-- The module's meter and activity source in the Host's OpenTelemetry pipeline (ADR-0017). -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Betting.Contracts/Betting.Contracts.csproj" />
     <ProjectReference Include="../Betting.Domain/Betting.Domain.csproj" />
     <ProjectReference Include="../Betting.Infrastructure/Betting.Infrastructure.csproj" />
     <!-- Contract scalars (Money, Multiplier) of the hub messages and the player-session policy (ADR-0008, SPEC-0009). -->
     <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
-    <!-- ADR-0001: only the Contracts of other modules — round events (SPEC-0008), limits (SPEC-0020@1), wallet (SPEC-0021@2). -->
+    <!-- ADR-0001: only the Contracts of other modules — round events (SPEC-0008), limits (SPEC-0020@1), wallet (SPEC-0021@4). -->
     <ProjectReference Include="../../Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
     <ProjectReference Include="../../Operators/Operators.Contracts/Operators.Contracts.csproj" />
     <ProjectReference Include="../../Wallet/Wallet.Contracts/Wallet.Contracts.csproj" />

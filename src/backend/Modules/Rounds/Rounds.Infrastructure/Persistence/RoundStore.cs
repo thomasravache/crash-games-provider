@@ -35,6 +35,21 @@ internal sealed class RoundStore(RoundsDbContext db) : IRoundStore, IRoundChainS
 
     public async Task SaveAsync(Round round, CancellationToken ct)
     {
+        await TrackAsync(db, round, ct).ConfigureAwait(false);
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            // The store outlives many rounds of a conductor: nothing stays tracked between saves.
+            db.ChangeTracker.Clear();
+        }
+    }
+
+    /// <summary>Tracks the insert or update of <paramref name="round"/> in <paramref name="db"/>, without saving it.</summary>
+    internal static async Task TrackAsync(RoundsDbContext db, Round round, CancellationToken ct)
+    {
         ArgumentNullException.ThrowIfNull(round);
 
         var record = await db.Rounds.SingleOrDefaultAsync(r => r.Id == round.Id.Value, ct).ConfigureAwait(false);
@@ -60,16 +75,6 @@ internal sealed class RoundStore(RoundsDbContext db) : IRoundStore, IRoundChainS
         record.Rtp = round.Parameters?.Rtp;
         record.Cap = round.Parameters?.Cap;
         record.GrowthK = round.Parameters?.GrowthK;
-
-        try
-        {
-            await db.SaveChangesAsync(ct).ConfigureAwait(false);
-        }
-        finally
-        {
-            // The store outlives many rounds of a conductor: nothing stays tracked between saves.
-            db.ChangeTracker.Clear();
-        }
     }
 
     async Task<RoundChain?> IRoundChainStore.FindAsync(Guid chainId, CancellationToken ct)

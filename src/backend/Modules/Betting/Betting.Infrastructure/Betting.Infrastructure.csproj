@@ -1,6 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- Dependency injection and hosting abstractions. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Schema `betting` in PostgreSQL with its own DbContext and migrations (ADR-0010). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Betting.Contracts/Betting.Contracts.csproj" />
     <ProjectReference Include="../Betting.Domain/Betting.Domain.csproj" />
   </ItemGroup>

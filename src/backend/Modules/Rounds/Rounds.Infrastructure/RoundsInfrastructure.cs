@@ -45,6 +45,10 @@ public static class RoundsInfrastructure
         services.AddScoped<IRoundStore>(provider => provider.GetRequiredService<RoundStore>());
         services.AddScoped<IRoundChainStore>(provider => provider.GetRequiredService<RoundStore>());
 
+        // Needs Wolverine with its EF Core integration in the Host (IDbContextOutbox, ADR-0002).
+        services.AddSingleton<MessagingReadiness>();
+        services.AddSingleton<IRoundOutbox, RoundOutbox>();
+
         return services;
     }
 

@@ -1,3 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <!-- Contract scalar Multiplier of ISalaCaps (ADR-0008). -->
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
+  </ItemGroup>
+
 </Project>

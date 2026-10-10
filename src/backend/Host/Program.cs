@@ -7,8 +7,14 @@ using Apogeu.Operators.Features;
 using Apogeu.Rounds.Features;
 using Apogeu.ServiceDefaults;
 using Apogeu.Wallet.Features;
+using JasperFx;
+using JasperFx.CodeGeneration;
+using JasperFx.CodeGeneration.Model;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTelemetry.Metrics;
+using Wolverine;
+using Wolverine.EntityFrameworkCore;
+using Wolverine.Postgresql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +32,34 @@ builder.Services.AddContractOpenApi();
 
 // Clock shared by every module (tests replace it); registered by the Host, not by a module.
 builder.Services.TryAddSingleton(TimeProvider.System);
+
+// ADR-0002: Wolverine for the handlers and the transactional outbox between modules, its envelopes in the schema
+// `wolverine` of the same PostgreSQL. Its tables are created at startup only in Development (local Aspire environment),
+// like the modules' migrations; elsewhere the deployment pipeline creates them (ADR-0010). Registered before the modules:
+// the Rounds module starts its runtime right before the conductor that publishes through its outbox.
+builder.UseWolverine(options =>
+{
+    var messagesConnectionString = builder.Configuration.GetConnectionString(RoundsModule.ConnectionName);
+    if (!string.IsNullOrWhiteSpace(messagesConnectionString) && !BuildTimeDocument.IsGenerating)
+    {
+        options.PersistMessagesWithPostgresql(messagesConnectionString, "wolverine");
+    }
+
+    options.UseEntityFrameworkCoreTransactions();
+    options.AutoBuildMessageStorageOnStartup = builder.Environment.IsDevelopment() ? AutoCreate.CreateOrUpdate : AutoCreate.None;
+    options.ConfigureBettingMessaging();
+
+    // The handlers' code is generated ahead of time into Betting.Features (`dotnet run --project src/backend/Host --
+    // codegen write`) and loaded at startup; nothing is compiled at runtime.
+    options.ApplicationAssembly = typeof(BettingModule).Assembly;
+    options.CodeGeneration.TypeLoadMode = TypeLoadMode.Static;
+
+    // The modules' services stay internal (or are registered by factory): the generated handlers resolve them from the
+    // container, so every registration (including the tests' replacements) is honoured.
+    options.ServiceLocationPolicy = ServiceLocationPolicy.AlwaysAllowed;
+    options.CodeGeneration.GeneratedCodeOutputPath = Path.GetFullPath(
+        Path.Combine(builder.Environment.ContentRootPath, "..", "Modules", "Betting", "Betting.Features", "Internal", "Generated"));
+});
 
 builder.Services.AddBackofficeModule();
 builder.Services.AddBettingModule();
@@ -64,4 +98,11 @@ app.MapOperatorsEndpoints();
 app.MapRoundsEndpoints();
 app.MapWalletEndpoints();
 
+// `codegen write|test|preview` (JasperFx) regenerates the Wolverine handlers' code; any other run starts the Host.
+if (args is ["codegen", ..])
+{
+    return await app.RunJasperFxCommands(args).ConfigureAwait(false);
+}
+
 await app.RunAsync().ConfigureAwait(false);
+return 0;

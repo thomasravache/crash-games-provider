@@ -1,4 +1,5 @@
 using Apogeu.BuildingBlocks.Security;
+using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Features.Conductor;
 using Apogeu.Rounds.Features.History;
 using Apogeu.Rounds.Features.Live;
@@ -28,7 +29,8 @@ public static class RoundsModule
     /// <summary>
     /// Registers the rooms (<c>Rounds:Salas:{id}</c>, validated at startup), the persistence of the schema <c>rounds</c>
     /// (migrated at startup in Development only, ADR-0010), the hub with the Redis backplane and the leader election that
-    /// runs the conductor of each room (ADR-0005).
+    /// runs the conductor of each room (ADR-0005). Called after the Host's <c>UseWolverine</c>: the conductor publishes the
+    /// round events through Wolverine's transactional outbox (SPEC-0022), whose runtime starts with the module.
     /// </summary>
     public static IServiceCollection AddRoundsModule(this IServiceCollection services)
     {
@@ -37,6 +39,7 @@ public static class RoundsModule
         services.AddOptions<RoundsOptions>().BindConfiguration(RoundsOptions.SectionName).ValidateOnStart();
         services.AddSingleton<IValidateOptions<RoundsOptions>, RoundsOptionsValidator>();
         services.AddSingleton<SalaCatalog>();
+        services.AddSingleton<ISalaCaps, SalaCaps>();
         services.AddMetrics();
         services.AddSingleton<RoundsMetrics>();
 
@@ -66,6 +69,9 @@ public static class RoundsModule
             provider.GetRequiredService<SalaLiveViews>(),
             provider.GetRequiredService<IServiceScopeFactory>(),
             provider.GetRequiredService<IOptions<RoundsOptions>>().Value.SnapshotReadTimeout));
+
+        // Wolverine's runtime starts right before the conductor that publishes through its outbox (ADR-0002, SPEC-0022).
+        RoundsMessagingStartup.TakeOver(services);
 
         services.AddSingleton<RoundsRedis>();
         services.AddSingleton<RoundsLeadershipService>();

@@ -18,7 +18,10 @@
         }
       },
       "Apogeu.Rounds.Contracts": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.BuildingBlocks": "[1.0.0, )"
+        }
       },
       "Apogeu.Wallet.Contracts": {
         "type": "Project",
