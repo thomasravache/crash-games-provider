@@ -38,8 +38,17 @@ const keyframes: readonly { readonly name: string; readonly title: string; reado
   { name: "06-crash-150ms", title: "crash a 150 ms", atMs: 150, state: { phase: "crashed", multiplier: 3.21 } },
 ];
 
+/** Platform of the Playwright runner (the tsconfig of the E2E has no Node types). */
+const platform = (globalThis as { process?: { platform?: string } }).process?.platform;
+
 test.describe("SPEC-0011 quadros-chave da cena", () => {
   test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  // SPEC-0011 §7.6: the approved reference images exist only for the Linux runner of the CI (*-chromium-linux.png);
+  // other systems render differently and have no reference to compare with.
+  test.skip(
+    platform !== "linux",
+    `SPEC-0011 §7.6: as imagens de referência aprovadas são só do runner Linux da CI (plataforma atual: ${String(platform)})`,
+  );
 
   for (const keyframe of keyframes) {
     test(`SPEC-0011:E2E-01 quadro-chave ${keyframe.title} igual à imagem de referência aprovada`, async ({ page }, testInfo) => {
