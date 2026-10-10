@@ -8,7 +8,7 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0009, SPEC-0020]
-consumes_contract: [SPEC-0020@1]
+consumes_contract: [SPEC-0020@2]
 contract_version: 4
 touches: ["src/backend/Modules/Wallet/**", "tests/backend/Modules/Wallet.Tests/**", "docs/integration/**"]
 adrs: [ADR-0007, ADR-0001, ADR-0002, ADR-0010, ADR-0014, ADR-0015, ADR-0018]
@@ -192,9 +192,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:04.39]     Dado um hub com string?, stream e métodos de cliente, quando o) — 42708de | 2026-10-10 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:02.01]     Dada uma falha transitória do banco durante um débito, quando ) — 963fe9f | 2026-10-10 |
+| G2 Green | PASS | build exit 0 (✓ built in 434ms); test exit 0 (Duration  1.63s (tests 61%, transform 26%, import 12%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T18:20:42: Report generation took 0,8 seconds) — dfbc59c | 2026-10-10 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  870ms (tests 97%, transform 2%, import 1%)) — f92095b | 2026-10-10 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |

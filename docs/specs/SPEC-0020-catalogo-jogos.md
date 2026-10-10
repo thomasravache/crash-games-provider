@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0009]
 consumes_contract: []
-contract_version: 1
+contract_version: 2
 touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**", "src/backend/BuildingBlocks/Contracts/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020]
 external: []
@@ -243,4 +243,5 @@ Sem ambiente (G6 N/A até a SPEC-0012). Integrado pela onda 6 (PR #22).
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0020`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v2 | 2026-10-10 | `GET /api/v1/games` ganha `thumbnailUrl` e `bannerUrl` (kit visual do jogo), campos opcionais para clientes existentes — implementado pela SPEC-0044 | Lobby do cassino demo (SPEC-0035) e lobbies de operadores reais precisam das artes do jogo | SPEC-0044 (introduz); consumidores existentes não quebram | thomas, 2026-10-10 (H1 do épico SPEC-0035) |
 | 1 (inalterado) | 2026-10-09 | Escopo: `src/backend/BuildingBlocks/Contracts/**` — `OperatorId`, `PlayerId` e `Currency` ficam junto de `Money`, e não em `Operators.Contracts` | IMP-01 da SPEC-0021: tipos compartilhados por Carteira e Apostas não existiam | SPEC-0021 | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
