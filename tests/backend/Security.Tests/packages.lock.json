@@ -827,14 +827,23 @@
         "type": "Project"
       },
       "Apogeu.Betting.Domain": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Betting.Contracts": "[1.0.0, )",
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
+          "Apogeu.Rounds.Contracts": "[1.0.0, )"
+        }
       },
       "Apogeu.Betting.Features": {
         "type": "Project",
         "dependencies": {
           "Apogeu.Betting.Contracts": "[1.0.0, )",
           "Apogeu.Betting.Domain": "[1.0.0, )",
-          "Apogeu.Betting.Infrastructure": "[1.0.0, )"
+          "Apogeu.Betting.Infrastructure": "[1.0.0, )",
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
+          "Apogeu.Operators.Contracts": "[1.0.0, )",
+          "Apogeu.Rounds.Contracts": "[1.0.0, )",
+          "Apogeu.Wallet.Contracts": "[1.0.0, )"
         }
       },
       "Apogeu.Betting.Infrastructure": {

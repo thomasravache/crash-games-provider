@@ -50,6 +50,7 @@
     <Project Path="tests/backend/Architecture.Tests/Fixtures/StandIn.AutoMapper/StandIn.AutoMapper.csproj" />
     <Project Path="tests/backend/Architecture.Tests/Fixtures/StandIn.MediatR/StandIn.MediatR.csproj" />
     <Project Path="tests/backend/Contracts.Tests/Contracts.Tests.csproj" />
+    <Project Path="tests/backend/Modules/Betting.Tests/Betting.Tests.csproj" />
     <Project Path="tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj" />
     <Project Path="tests/backend/Modules/Operators.Tests/Operators.Tests.csproj" />
     <Project Path="tests/backend/Modules/Rounds.Tests/Rounds.Tests.csproj" />

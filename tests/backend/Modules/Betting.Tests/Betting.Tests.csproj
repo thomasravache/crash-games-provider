@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of the Betting module (SPEC-0022, ADR-0005, ADR-0007, ADR-0009): the bet rules of the domain (unit) and, on the
+    real Host (WebApplicationFactory) with real PostgreSQL and Redis (Testcontainers) and a real SignalR client, the hub
+    /hubs/bets, the Rounds integration events and the generated hub contract. The wallet is a test double of the
+    IOperatorWallet contract of SPEC-0021@2 (its real implementation is proven by SPEC-0021's own tests).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <!-- Clears the shared Redis container between integration tests (leader locks and backplane, ADR-0005). -->
+    <PackageReference Include="StackExchange.Redis" />
+    <!-- One database per test and the row counts of the schema betting. -->
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../TestKit/TestKit.csproj" />
+    <ProjectReference Include="../../../../src/backend/Host/Host.csproj" />
+    <ProjectReference Include="../../../../src/backend/BuildingBlocks/BuildingBlocks.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Betting/Betting.Contracts/Betting.Contracts.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Betting/Betting.Domain/Betting.Domain.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Betting/Betting.Features/Betting.Features.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Wallet/Wallet.Contracts/Wallet.Contracts.csproj" />
+    <!-- IT-05 annuls a round through a decorator of the real Fairness service (crash point mismatch, SPEC-0008). -->
+    <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Contracts/Fairness.Contracts.csproj" />
+  </ItemGroup>
+
+  <!-- Build order only: CT-01 runs the hub-contract exporter (SPEC-0006) from its own output. -->
+  <ItemGroup>
+    <ProjectReference Include="../../../../tools/contracts/HubContracts/HubContracts.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Readers of the round messages and the JSON Schema validator of the generated hub contract (SPEC-0008), compiled in rather than duplicated. -->
+  <ItemGroup>
+    <Compile Include="../Rounds.Tests/Support/Eventually.cs" Link="Support/Shared/Eventually.cs" />
+    <Compile Include="../Rounds.Tests/Support/Json.cs" Link="Support/Shared/Json.cs" />
+    <Compile Include="../Rounds.Tests/Support/HubEvent.cs" Link="Support/Shared/HubEvent.cs" />
+    <Compile Include="../Rounds.Tests/Support/HubRecorder.cs" Link="Support/Shared/HubRecorder.cs" />
+    <Compile Include="../Rounds.Tests/Support/HubSchemaValidator.cs" Link="Support/Shared/HubSchemaValidator.cs" />
+  </ItemGroup>
+
+</Project>
