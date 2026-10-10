@@ -1,3 +1,4 @@
+using System.Globalization;
 using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.Rounds.Contracts;
 using Apogeu.Wallet.Contracts;
@@ -137,7 +138,7 @@ internal sealed class PostgresWalletLedger(IServiceScopeFactory scopes) : IWalle
 
     /// <summary>Key of the advisory lock of an account; the separator cannot appear in the ids (control character).</summary>
     private static string AccountKey(LedgerAccount account) =>
-        string.Join('\u001f', "wallet", account.Operator.Value, account.Currency.Code, account.Player?.Value ?? string.Empty);
+        string.Create(CultureInfo.InvariantCulture, $"wallet\u001f{account.Operator.Value}\u001f{account.Currency.Code}\u001f{account.Player?.Value}");
 
     private static LedgerEntryRecord ToRecord(LedgerEntry entry)
     {
