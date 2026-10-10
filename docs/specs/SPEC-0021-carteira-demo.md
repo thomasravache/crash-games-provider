@@ -175,7 +175,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, CT-01 com a tag `SPEC-0021:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, CT-01 com a tag `SPEC-0021:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
