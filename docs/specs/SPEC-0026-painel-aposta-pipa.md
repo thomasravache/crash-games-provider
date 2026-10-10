@@ -30,6 +30,7 @@ Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com val
 - `game-sdk`: cliente do hub `/hubs/bets` e da API de carteira/histórico, store das apostas e do saldo (servidor como fonte da verdade; valores sempre como `Money` em string).
 - `game-ui`: dois painéis conforme o design "Pipa Crash" do Stitch, com estados por fase, validação local pelos limites (o servidor decide), mensagens de erro em pt-BR, saldo e recarga (abas de apostas: SPEC-0031).
 - Integração no HUD do `game-pipa`, substituindo o painel desabilitado da SPEC-0010.
+- Tique sonoro suave nos 3 últimos segundos da fase de apostas, pelo `GameAudio` da SPEC-0018 (o HUD conhece o prazo) — vindo da SPEC-0018 (Emenda; teste no UT-07 junto do tremor).
 - No crash, o texto "PIPA CORTADA!" do HUD treme por ≤ 300 ms (exceto com movimento reduzido) — vindo da SPEC-0011 (Emenda v3).
 - Acessibilidade WCAG 2.2 AA no painel (rótulos, foco, anúncios `aria-live` de aposta aceita, retirada e perda).
 
