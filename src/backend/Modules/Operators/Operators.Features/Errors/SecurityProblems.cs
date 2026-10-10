@@ -1,10 +1,14 @@
 using Apogeu.BuildingBlocks.Security;
+using Apogeu.Operators.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Apogeu.Operators.Features.Errors;
 
-/// <summary>Error responses of the security contract v1 (<see cref="ErrorResponse"/>, <c>application/problem+json</c>).</summary>
+/// <summary>
+/// Error responses of the security contract v1 and of the catalog (SPEC-0020) (<see cref="ErrorResponse"/>,
+/// <c>application/problem+json</c>).
+/// </summary>
 internal static class SecurityProblems
 {
     public static JsonHttpResult<ErrorResponse> Of(int status, string code, IReadOnlyDictionary<string, string[]>? errors = null) =>
@@ -25,6 +29,8 @@ internal static class SecurityProblems
         SecurityErrorCodes.LaunchTokenInvalid => "The launch token is invalid.",
         SecurityErrorCodes.LaunchTokenExpired => "The launch token has expired.",
         SecurityErrorCodes.LaunchTokenUsed => "The launch token was already used.",
+        OperatorsErrorCodes.GameNotAvailable => "The game is not available for the operator.",
+        OperatorsErrorCodes.CurrencyNotEnabled => "The currency is not enabled for the operator.",
         _ => "The request was refused.",
     };
 }

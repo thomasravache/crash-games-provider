@@ -20,6 +20,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/games": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The games enabled for the calling operator, with their currencies. */
+    get: operations["ListGames"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/meta": {
     parameters: {
       query?: never;
@@ -117,6 +134,11 @@ export interface components {
       /** Format: int32 */
       status: number;
       title: string;
+    };
+    GameSummaryResponse: {
+      code: string;
+      currencies: string[];
+      name: string;
     };
     LaunchRequest: {
       currency: null | string;
@@ -222,6 +244,35 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  ListGames: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["GameSummaryResponse"][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ErrorResponse"];
+        };
       };
     };
   };

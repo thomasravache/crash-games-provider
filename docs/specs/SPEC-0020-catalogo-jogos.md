@@ -4,13 +4,13 @@ title: "Catálogo de jogos e limites por operador e moeda"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0009]
 consumes_contract: []
 contract_version: 1
-touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**"]
+touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**", "src/backend/BuildingBlocks/Contracts/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020]
 external: []
 size: M
@@ -64,7 +64,7 @@ Cria o catálogo de jogos do provedor e os limites de aposta por operador e moed
 - **Custo:** N/A
 
 ## 6. Artefato A — Contrato
-**Interface:** `Operators.Contracts` (v1) + REST.
+**Interface:** `Operators.Contracts` (v1) + REST. Os tipos de valor compartilhados `OperatorId`, `PlayerId` e `Currency` (ISO 4217) ficam em `BuildingBlocks.Contracts`, ao lado de `Money`, porque Carteira e Apostas também os usam.
 
 ```text
 IGameCatalog
@@ -175,11 +175,11 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:01:16.17]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — 37cbc72 | 2026-10-09 |
+| G2 Green | PASS | build exit 0 (✓ built in 155ms); test exit 0 (Duration  1.38s (tests 79%, transform 14%, import 6%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-09T17:14:09: Writing report file 'artifacts/coverage/Summary.txt') — 17d1bc9 | 2026-10-09 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  3.63s (tests 99%, transform 1%)) — 17d1bc9 | 2026-10-09 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 17d1bc9 — 0 blocker/major; minors: GET /games sem anti-replay e rate limit, contador operators.launch_rejected sem teste e em dobro, isolamento entre operadores sem IT, versão do cache por processo, numeric(18,2), Load síncrono — 38acd95 | 2026-10-09 |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 153ms); test exit 0 (Duration  1.33s (tests 67%, transform 20%, import 11%, worker 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 3 m 36 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  817ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 294 files: 0 findings.) — 38a1eb3 | 2026-10-10 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
@@ -230,3 +230,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0020`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-09 | Escopo: `src/backend/BuildingBlocks/Contracts/**` — `OperatorId`, `PlayerId` e `Currency` ficam junto de `Money`, e não em `Operators.Contracts` | IMP-01 da SPEC-0021: tipos compartilhados por Carteira e Apostas não existiam | SPEC-0021 | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |

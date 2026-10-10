@@ -3,3 +3,4 @@
 export * from "./game-animator";
 export * from "./sky";
 export * from "./animator-binding";
+export * from "./kite";

@@ -516,7 +516,10 @@
         }
       },
       "Apogeu.Operators.Contracts": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.BuildingBlocks": "[1.0.0, )"
+        }
       },
       "Apogeu.Operators.Features": {
         "type": "Project",

@@ -32,6 +32,7 @@ O ADR-0016 permite só MIT, Apache-2.0, BSD, ISC e MPL-2.0 e exige ADR para qual
 - Lista permitida passa a ser: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, **PostgreSQL**, **BlueOak-1.0.0**, **CC0-1.0**, **0BSD** e **Unlicense**.
 - **CC-BY-4.0** é permitida **somente** para dados usados no build e não distribuídos como código (ex.: caniuse-lite); a atribuição é mantida pelo próprio pacote.
 - **Python-2.0** (licença da PSF, permissiva) é permitida **somente** em dependência de build, nunca de produção (ex.: `argparse`, via `openapi-typescript` → `js-yaml`, gerador do ADR-0008). Emenda de 2026-10-09: encontrada no primeiro run real do `check-licenses` na CI (PR #6); aprovada pela autorização do usuário para seguir as recomendações (thomas, 2026-10-09).
+- **GSAP Standard License** ("Standard 'no charge' license", gsap.com/standard-license) é permitida **somente** para o pacote `gsap`, inclusive em produção, porque o ADR-0021 escolheu o GSAP com essa licença (uso comercial gratuito; proíbe apenas ferramentas concorrentes do construtor visual do Webflow, o que não é o caso). Emenda de 2026-10-10: encontrada no G5 da SPEC-0011 (IMP-01); a escolha da licença já foi aprovada pelo usuário no ADR-0021, esta emenda só alinha a lista — pela autorização do usuário para seguir as recomendações (thomas, 2026-10-09).
 - Qualquer outra licença (inclusive GPL/AGPL e comerciais) continua exigindo ADR.
 
 ### Consequências

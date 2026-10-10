@@ -1,3 +1,4 @@
+using Apogeu.Operators.Infrastructure.Catalog;
 using Apogeu.Operators.Infrastructure.Persistence;
 using Apogeu.Operators.Infrastructure.Redis;
 using Microsoft.EntityFrameworkCore;
@@ -6,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Apogeu.Operators.Infrastructure;
 
 /// <summary>
-/// Composition of the Operators persistence (SPEC-0009, ADR-0010): the schema <c>operators</c> in PostgreSQL (operators and
-/// launch grants) and Redis for replay detection and rate limits.
+/// Composition of the Operators persistence (SPEC-0009, SPEC-0020, ADR-0010): the schema <c>operators</c> in PostgreSQL (operators,
+/// launch grants, game catalog and limits) and Redis for replay detection and rate limits.
 /// </summary>
 public static class OperatorsInfrastructure
 {
@@ -29,6 +30,7 @@ public static class OperatorsInfrastructure
         services.AddDbContext<OperatorsDbContext>((provider, options) => Configure(options, postgresConnectionString(provider)));
         services.AddScoped<IOperatorDirectory, OperatorDirectory>();
         services.AddScoped<ILaunchGrantStore, LaunchGrantStore>();
+        services.AddSingleton<ICatalogStore, CatalogStore>();
         services.AddSingleton(provider => new OperatorsRedis(() => redisConnectionString(provider)));
         services.AddSingleton<IReplayGuard, RedisReplayGuard>();
         services.AddSingleton<IRateLimiter, RedisSlidingWindowRateLimiter>();
