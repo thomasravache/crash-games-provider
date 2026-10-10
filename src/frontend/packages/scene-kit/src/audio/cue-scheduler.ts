@@ -1,7 +1,9 @@
 // CueScheduler (SPEC-0018 §4): the milestone cues 2x, 5x, 10x, 25x, 50x and 100x, once per round even when a resync
-// takes the multiplier back below a milestone already played, each one a tone higher than the previous.
+// takes the multiplier back below a milestone already played, each one a tone higher than the previous. The same
+// milestones as the scene's pulses (SPEC-0011), from its MilestoneTracker.
 
-import { notImplemented } from "./not-implemented";
+import { createMilestoneTracker, multiplierMilestones } from "../kite/milestones";
+import { milestoneHz } from "./audio-mix";
 
 export interface MilestoneCue {
   /** The milestone crossed (2, 5, 10, 25, 50 or 100). */
@@ -20,5 +22,16 @@ export interface CueScheduler {
 }
 
 export function createCueScheduler(): CueScheduler {
-  return notImplemented();
+  const tracker = createMilestoneTracker();
+  return {
+    update(multiplier) {
+      return tracker.update(multiplier).map((milestone) => {
+        const index = multiplierMilestones.indexOf(milestone);
+        return { milestone, index, hz: milestoneHz(index) };
+      });
+    },
+    reset() {
+      tracker.reset();
+    },
+  };
 }

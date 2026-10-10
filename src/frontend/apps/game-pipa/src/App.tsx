@@ -10,6 +10,8 @@ import {
 } from "@apogeu/game-ui";
 import { useEffect, useRef, useState, type JSX } from "react";
 
+import type { SoundController } from "./audio/sound-controller";
+import { useSound } from "./audio/use-sound";
 import { demoBalance } from "./config";
 
 type Screen =
@@ -22,6 +24,8 @@ export interface AppProps {
   readonly client: GameClient;
   /** The session start, begun once before React renders (the launch token is single use). */
   readonly session: Promise<SessionInfo>;
+  /** The game's sound (SPEC-0018), created once per page; absent: the game is silent. */
+  readonly sound?: SoundController;
 }
 
 /** Host of the PixiJS scene, loaded on demand (the renderer is not part of the initial bundle). */
@@ -51,11 +55,14 @@ function Scene({ source }: { readonly source: RoundStateSource }): JSX.Element {
 function Game({
   client,
   session,
+  sound,
 }: {
   readonly client: GameClient;
   readonly session: SessionInfo;
+  readonly sound: SoundController | undefined;
 }): JSX.Element {
   const state = useRoundState(client.store);
+  const soundControl = useSound(sound);
   const [fairnessOpen, setFairnessOpen] = useState(false);
 
   return (
@@ -67,6 +74,7 @@ function Game({
         setFairnessOpen(true);
       }}
       scene={<Scene source={client.store} />}
+      {...(soundControl === undefined ? {} : { sound: soundControl })}
     >
       {fairnessOpen ? (
         <FairnessDialog
@@ -81,7 +89,7 @@ function Game({
   );
 }
 
-export function App({ client, session }: AppProps): JSX.Element {
+export function App({ client, session, sound }: AppProps): JSX.Element {
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
 
   useEffect(() => {
@@ -109,6 +117,6 @@ export function App({ client, session }: AppProps): JSX.Element {
     case "failed":
       return <ConnectionFailedScreen />;
     case "game":
-      return <Game client={client} session={screen.session} />;
+      return <Game client={client} session={screen.session} sound={sound} />;
   }
 }

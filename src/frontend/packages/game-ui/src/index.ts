@@ -6,3 +6,4 @@ export * from "./history-strip";
 export * from "./hud";
 export * from "./fairness-dialog";
 export * from "./session-expired";
+export * from "./sound/sound-toggle";
