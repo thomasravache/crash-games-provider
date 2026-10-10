@@ -8,9 +8,9 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0008, SPEC-0009]
-consumes_contract: [SPEC-0020@1, SPEC-0021@3]
-contract_version: 1
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/Rounds.Contracts/**", "src/backend/Modules/Rounds/Rounds.Features/Conductor/**", "src/backend/Host/Program.cs"]
+consumes_contract: [SPEC-0020@1, SPEC-0021@4]
+contract_version: 2
+touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/Rounds.Contracts/**", "src/backend/Modules/Rounds/Rounds.Features/Conductor/**", "src/backend/Host/Program.cs", "src/backend/Host/Host.csproj", "src/backend/Modules/Rounds/Rounds.Features/Rounds.Features.csproj", "src/backend/Modules/Rounds/Rounds.Features/RoundsModule.cs", "src/backend/Modules/Rounds/Rounds.Features/Salas/**", "src/backend/Modules/Rounds/Rounds.Infrastructure/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0007, ADR-0008, ADR-0010, ADR-0015, ADR-0019]
 external: []
 size: M
@@ -38,7 +38,7 @@ Implementa o módulo Betting para aceitar apostas: até duas apostas por jogador
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0008 (motor e salas) e SPEC-0009 (sessão do jogador, hub autenticado).
-- **Contratos consumidos:** SPEC-0020@1 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@3 (`IOperatorWallet`: débito e estorno idempotentes).
+- **Contratos consumidos:** SPEC-0020@1 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@4 (`IOperatorWallet`: débito e estorno idempotentes).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -195,7 +195,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:02:00.57]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — f224ab8 | 2026-10-10 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -208,6 +208,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-10 | G2 | spec | Contrato e escopo incompletos para a integração: (1) WalletRollback.RoundId obrigatório, mas o estorno de aposta queued não tem rodada; (2) o cap da sala não é exposto em Rounds.Contracts; (3) ligar o Wolverine (outbox do ADR-0002) exige Rounds.Features.csproj, Rounds.Infrastructure e Host.csproj, fora do touches | Implementer concluiu o domínio (ad5b1e7, 17 unitários verdes); leu SPEC-0021 v3, conductor, módulo e infraestrutura do Rounds e Directory.Packages.props | Architect: emenda da SPEC-0021 (v4) e da SPEC-0022 | Emenda 2 da SPEC-0022 (ISalaCaps em Rounds.Contracts, outbox EF transacional do Wolverine com fila sequencial, touches ampliado) e SPEC-0021 v4 (RoundId opcional no estorno de aposta queued) | 2026-10-10 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -250,4 +251,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0022`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
-| 1 (inalterado) | 2026-10-10 | Esclarecimentos: o "limite da sala" do AUTO_CASHOUT_INVALID é o cap da sala no Rounds (o mesmo valor que o motor usa e persiste por rodada), não o padrão do catálogo; o débito de aposta queued vai com RoundId nulo (SPEC-0021@3); TransactionIds montados como `bet:{betId}:debit|rollback`; o IT-01 de saldo insuficiente usa um segundo jogador com saldo baixo no dublê da carteira (com a carteira real, o caso fica coberto pela SPEC-0021) | G1 do Test-writer: origem do limite da sala e RoundId do débito queued não definidos | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
+| 2 | 2026-10-10 | (1) Estorno de aposta queued com RoundId nulo (SPEC-0021@4). (2) Nova porta de leitura em `Rounds.Contracts`: `ISalaCaps { Multiplier? CapOf(SalaId) }`, implementada no Rounds.Features sobre o catálogo de salas (o mesmo valor que `RoundParameters` dá a cada rodada), usada pelo Betting para o AUTO_CASHOUT_INVALID. (3) Primeira ligação do Wolverine (ADR-0002): **outbox transacional via EF Core** no `RoundsDbContext` — os 4 eventos de rodada são gravados na mesma transação do salvamento da rodada — e entregues em uma fila local **sequencial** que preserva a ordem (IT-05); `touches` passa a incluir `Rounds.Features.csproj`, `RoundsModule.cs`, `Rounds.Features/Salas/**`, `Rounds.Infrastructure/**` e `Host.csproj`. Pacotes já aprovados em Directory.Packages.props (WolverineFx, .Postgresql, .EntityFrameworkCore) | IMP-01: SPEC_DEFECT do Implementer | SPEC-0023..SPEC-0025 (consomem os eventos; contrato do hub inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
+| 1 (inalterado) | 2026-10-10 | Esclarecimentos: o "limite da sala" do AUTO_CASHOUT_INVALID é o cap da sala no Rounds (o mesmo valor que o motor usa e persiste por rodada), não o padrão do catálogo; o débito de aposta queued vai com RoundId nulo (SPEC-0021@4); TransactionIds montados como `bet:{betId}:debit|rollback`; o IT-01 de saldo insuficiente usa um segundo jogador com saldo baixo no dublê da carteira (com a carteira real, o caso fica coberto pela SPEC-0021) | G1 do Test-writer: origem do limite da sala e RoundId do débito queued não definidos | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |

@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0024]
-consumes_contract: [SPEC-0021@3]
+consumes_contract: [SPEC-0021@4]
 contract_version: 1
 touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**"]
 adrs: [ADR-0005, ADR-0014, ADR-0019, ADR-0008]
@@ -37,7 +37,7 @@ Mostra para a sala as apostas da rodada em tempo real (apelido anonimizado, valo
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0024 (estados finais das apostas).
-- **Contratos consumidos:** SPEC-0021@3 (moeda e valores).
+- **Contratos consumidos:** SPEC-0021@4 (moeda e valores).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
