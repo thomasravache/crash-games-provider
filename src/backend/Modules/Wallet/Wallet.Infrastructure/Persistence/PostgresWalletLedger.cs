@@ -1,35 +1,31 @@
-using System.Globalization;
 using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.Rounds.Contracts;
 using Apogeu.Wallet.Contracts;
 using Apogeu.Wallet.Domain.Ledger;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace Apogeu.Wallet.Infrastructure.Persistence;
 
 /// <summary>
 /// The ledger in the schema <c>wallet</c> of PostgreSQL (ADR-0010), insert-only (a <c>BEFORE UPDATE OR DELETE</c> trigger
-/// refuses any change). It is a singleton: each operation runs on a <see cref="WalletDbContext"/> of a DI scope of its own.
+/// refuses any change). It is a singleton: each operation runs on a <see cref="WalletDbContext"/> of its own, rented from the
+/// module's context pool (the debit is on the 100 ms bet path, ADR-0019).
 /// </summary>
 /// <remarks>
-/// <see cref="TryAppendAsync"/> serializes the appends of one player account with a transaction-scoped advisory lock, then
-/// checks the transaction id and the expected sum before inserting (one round trip for the lock and the checks, one for the
-/// inserts, one for the commit); the primary key on the transaction id is the last
-/// guard of idempotency (a same id for another account).
+/// <see cref="TryAppendAsync"/> calls the function <c>wallet.try_append_entry</c> (migration <c>LedgerAppendFunction</c>) in one
+/// round trip: it serializes the appends of one player account with a transaction-scoped advisory lock, then checks the
+/// transaction id and the expected sum before inserting the entry and its postings; the primary key on the transaction id
+/// is the last guard of idempotency (a same id for another account). Reads go through EF Core.
 /// </remarks>
-internal sealed class PostgresWalletLedger(IServiceScopeFactory scopes) : IWalletLedger
+internal sealed class PostgresWalletLedger(IDbContextFactory<WalletDbContext> contexts) : IWalletLedger
 {
-    private const string UniqueViolation = "23505";
-
     public async Task<LedgerEntry?> FindAsync(TransactionId transactionId, CancellationToken cancellationToken)
     {
-        var scope = scopes.CreateAsyncScope();
-        await using (scope.ConfigureAwait(false))
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            var db = scope.ServiceProvider.GetRequiredService<WalletDbContext>();
             var record = await db.Entries.AsNoTracking()
                 .Include(e => e.Postings)
                 .SingleOrDefaultAsync(e => e.TransactionId == transactionId.Value, cancellationToken)
@@ -42,10 +38,9 @@ internal sealed class PostgresWalletLedger(IServiceScopeFactory scopes) : IWalle
     {
         ArgumentNullException.ThrowIfNull(account);
 
-        var scope = scopes.CreateAsyncScope();
-        await using (scope.ConfigureAwait(false))
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            var db = scope.ServiceProvider.GetRequiredService<WalletDbContext>();
             return new Money(await SumOfAsync(db, account, cancellationToken).ConfigureAwait(false));
         }
     }
@@ -53,78 +48,41 @@ internal sealed class PostgresWalletLedger(IServiceScopeFactory scopes) : IWalle
     public async Task<LedgerAppendOutcome> TryAppendAsync(LedgerEntry entry, Money expectedPlayerSum, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(entry);
-
-        var account = LedgerAccount.OfPlayer(entry.Player, entry.Currency);
-        var scope = scopes.CreateAsyncScope();
-        await using (scope.ConfigureAwait(false))
+        if (entry.Postings.Any(p => p.Account.Operator != entry.Player.OperatorId || p.Account.Currency != entry.Currency))
         {
-            var db = scope.ServiceProvider.GetRequiredService<WalletDbContext>();
+            throw new ArgumentException("Every posting of an entry is on the operator and currency of the entry.", nameof(entry));
+        }
 
-            // The only SaveChanges runs inside this transaction: no savepoint round trip before it.
-            db.Database.AutoSavepointsEnabled = false;
-            var transaction = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-            await using (transaction.ConfigureAwait(false))
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            // One statement, one round trip: lock of the player account, checks and inserts in wallet.try_append_entry.
+            var outcome = await db.Database.SqlQuery<string>($"""
+                SELECT wallet.try_append_entry(
+                    {Text(entry.TransactionId.Value)}, {Text(entry.Kind.ToString())}, {Text(entry.Player.OperatorId.Value)},
+                    {Text(entry.Player.PlayerId.Value)}, {Text(entry.Currency.Code)}, {Uuid(entry.RoundId?.Value)}, {Uuid(entry.BetId)},
+                    {Text(entry.OriginalTransactionId?.Value)}, {Numeric(entry.BalanceAfter.Value)},
+                    {new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.TimestampTz, Value = entry.RecordedAt }},
+                    {Numeric(expectedPlayerSum.Value)},
+                    {new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Text, Value = entry.Postings.Select(p => p.Account.Player?.Value).ToArray() }},
+                    {new NpgsqlParameter { NpgsqlDbType = NpgsqlDbType.Array | NpgsqlDbType.Numeric, Value = entry.Postings.Select(p => p.Amount.Value).ToArray() }}) AS "Value"
+                """).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+            return outcome.Single() switch
             {
-                var (duplicate, sum) = await LockAndReadAsync(db, entry.TransactionId, account, cancellationToken).ConfigureAwait(false);
-                if (duplicate)
-                {
-                    return LedgerAppendOutcome.DuplicateTransaction;
-                }
-
-                if (sum != expectedPlayerSum.Value)
-                {
-                    return LedgerAppendOutcome.StaleBalance;
-                }
-
-                db.Entries.Add(ToRecord(entry));
-                try
-                {
-                    await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (DbUpdateException error) when (error.InnerException is PostgresException { SqlState: UniqueViolation })
-                {
-                    return LedgerAppendOutcome.DuplicateTransaction;
-                }
-
-                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-                return LedgerAppendOutcome.Appended;
-            }
+                "appended" => LedgerAppendOutcome.Appended,
+                "duplicate" => LedgerAppendOutcome.DuplicateTransaction,
+                "stale" => LedgerAppendOutcome.StaleBalance,
+                var other => throw new InvalidOperationException($"Unexpected outcome '{other}' of wallet.try_append_entry."),
+            };
         }
     }
 
-    /// <summary>
-    /// In one round trip: takes the transaction-scoped advisory lock of <paramref name="account"/> (one writer per account
-    /// until commit or rollback), then — in a statement of its own, so its snapshot sees what the previous holder committed —
-    /// reads whether <paramref name="transactionId"/> exists and the account's sum.
-    /// </summary>
-    private static async Task<(bool Duplicate, decimal Sum)> LockAndReadAsync(
-        WalletDbContext db, TransactionId transactionId, LedgerAccount account, CancellationToken cancellationToken)
-    {
-        var connection = (NpgsqlConnection)db.Database.GetDbConnection();
-        var batch = new NpgsqlBatch(connection) { Transaction = (NpgsqlTransaction)db.Database.CurrentTransaction!.GetDbTransaction() };
-        await using (batch.ConfigureAwait(false))
-        {
-            var lockCommand = new NpgsqlBatchCommand("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))");
-            lockCommand.Parameters.Add(new NpgsqlParameter { Value = AccountKey(account) });
-            var readCommand = new NpgsqlBatchCommand(
-                "SELECT EXISTS (SELECT 1 FROM wallet.ledger_entries WHERE transaction_id = $1), "
-                + "COALESCE((SELECT sum(amount) FROM wallet.ledger_postings WHERE operator_id = $2 AND currency = $3 AND player_id = $4), 0)");
-            readCommand.Parameters.Add(new NpgsqlParameter { Value = transactionId.Value });
-            readCommand.Parameters.Add(new NpgsqlParameter { Value = account.Operator.Value });
-            readCommand.Parameters.Add(new NpgsqlParameter { Value = account.Currency.Code });
-            readCommand.Parameters.Add(new NpgsqlParameter { Value = account.Player!.Value.Value });
-            batch.BatchCommands.Add(lockCommand);
-            batch.BatchCommands.Add(readCommand);
+    private static NpgsqlParameter Text(string? value) => new() { NpgsqlDbType = NpgsqlDbType.Text, Value = (object?)value ?? DBNull.Value };
 
-            var reader = await batch.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-            await using (reader.ConfigureAwait(false))
-            {
-                await reader.NextResultAsync(cancellationToken).ConfigureAwait(false);
-                await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-                return (reader.GetBoolean(0), reader.GetDecimal(1));
-            }
-        }
-    }
+    private static NpgsqlParameter Uuid(Guid? value) => new() { NpgsqlDbType = NpgsqlDbType.Uuid, Value = (object?)value ?? DBNull.Value };
+
+    private static NpgsqlParameter Numeric(decimal value) => new() { NpgsqlDbType = NpgsqlDbType.Numeric, Value = value };
 
     private static Task<decimal> SumOfAsync(WalletDbContext db, LedgerAccount account, CancellationToken cancellationToken)
     {
@@ -134,42 +92,6 @@ internal sealed class PostgresWalletLedger(IServiceScopeFactory scopes) : IWalle
             ? postings.Where(p => p.PlayerId == player.Value)
             : postings.Where(p => p.PlayerId == null);
         return postings.SumAsync(p => p.Amount, cancellationToken);
-    }
-
-    /// <summary>Key of the advisory lock of an account; the separator cannot appear in the ids (control character).</summary>
-    private static string AccountKey(LedgerAccount account) =>
-        string.Create(CultureInfo.InvariantCulture, $"wallet\u001f{account.Operator.Value}\u001f{account.Currency.Code}\u001f{account.Player?.Value}");
-
-    private static LedgerEntryRecord ToRecord(LedgerEntry entry)
-    {
-        var record = new LedgerEntryRecord
-        {
-            TransactionId = entry.TransactionId.Value,
-            Kind = entry.Kind.ToString(),
-            OperatorId = entry.Player.OperatorId.Value,
-            PlayerId = entry.Player.PlayerId.Value,
-            Currency = entry.Currency.Code,
-            RoundId = entry.RoundId?.Value,
-            BetId = entry.BetId,
-            OriginalTransactionId = entry.OriginalTransactionId?.Value,
-            BalanceAfter = entry.BalanceAfter.Value,
-            RecordedAt = entry.RecordedAt,
-        };
-        short line = 0;
-        foreach (var posting in entry.Postings)
-        {
-            record.Postings.Add(new LedgerPostingRecord
-            {
-                TransactionId = record.TransactionId,
-                Line = ++line,
-                OperatorId = posting.Account.Operator.Value,
-                Currency = posting.Account.Currency.Code,
-                PlayerId = posting.Account.Player?.Value,
-                Amount = posting.Amount.Value,
-            });
-        }
-
-        return record;
     }
 
     private static LedgerEntry ToEntry(LedgerEntryRecord record) =>

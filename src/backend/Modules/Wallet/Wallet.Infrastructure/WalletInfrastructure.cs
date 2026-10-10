@@ -41,7 +41,7 @@ public static class WalletInfrastructure
         ArgumentNullException.ThrowIfNull(postgresConnectionString);
         ArgumentNullException.ThrowIfNull(maxPoolSize);
 
-        services.AddDbContext<WalletDbContext>((provider, options) =>
+        services.AddPooledDbContextFactory<WalletDbContext>((provider, options) =>
             Configure(options, WithMaxPoolSize(postgresConnectionString(provider), maxPoolSize(provider))));
         services.AddMetrics();
         services.AddSingleton<WalletMetrics>();
@@ -58,10 +58,9 @@ public static class WalletInfrastructure
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var scope = services.CreateAsyncScope();
-        await using (scope.ConfigureAwait(false))
+        var db = await services.GetRequiredService<IDbContextFactory<WalletDbContext>>().CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
         {
-            var db = scope.ServiceProvider.GetRequiredService<WalletDbContext>();
             await db.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
         }
     }
