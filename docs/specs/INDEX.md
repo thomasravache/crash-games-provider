@@ -5,8 +5,8 @@
 ## Saúde
 
 - Validação (G0): **1 erro(s), 2 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 10, approved 6, in-progress 3, implemented 12
-- Impedimentos: **1 aberto(s)**, 10 resolvido(s)
+- Specs: proposed 1, approved 15, in-progress 3, implemented 12
+- Impedimentos: **1 aberto(s)**, 11 resolvido(s)
 
 ## Impedimentos Abertos
 
@@ -54,22 +54,22 @@ Perfil: **rigoroso**
 | 1 | SPEC-0018 | Som da Pipa | full/M | in-progress | 🔄 em andamento |  |
 | 1 | SPEC-0021 | Carteira demo, livro-razão e contrato da carteira do operador | full/M | in-progress | 🔄 em andamento |  |
 | 1 | SPEC-0022 | Apostar, aposta dupla e cancelamento | full/M | in-progress | 🔄 em andamento |  |
+| 2 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
+| 2 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
 | 2 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 1d) | saiu da onda 1: max_parallel=3 |
-| 2 | SPEC-0023 | Cash-out manual e automático | full/M | approved | ⛔ aguarda implementação de SPEC-0022 |  |
-| 2 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3 |
 | 3 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0015 |
-| 3 | SPEC-0024 | Liquidação da rodada e estorno | full/M | approved | ⛔ aguarda implementação de SPEC-0023 |  |
-| 3 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
-| 4 | SPEC-0025 | Apostas ao vivo e histórico pessoal | full/M | approved | ⛔ aguarda implementação de SPEC-0024 |  |
-| 4 | SPEC-0026 | Painel de aposta da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0024 |  |
-| 4 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
-| 5 | SPEC-0027 | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3 |
-| 5 | SPEC-0028 | Endurecimento da API de operadores | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3 |
-| 5 | SPEC-0029 | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0018; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0026 |
-| 6 | SPEC-0030 | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0015; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0029 |
-| 6 | SPEC-0031 | Abas de apostas da Pipa | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 5: arquivos em comum com SPEC-0029 |
-| 6 | SPEC-0032 | Pool de conexões limitado no Fairness e no Operators | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0028 |
-| 7 | SPEC-0033 | Acabamento técnico da cena da Pipa | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0018; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0029; saiu da onda 6: max_parallel=3 |
+| 3 | SPEC-0023 | Cash-out manual e automático | full/M | approved | ⛔ aguarda implementação de SPEC-0022 | saiu da onda 2: max_parallel=3 |
+| 3 | SPEC-0027 | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
+| 4 | SPEC-0024 | Liquidação da rodada e estorno | full/M | approved | ⛔ aguarda implementação de SPEC-0023 |  |
+| 4 | SPEC-0028 | Endurecimento da API de operadores | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 4 | SPEC-0029 | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0018; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 5 | SPEC-0025 | Apostas ao vivo e histórico pessoal | full/M | approved | ⛔ aguarda implementação de SPEC-0024 |  |
+| 5 | SPEC-0026 | Painel de aposta da Pipa | full/M | approved | ⛔ aguarda implementação de SPEC-0024 |  |
+| 5 | SPEC-0030 | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0015; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: arquivos em comum com SPEC-0029 |
+| 6 | SPEC-0031 | Abas de apostas da Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0025; aguarda implementação de SPEC-0026 |  |
+| 6 | SPEC-0032 | Pool de conexões limitado no Fairness e no Operators | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0028; saiu da onda 5: max_parallel=3 |
+| 6 | SPEC-0033 | Acabamento técnico da cena da Pipa | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0018; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029; saiu da onda 5: max_parallel=3 |
+| 7 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3 |
 
 ## Épicos
 
@@ -85,14 +85,14 @@ Seta contínua: depende da implementação. Seta tracejada: consome contrato.
 ```mermaid
 flowchart LR
   S0012["SPEC-0012<br/>Hospedagem e deploy (staging e produção)"]:::proposed
-  S0013["SPEC-0013<br/>Robustez do hook format-staged e overri…"]:::proposed
-  S0014["SPEC-0014<br/>Endurecimento do mascaramento de logs e…"]:::proposed
-  S0027["SPEC-0027<br/>Regras de arquitetura robustas a tipos …"]:::proposed
-  S0028["SPEC-0028<br/>Endurecimento da API de operadores"]:::proposed
-  S0029["SPEC-0029<br/>Verificador da Pipa ligado ao compromis…"]:::proposed
-  S0030["SPEC-0030<br/>Medição de desempenho do cliente Pipa (…"]:::proposed
-  S0032["SPEC-0032<br/>Pool de conexões limitado no Fairness e…"]:::proposed
-  S0033["SPEC-0033<br/>Acabamento técnico da cena da Pipa"]:::proposed
+  S0013["SPEC-0013<br/>Robustez do hook format-staged e overri…"]:::approved
+  S0014["SPEC-0014<br/>Endurecimento do mascaramento de logs e…"]:::approved
+  S0027["SPEC-0027<br/>Regras de arquitetura robustas a tipos …"]:::approved
+  S0028["SPEC-0028<br/>Endurecimento da API de operadores"]:::approved
+  S0029["SPEC-0029<br/>Verificador da Pipa ligado ao compromis…"]:::approved
+  S0030["SPEC-0030<br/>Medição de desempenho do cliente Pipa (…"]:::approved
+  S0032["SPEC-0032<br/>Pool de conexões limitado no Fairness e…"]:::approved
+  S0033["SPEC-0033<br/>Acabamento técnico da cena da Pipa"]:::approved
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::implemented
     S0008["SPEC-0008<br/>Motor de rodada e salas em tempo real"]:::implemented
@@ -111,7 +111,7 @@ flowchart LR
     S0024["SPEC-0024<br/>Liquidação da rodada e estorno"]:::approved
     S0025["SPEC-0025<br/>Apostas ao vivo e histórico pessoal"]:::approved
     S0026["SPEC-0026<br/>Painel de aposta da Pipa"]:::approved
-    S0031["SPEC-0031<br/>Abas de apostas da Pipa"]:::proposed
+    S0031["SPEC-0031<br/>Abas de apostas da Pipa"]:::approved
   end
   S0008 -. contrato v3 .-> S0010
   S0009 -. contrato v1 .-> S0010
@@ -172,8 +172,8 @@ flowchart LR
 | [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@2, SPEC-0008@3, SPEC-0009@1 |
 | [SPEC-0011](SPEC-0011-animacao-pipa.md) | Animação da cena da Pipa | full | feature | implemented | 2026-10-07 | SPEC-0001 | SPEC-0010 | SPEC-0010@1 |
 | [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
-| [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | proposed | 2026-10-08 | — | — | — |
-| [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | proposed | 2026-10-08 | — | — | — |
+| [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | approved | 2026-10-08 | — | — | — |
+| [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | approved | 2026-10-08 | — | — | — |
 | [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | approved | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
 | [SPEC-0016](SPEC-0016-mutacao-com-stryker-net-e-xunit-v3.md) | Mutação com Stryker.NET e xUnit v3 | lite | fix | implemented | 2026-10-08 | SPEC-0001 | — | — |
 | [SPEC-0017](SPEC-0017-endurecimento-dos-testes-e-da-ci-da-onda-3.md) | Endurecimento dos testes e da CI da onda 3 | lite | refactor | approved | 2026-10-08 | SPEC-0001 | — | — |
@@ -186,13 +186,13 @@ flowchart LR
 | [SPEC-0024](SPEC-0024-liquidacao.md) | Liquidação da rodada e estorno | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0023 | SPEC-0021@2 |
 | [SPEC-0025](SPEC-0025-apostas-ao-vivo.md) | Apostas ao vivo e histórico pessoal | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0024 | SPEC-0021@2 |
 | [SPEC-0026](SPEC-0026-painel-aposta-pipa.md) | Painel de aposta da Pipa | full | feature | approved | 2026-10-07 | SPEC-0019 | SPEC-0010, SPEC-0024 | SPEC-0020@1, SPEC-0021@2, SPEC-0022@1, SPEC-0023@1, SPEC-0024@1, SPEC-0025@1 |
-| [SPEC-0027](SPEC-0027-regras-arquitetura-onda4.md) | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite | fix | proposed | 2026-10-09 | — | — | — |
-| [SPEC-0028](SPEC-0028-endurecimento-api-operadores.md) | Endurecimento da API de operadores | lite | fix | proposed | 2026-10-09 | — | — | — |
-| [SPEC-0029](SPEC-0029-verificador-ligado-compromisso.md) | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite | fix | proposed | 2026-10-09 | — | — | — |
-| [SPEC-0030](SPEC-0030-medicao-desempenho-pipa.md) | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite | fix | proposed | 2026-10-09 | — | — | — |
-| [SPEC-0031](SPEC-0031-abas-apostas-pipa.md) | Abas de apostas da Pipa | lite | feature | proposed | 2026-10-09 | SPEC-0019 | SPEC-0025, SPEC-0026 | SPEC-0025@1 |
-| [SPEC-0032](SPEC-0032-pool-limitado-fairness-operators.md) | Pool de conexões limitado no Fairness e no Operators | lite | fix | proposed | 2026-10-09 | — | — | — |
-| [SPEC-0033](SPEC-0033-acabamento-cena-pipa.md) | Acabamento técnico da cena da Pipa | lite | refactor | proposed | 2026-10-10 | — | SPEC-0011 | — |
+| [SPEC-0027](SPEC-0027-regras-arquitetura-onda4.md) | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite | fix | approved | 2026-10-09 | — | — | — |
+| [SPEC-0028](SPEC-0028-endurecimento-api-operadores.md) | Endurecimento da API de operadores | lite | fix | approved | 2026-10-09 | — | — | — |
+| [SPEC-0029](SPEC-0029-verificador-ligado-compromisso.md) | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite | fix | approved | 2026-10-09 | — | — | — |
+| [SPEC-0030](SPEC-0030-medicao-desempenho-pipa.md) | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite | fix | approved | 2026-10-09 | — | — | — |
+| [SPEC-0031](SPEC-0031-abas-apostas-pipa.md) | Abas de apostas da Pipa | lite | feature | approved | 2026-10-09 | SPEC-0019 | SPEC-0025, SPEC-0026 | SPEC-0025@1 |
+| [SPEC-0032](SPEC-0032-pool-limitado-fairness-operators.md) | Pool de conexões limitado no Fairness e no Operators | lite | fix | approved | 2026-10-09 | — | — | — |
+| [SPEC-0033](SPEC-0033-acabamento-cena-pipa.md) | Acabamento técnico da cena da Pipa | lite | refactor | approved | 2026-10-10 | — | SPEC-0011 | — |
 
 ## ADRs
 
