@@ -6,6 +6,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Schema `wallet` in PostgreSQL with its own DbContext and migrations (ADR-0010). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Wallet.Contracts/Wallet.Contracts.csproj" />
     <ProjectReference Include="../Wallet.Domain/Wallet.Domain.csproj" />
     <!-- Minimum bet per operator and currency (IOperatorLimits, SPEC-0020@1) for the demo recharge. -->

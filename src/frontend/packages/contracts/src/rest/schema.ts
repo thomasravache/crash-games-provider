@@ -1,6 +1,6 @@
 // Generated from the backend OpenAPI document (ADR-0008, SPEC-0006). Never edit by hand.
 
-import type { Multiplier } from "../scalars";
+import type { Money, Multiplier } from "../scalars";
 
 export interface paths {
   "/api/v1/backoffice/me": {
@@ -119,10 +119,49 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/wallet/balance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The balance of the session player in the session currency. */
+    get: operations["GetWalletBalance"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/wallet/demo/recharge": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Recharges the demo balance of the session player back to the opening amount when it is below the minimum bet. */
+    post: operations["RechargeDemoWallet"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    BalanceResponse: {
+      balance: components["schemas"]["Money"];
+      currency: string;
+      mode: string;
+    };
     CreateSessionRequest: {
       launchToken: null | string;
     };
@@ -164,6 +203,8 @@ export interface components {
       /** Format: date-time */
       serverTime: string;
     };
+    /** Format: money */
+    Money: Money;
     /** Format: multiplier */
     Multiplier: Multiplier;
     ProblemDetails: {
@@ -173,6 +214,10 @@ export interface components {
       status?: null | number;
       title?: null | string;
       type?: null | string;
+    };
+    RechargeResponse: {
+      balance: components["schemas"]["Money"];
+      currency: string;
     };
     RoundHistoryItem: {
       /** Format: date-time */
@@ -480,6 +525,82 @@ export interface operations {
       };
       /** @description Too Many Requests */
       429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  GetWalletBalance: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["BalanceResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  RechargeDemoWallet: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RechargeResponse"];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ErrorResponse"];
+        };
+      };
+      /** @description Conflict */
+      409: {
         headers: {
           [name: string]: unknown;
         };
