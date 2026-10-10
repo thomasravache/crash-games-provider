@@ -65,4 +65,20 @@ public sealed class WalletApiTests(PostgreSqlContainerFixture postgres, RedisCon
         Assert.True(balance == HttpStatusCode.Unauthorized, $"Expected 401 from GET {WalletApi.BalancePath}, got {(int)balance}: {balanceBody}");
         Assert.True(recharge == HttpStatusCode.Unauthorized, $"Expected 401 from POST {WalletApi.RechargePath}, got {(int)recharge}: {rechargeBody}");
     }
+
+    [Fact(DisplayName = "Dado o Host real e uma sessão de modo real, quando a recarga demo é pedida, então 403 NOT_DEMO em problem+json")]
+    [Trait("Spec", "SPEC-0021:IT-04")]
+    [Trait("Category", "Integration")]
+    public async Task GivenRealModeSessionWhenRechargingThenForbiddenNotDemo()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var host = await WalletApiHost.StartAsync(postgres.ConnectionString, redis.ConnectionString, ct);
+        using var realClient = host.CreateClient(NewPlayer().PlayerId.Value, mode: "real");
+
+        var (status, body, mediaType) = await WalletApi.SendAsync(realClient, WalletApi.PostRecharge(), ct);
+
+        Assert.True(status == HttpStatusCode.Forbidden, $"Expected 403 NOT_DEMO, got {(int)status}: {body}");
+        Assert.Equal("application/problem+json", mediaType);
+        Assert.Equal("NOT_DEMO", ErrorBodies.CodeOf(body));
+    }
 }

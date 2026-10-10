@@ -73,11 +73,11 @@ internal sealed class WalletApiHost : IAsyncDisposable
         return new WalletApiHost(factory, signingKey);
     }
 
-    /// <summary>A client with the demo session of <paramref name="playerId"/> as bearer.</summary>
-    public HttpClient CreateClient(string playerId)
+    /// <summary>A client with the session of <paramref name="playerId"/> (mode <paramref name="mode"/>, demo by default) as bearer.</summary>
+    public HttpClient CreateClient(string playerId, string mode = "demo")
     {
         var client = CreateAnonymousClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", WalletSessions.Issue(_signingKey, playerId));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", WalletSessions.Issue(_signingKey, playerId, mode));
         return client;
     }
 
