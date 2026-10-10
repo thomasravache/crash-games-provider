@@ -192,7 +192,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:04.39]     Dado um hub com string?, stream e métodos de cliente, quando o) — 42708de | 2026-10-10 |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:02.01]     Dada uma falha transitória do banco durante um débito, quando ) — 963fe9f | 2026-10-10 |
 | G2 Green | PASS | build exit 0 (✓ built in 434ms); test exit 0 (Duration  1.63s (tests 61%, transform 26%, import 12%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T18:20:42: Report generation took 0,8 seconds) — dfbc59c | 2026-10-10 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  870ms (tests 97%, transform 2%, import 1%)) — f92095b | 2026-10-10 |
 | G4 Review | PENDING | | |
