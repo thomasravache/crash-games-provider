@@ -6,7 +6,8 @@ Usage: tools/ci/check-licenses            (from the repository root, after `dotn
 NuGet: every package in the obj/project.assets.json of the solution, licence read from its .nuspec
 (<license type="expression">) in the NuGet packages folder. npm: `pnpm licenses list --json` of the front-end
 workspace. SPDX expressions are evaluated (OR: one allowed side is enough; AND/WITH: every part must be allowed).
-CC-BY-4.0 is accepted only for build-time data packages that are not production dependencies (ADR-0022).
+CC-BY-4.0 is accepted only for build-time data packages that are not production dependencies (ADR-0022);
+the GSAP Standard License only for the package gsap (ADR-0022, emenda).
 Any other licence fails: add an ADR, then extend the lists below in the same change.
 """
 from __future__ import annotations
@@ -28,6 +29,13 @@ ALLOWED = {
 # ADR-0022: licences accepted only for build-time packages, never for a production (runtime) dependency:
 # CC-BY-4.0 for build data; Python-2.0 (PSF) for argparse, via openapi-typescript → js-yaml (ADR-0008 generator).
 BUILD_DATA_ONLY = {"CC-BY-4.0": {"caniuse-lite"}, "Python-2.0": {"argparse"}}
+# ADR-0022 (emenda de 2026-10-10): non-SPDX vendor licences, matched exactly (whitespace normalised), accepted only
+# for the named npm packages, also in production. GSAP Standard License: gsap only (ADR-0021); gsap 3.15.0 ships the
+# string with a trailing period, both spellings are listed literally.
+VENDOR_LICENCES = {
+    "Standard 'no charge' license: https://gsap.com/standard-license": {"gsap"},
+    "Standard 'no charge' license: https://gsap.com/standard-license.": {"gsap"},
+}
 # Packages whose metadata carries no SPDX expression; licence identified by reading the shipped licence file.
 # Keyed by exact version, so an update is reviewed again.
 REVIEWED = {
@@ -131,6 +139,8 @@ def main() -> int:
     production = pnpm_licences(production_only=True)
     for (name, version), licence in sorted(npm.items()):
         licence = REVIEWED.get(("npm", name, version), licence)
+        if name in VENDOR_LICENCES.get(" ".join(licence.split()), set()):
+            continue
         build_data = {lic for lic, names in BUILD_DATA_ONLY.items() if name in names}
         if (name, version) in production:
             build_data = set()  # build-data licences are never accepted for production dependencies
