@@ -10,8 +10,8 @@ parent: SPEC-0001
 depends_on: [SPEC-0010]
 consumes_contract: [SPEC-0010@1]
 contract_version: 1
-touches: ["src/frontend/packages/scene-kit/**", "src/frontend/apps/game-pipa/src/scene/**", "tests/e2e/pipa-visual/**", "tests/frontend/pipa/scene/**", "src/frontend/playwright.config.ts", ".github/workflows/visual-baselines.yml"]
-adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021]
+touches: ["src/frontend/packages/scene-kit/**", "src/frontend/apps/game-pipa/src/scene/**", "tests/e2e/pipa-visual/**", "tests/frontend/pipa/scene/**", "src/frontend/playwright.config.ts", ".github/workflows/visual-baselines.yml", "tools/ci/check-licenses", "tests/ci/Ci.Tests/**"]
+adrs: [ADR-0004, ADR-0019, ADR-0020, ADR-0021, ADR-0022]
 external: []
 size: M
 approved_by: thomas
@@ -206,6 +206,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-10 | G5 | spec | check-licenses reprova gsap 3.15.0 (Standard 'no charge' license): o ADR-0021 escolheu o GSAP com essa licença, mas a lista permitida do ADR-0016/ADR-0022 não a inclui | security_scan do G5 no resultado integrado (0133114); verificado que gitleaks, NuGet, pnpm audit e Semgrep passam | Architect: emenda do ADR-0022 e escopo da SPEC-0011 para tools/ci/check-licenses |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -248,6 +249,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0011`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-10 | Escopo: `tools/ci/check-licenses` aceita a GSAP Standard License só para o pacote `gsap` (emenda do ADR-0022), com teste de regressão em `tests/ci/Ci.Tests/**` | IMP-01: o G5 reprovou o `gsap` no verificador de licenças, embora o ADR-0021 o tenha escolhido | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 | 1 (inalterado) | 2026-10-09 | Escopo reduzido: (1) sem bloom — brilho por `GlowFilter` na pipa a partir de 10x e rastro em traços em camadas; bloom vai para a arte final antes do lançamento; (2) sem anel de contagem regressiva na cena — o `GameAnimator` não recebe o prazo das apostas e o HUD já mostra a contagem; (3) o tremor do texto PIPA CORTADA! sai desta spec e entra na SPEC-0026 (HUD) | Implementação: o bloom estourava a recriação do contexto WebGL (IT-02 ≤ 1 s) no GL por software da CI; anel e texto ficam fora do contrato e do `touches` | SPEC-0026 (tremor do texto) | thomas, 2026-10-09 (chat: "ok nas 3") |
 | 1 (inalterado) | 2026-10-09 | Escopo: `.github/workflows/visual-baselines.yml` (novo, `workflow_dispatch` + push em branch `sdd/**` que altere `tests/e2e/pipa-visual/**`) gera as imagens de referência no runner Linux da CI com `run-e2e.sh pipa-visual --project=chromium --update-snapshots=missing` e as publica como artefato; o usuário aprova as 6 imagens e elas são commitadas. Esclarecimentos: `frameTimes()` = duração do trabalho de cada quadro (ms), não o intervalo do rAF; IT-02 provado pelo gancho de teste (contexto vivo, canvas redesenhado e quadros novos em ≤ 1 s, mesma página); `freeze(t)` = ms desde o início da fase | G1: as imagens precisam do mesmo runner da CI (§7.6) e o `ci.yml` é da SPEC-0017; interpretações do Test-writer | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
 | 1 (inalterado) | 2026-10-09 | Escopo: `tests/frontend/pipa/scene/**` (UT e CT no Vitest, onde vivem os testes do front) e `src/frontend/playwright.config.ts` (WebGL e imagens de referência dos testes visuais) | Despacho da onda 6: o `touches` não tinha onde colocar os unitários | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |
