@@ -4,7 +4,7 @@ title: "Backoffice: operadores, chaves e comissão"
 tier: full
 type: feature
 user_facing: true
-status: proposed
+status: approved
 created: 2026-10-10
 parent: SPEC-0034
 depends_on: [SPEC-0036, SPEC-0020]
@@ -14,8 +14,8 @@ touches: ["src/frontend/apps/backoffice/src/operadores/**", "tests/frontend/back
 adrs: [ADR-0001, ADR-0008, ADR-0009, ADR-0015, ADR-0020, ADR-0025, ADR-0026, ADR-0014]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-10
 ---
 
 # SPEC-0038 — Backoffice: operadores, chaves e comissão
@@ -140,6 +140,24 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 ## 11. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
 
+<!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
+
+**Fase 1: Regressão e correção**
+- [ ] Red: escrever UT-01, UT-02, IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0038:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Green: implementar o mínimo para passar, seguindo o padrão citado
+- [ ] Refactor mantendo tudo verde
+- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+
+**Fase 2: Jornada E2E**
+- [ ] Red: E2E-01 falhando pelo motivo certo
+- [ ] Green: jornada completa passando localmente
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
 | Gate | Status | Evidência | Data |
@@ -187,6 +205,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
 - [ ] Documentação raiz e CHANGELOG atualizados (G7)
 - [ ] Pendências registradas como novas specs (ou nenhuma)
+- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->

@@ -1,7 +1,7 @@
 ---
 id: ADR-0026
 title: Papéis, escopo de dados e trilha de auditoria do backoffice
-status: proposed
+status: accepted
 origin: decision
 date: 2026-10-10
 pillars: []

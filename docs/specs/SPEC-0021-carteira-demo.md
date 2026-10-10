@@ -8,7 +8,7 @@ status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0009, SPEC-0020]
-consumes_contract: [SPEC-0020@1]
+consumes_contract: [SPEC-0020@2]
 contract_version: 4
 touches: ["src/backend/Modules/Wallet/**", "tests/backend/Modules/Wallet.Tests/**", "docs/integration/**"]
 adrs: [ADR-0007, ADR-0001, ADR-0002, ADR-0010, ADR-0014, ADR-0015, ADR-0018]
@@ -40,7 +40,7 @@ Implementa o módulo Wallet: a porta `IOperatorWallet` (débito, crédito, estor
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0009 — sessão do jogador e operador demo.
-- **Contratos consumidos:** N/A (a aposta mínima da SPEC-0020 é lida pela porta `IOperatorLimits` quando disponível; nos testes, dublê pelo contrato da SPEC-0020@1).
+- **Contratos consumidos:** N/A (a aposta mínima da SPEC-0020 é lida pela porta `IOperatorLimits` quando disponível; nos testes, dublê pelo contrato da SPEC-0020@2).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -65,7 +65,7 @@ Implementa o módulo Wallet: a porta `IOperatorWallet` (débito, crédito, estor
 - **Custo:** N/A
 
 ## 6. Artefato A — Contrato
-**Interface:** `Wallet.Contracts` (v2) + REST do jogador + documento público da carteira do operador. `OperatorId`, `PlayerId`, `Currency` e `Money` vêm de `BuildingBlocks.Contracts` (criados pela SPEC-0020); `RoundId` de `Rounds.Contracts`; `BetId` é `Guid`. A aposta mínima vem de `IOperatorLimits` (SPEC-0020@1).
+**Interface:** `Wallet.Contracts` (v2) + REST do jogador + documento público da carteira do operador. `OperatorId`, `PlayerId`, `Currency` e `Money` vêm de `BuildingBlocks.Contracts` (criados pela SPEC-0020); `RoundId` de `Rounds.Contracts`; `BetId` é `Guid`. A aposta mínima vem de `IOperatorLimits` (SPEC-0020@2).
 
 ```text
 IOperatorWallet
@@ -141,7 +141,7 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 ### 7.6 Outros
 - Revisão do documento `operator-wallet-api.md` no G4 contra o ADR-0007.
 
-**Dublês e dados de teste:** limites pela porta `IOperatorLimits` com dublê do contrato SPEC-0020@1.
+**Dublês e dados de teste:** limites pela porta `IOperatorLimits` com dublê do contrato SPEC-0020@2.
 
 **Ambiente de execução:** Testcontainers (Postgres, Redis); Host real via WebApplicationFactory.
 

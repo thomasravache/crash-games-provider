@@ -3,13 +3,13 @@ id: SPEC-0035
 title: Site demo de cassino
 tier: epic
 type: feature
-status: proposed
+status: approved
 created: 2026-10-10
 depends_on: [SPEC-0019]
 adrs: [ADR-0001, ADR-0007, ADR-0009, ADR-0025, ADR-0027]
 external: []
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-10
 ---
 
 # SPEC-0035 — Site demo de cassino (Épico)
@@ -42,7 +42,7 @@ Navegador → demo-site (React) → BFF do cassino (assina HMAC) → API Apogeu 
 | Spec | Título | Tier | Tipo | Tamanho | Depende de | Consome contrato de |
 |---|---|---|---|---|---|---|
 | SPEC-0043 | Backend do cassino e entrada | full | feature | M | SPEC-0009 | SPEC-0009@1 |
-| SPEC-0044 | Lobby com o catálogo da Apogeu | full | feature | M | SPEC-0043, SPEC-0020 | SPEC-0020@1 |
+| SPEC-0044 | Lobby com o catálogo da Apogeu | full | feature | M | SPEC-0043, SPEC-0020 | SPEC-0020@2 |
 | SPEC-0045 | Página do jogo com lançamento assinado | full | feature | M | SPEC-0044 | SPEC-0009@1 |
 | SPEC-0046 | Carteira seamless: adaptador HTTP da Apogeu | full | feature | M | SPEC-0021, SPEC-0024 | SPEC-0021@4 |
 | SPEC-0047 | Carteira própria do cassino (seamless) | full | feature | M | SPEC-0045, SPEC-0046 | SPEC-0021@4 |

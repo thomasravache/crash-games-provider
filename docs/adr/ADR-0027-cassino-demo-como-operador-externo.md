@@ -1,7 +1,7 @@
 ---
 id: ADR-0027
 title: Cassino demo como operador externo
-status: proposed
+status: accepted
 origin: decision
 date: 2026-10-10
 pillars: []

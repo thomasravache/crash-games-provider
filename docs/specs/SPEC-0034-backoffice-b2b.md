@@ -3,13 +3,13 @@ id: SPEC-0034
 title: Backoffice B2B da Apogeu
 tier: epic
 type: feature
-status: proposed
+status: approved
 created: 2026-10-10
 depends_on: [SPEC-0019]
 adrs: [ADR-0001, ADR-0009, ADR-0015, ADR-0020, ADR-0025, ADR-0026]
 external: []
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-10
 ---
 
 # SPEC-0034 — Backoffice B2B da Apogeu (Épico)
@@ -45,7 +45,7 @@ Leituras agregadas (painel, relatórios) vêm do **resumo imutável por rodada e
 | SPEC-0036 | Shell, login, papéis e trilha de auditoria | full | feature | M | SPEC-0009 | — |
 | SPEC-0037 | Painel de desempenho | full | feature | M | SPEC-0036, SPEC-0024 | SPEC-0024@1 |
 | SPEC-0038 | Operadores, chaves e comissão | full | feature | M | SPEC-0036, SPEC-0020 | — |
-| SPEC-0039 | Catálogo e limites por operador | full | feature | M | SPEC-0036, SPEC-0020 | SPEC-0020@1 |
+| SPEC-0039 | Catálogo e limites por operador | full | feature | M | SPEC-0036, SPEC-0020 | SPEC-0020@2 |
 | SPEC-0040 | Rodadas e auditoria provably fair | full | feature | M | SPEC-0036, SPEC-0024 | SPEC-0024@1 |
 | SPEC-0041 | Busca de apostas | full | feature | M | SPEC-0036, SPEC-0024 | SPEC-0024@1, SPEC-0021@4 |
 | SPEC-0042 | Relatórios e fechamento mensal | full | feature | M | SPEC-0036, SPEC-0038, SPEC-0024 | SPEC-0024@1 |
