@@ -67,11 +67,11 @@ Leituras agregadas (painel, relatórios) vêm do **resumo imutável por rodada e
 
 ## 8. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento. -->
-- [ ] Q1. Quem usa o backoffice: só a equipe Apogeu, ou também cada operador (vendo apenas os próprios dados)? Recomendação: os dois, no mesmo app, com escopo pelo token. (thomas)
-- [ ] Q2. Papéis: recomendação — Apogeu: admin, financeiro, suporte; operador: gestor e leitura. (thomas)
-- [ ] Q3. Quem altera catálogo e limites: recomendação — só admin Apogeu; o operador vê. (thomas)
-- [ ] Q4. Comissão no fechamento mensal: recomendação — percentual do GGR (revenue share) configurável por operador. (thomas)
-- [ ] Q5. Trilha de auditoria imutável de toda alteração no backoffice: recomendação — sim, visível para admin. (thomas)
+- [x] Q1. Quem usa o backoffice: só a equipe Apogeu, ou também cada operador (vendo apenas os próprios dados)? Recomendação: os dois, no mesmo app, com escopo pelo token. — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
+- [x] Q2. Papéis: recomendação — Apogeu: admin, financeiro, suporte; operador: gestor e leitura. — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
+- [x] Q3. Quem altera catálogo e limites: recomendação — só admin Apogeu; o operador vê. — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
+- [x] Q4. Comissão no fechamento mensal: recomendação — percentual do GGR (revenue share) configurável por operador. — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
+- [x] Q5. Trilha de auditoria imutável de toda alteração no backoffice: recomendação — sim, visível para admin. — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
 
 ## 9. Aprovação (H1)
 Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com ele. Registrada no frontmatter (`approved_by`, `approved_at`) do épico e de cada filha.

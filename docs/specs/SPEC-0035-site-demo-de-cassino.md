@@ -63,9 +63,9 @@ Navegador → demo-site (React) → BFF do cassino (assina HMAC) → API Apogeu 
 
 ## 8. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento. -->
-- [ ] Q1. O cassino demo substitui o atalho `/dev/launch-demo` como forma principal de testar? Recomendação: sim; o atalho fica só para os testes automatizados. (thomas)
-- [ ] Q2. Onde fica o backend do cassino (BFF): recomendação — um projeto .NET mínimo separado no AppHost (`DemoCasino`), que age como operador externo; alternativa: rotas no próprio Host (mais simples, mas mistura cassino e provedor). (thomas)
-- [ ] Q3. Carteira: recomendação em duas fases — primeiro o cassino usa a carteira demo da Apogeu (transparente); depois implementa o contrato público de carteira do operador (seamless), provando a integração que operadores reais farão. (thomas)
+- [x] Q1. O cassino demo substitui o atalho `/dev/launch-demo` como forma principal de testar? Recomendação: sim; o atalho fica só para os testes automatizados. — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
+- [x] Q2. Onde fica o backend do cassino (BFF): recomendação — um projeto .NET mínimo separado no AppHost (`DemoCasino`), que age como operador externo; alternativa: rotas no próprio Host (mais simples, mas mistura cassino e provedor). — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
+- [x] Q3. Carteira: recomendação em duas fases — primeiro o cassino usa a carteira demo da Apogeu (transparente); depois implementa o contrato público de carteira do operador (seamless), provando a integração que operadores reais farão. — Resposta: recomendação aceita (thomas, 2026-10-10: "recomendado")
 
 ## 9. Aprovação (H1)
 Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com ele. Registrada no frontmatter (`approved_by`, `approved_at`) do épico e de cada filha.
