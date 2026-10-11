@@ -10,7 +10,7 @@ consulted: []
 informed: []
 supersedes:
 superseded_by:
-enforced_by: "CI roda `codegen test` do Wolverine (código gerado atualizado); teste de arquitetura: só o Host configura o Wolverine e nenhum módulo para/inicia seus hosted services; IT de arranque com banco indisponível"
+enforced_by: "CI roda `codegen write` e falha se `git diff --exit-code` em Host/Internal/Generated acusar diferença (código gerado atualizado); teste de arquitetura: só o Host configura o Wolverine e nenhum módulo para/inicia seus hosted services; IT de arranque com banco indisponível"
 ---
 
 # ADR-0028 — Operação do Wolverine: geração de código, ciclo de vida e armazenamento
@@ -26,7 +26,7 @@ A SPEC-0022 fez a primeira ligação do Wolverine (ADR-0002) e, para funcionar, 
 - Módulos não podem depender do ciclo de vida de outro módulo (ADR-0001).
 
 ## Opções Consideradas
-- **A — Código pré-gerado num assembly neutro do Host, ciclo de vida do Wolverine no Host (ServiceDefaults), checagem `codegen test` na CI.**
+- **A — Código pré-gerado num assembly neutro do Host, ciclo de vida do Wolverine no Host (ServiceDefaults), checagem do código gerado na CI.**
 - **B — Compilação em tempo de execução** (adicionar WolverineFx.RuntimeCompilation).
 - **C — Manter como está** (código no Betting, ciclo de vida no Rounds).
 
@@ -34,7 +34,7 @@ A SPEC-0022 fez a primeira ligação do Wolverine (ADR-0002) e, para funcionar, 
 **Opção escolhida:** **A**, pela autorização de thomas para seguir pelo recomendado (2026-10-10): sem pacote novo, arranque previsível e nenhum módulo dono do ciclo de vida de outro.
 
 **Regras (verificáveis):**
-- O código gerado dos handlers fica em `src/backend/Host/Internal/Generated/**` (TypeLoadMode.Static, `ApplicationAssembly` = Host); regenerado com `dotnet run --project src/backend/Host -- codegen write`; a CI roda `codegen test` e falha se estiver desatualizado.
+- O código gerado dos handlers fica em `src/backend/Host/Internal/Generated/**` (TypeLoadMode.Static, `ApplicationAssembly` = Host); regenerado com `dotnet run --project src/backend/Host -- codegen write`; a CI roda `codegen write` e falha se `git diff --exit-code` acusar diferença (o `codegen test` compila o código gerado e exigiria o compilador em runtime, WolverineFx.RuntimeCompilation, que este ADR não adota — ajuste de 2026-10-10 na implementação da SPEC-0022).
 - O Host (por extensão em ServiceDefaults/BuildingBlocks) é o único dono do ciclo de vida do Wolverine: inicia a mensageria quando o PostgreSQL responde e expõe `IMessagingReadiness` aos módulos; nenhum módulo para ou substitui hosted services de outro.
 - `ServiceLocationPolicy`: `AllowedButWarn` com lista explícita dos serviços resolvidos por fábrica, em vez de `AlwaysAllowed`.
 - Schema de mensagens (`wolverine`): criado automaticamente só em Development; nos demais ambientes por passo de migração do pipeline — item da SPEC-0012.
@@ -44,7 +44,7 @@ A SPEC-0022 fez a primeira ligação do Wolverine (ADR-0002) e, para funcionar, 
 - **Ruim**, porque mudar um handler exige regenerar o código (a CI avisa).
 
 ### Confirmação (G3)
-`codegen test` no job backend da CI; teste em Architecture.Tests: somente o assembly do Host referencia a configuração do Wolverine e nenhum módulo manipula `IHostedService` de outro assembly.
+`codegen write` + `git diff --exit-code` no job backend da CI; teste em Architecture.Tests: somente o assembly do Host referencia a configuração do Wolverine e nenhum módulo manipula `IHostedService` de outro assembly.
 
 ## Prós e Contras das Opções
 <!-- Decisão de tecnologia: matriz com critérios ponderados pelo contexto (references/greenfield.md). as-is: "N/A". -->
