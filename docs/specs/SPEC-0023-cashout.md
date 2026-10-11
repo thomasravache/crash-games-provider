@@ -198,25 +198,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06 com a tag `SPEC-0023:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06 com a tag `SPEC-0023:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, IT-08, IT-09, IT-10, IT-11, CT-01 com a tag `SPEC-0023:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, IT-08, IT-09, IT-10, IT-11, CT-01 com a tag `SPEC-0023:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -243,37 +243,61 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O jogador retira a aposta pelo hub `/hubs/bets` (`CashOut`) durante o voo e recebe o pagamento (valor × multiplicador, truncado em centavos, limitado ao ganho máximo da moeda) creditado na carteira; o cash-out automático executa no alvo exato quando o alvo fica abaixo do crash. A decisão é do líder da sala pelo horário do servidor no recebimento (tolerância 0 ms); pedido sem decisão em 200 ms fica pendente e é decidido depois pelo horário gravado. Crédito pendente é avisado ao jogador e confirmado depois (BalanceUpdated).
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Rounds: `ICashOutArbiter` com decisão no líder (`LeaderCashOutArbiter` sobre o `SalaConductor`), encaminhamento pelo Redis a partir de outras instâncias com resposta de três estados (aceito, tarde, indefinido), decisão por dados persistidos de rodada encerrada, automáticos agendados no líder e publicados por outbox (`AutoCashOutExecuted`). Betting: `CashOutUseCase`, `CashOutSettlement` (precedência do automático), reconciliação dos automáticos no RoundCrashed (ponto já público), crédito durável `CreditCashOut` pelo outbox na própria fila, `DecideCashOut` para pedidos pendentes, primeiro horário pendente prevalece (token de concorrência). Contrato v2 (envelope `CashOutResult`, `creditStatus`). Duas rodadas de review (G4): automáticos duráveis, líder sem a rodada não decide, precedência do automático, crédito fora da fila sequencial.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dados k = 0,00006, crash 2,00 (t_c ≈ 11.552 ms) e FakeTimeProvider, quando o cash-out é recebido em 5.000 ms, um tick antes de t_c (t_c = ln… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-02 | Dados valor e multiplicador, quando o pagamento é calculado, então 10,00 × 2,47 = 24,70; 3,33 × 1,07 = 3,56; e 1.000,00 × 150,00 = 100.000,0… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-03 | Dados alvo 1,50x com crash 2,00x e alvo 3,00x com crash 2,00x, quando o agendamento roda, então o primeiro executa em t_alvo com 1,50x exato… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-04 | Dadas apostas placed, queued, cancelled e já retirada, quando CashOut é pedido, então BET_NOT_ACTIVE (e a já retirada devolve o CashedOut or… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-05 | Dada uma aposta com alvo 1,50x, quando o cash-out manual é decidido com 1,62x, então é liquidada em 1,50x exatos com auto:true; com 1,49x, e… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-06 | Dado o árbitro do líder sem o voo em memória, quando a rodada não está encerrada, então Undecided; quando a rodada está encerrada, então dec… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-01 | Dado o Host real com uma rodada conduzida, quando o jogador retira no meio do voo e outro pedido chega depois do crash, então o primeiro rec… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-02 | Dadas duas apostas com cash-out automático (abaixo e acima do crash), quando a rodada termina, então só a primeira recebe CashedOut auto no … | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-03 | Dada uma carteira de teste que falha no primeiro crédito, quando o jogador retira, o processo reinicia e o CashOut é repetido, então a prime… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-04 | Dadas duas instâncias do Host com Redis real e o líder na instância A, quando o cash-out chega na instância B, então é decidido pelo líder c… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-05 | Dados 300 cash-outs na mesma rodada em 1 s, quando medidos, então todos decididos e p99 ≤ 50 ms (`Category=Performance`). | PASS | G5 local b258d1e (resultado integrado); CI do PR #25; Category=Performance |
+| IT-06 | Dadas todas as respostas e eventos enviados antes do crash, quando inspecionados, então nenhum contém o ponto nem o instante do crash. | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-07 | Dado o líder da sala impedido de responder por 300 ms (falha injetada no encaminhamento), quando o cash-out chega numa instância que não é o… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-08 | Dada uma aposta com alvo 1,50x numa rodada com crash 5,00x e o líder interrompido em 1,2x (outra instância assume), quando a rodada termina,… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-09 | Dado um cash-out pendente recebido em 1,8x (crash 3,00x) e o líder interrompido antes de decidir, quando outra instância assume, então a dec… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-10 | Dados 300 automáticos em 1,50x com a carteira indisponível, quando a rodada crasha e a seguinte abre, então RoundCrashed é processado e as a… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-11 | Dados dois CashOut concorrentes para a mesma aposta com o líder sem responder, quando gravados como pendentes, então o horário gravado é o d… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| CT-01 | Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados, então conferem (contrato consumido pelas SPEC-0025 e 0026… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — IT-05 (300 cash-outs em 1 s, p99 ≤ 50 ms); IT-06 (sigilo do crash antes do crash)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #25
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas `betting.cashouts{auto}`, `betting.cashout_too_late`, `betting.cashout_decision_latency`, `betting.credits_pending` (por processo — ver Pendências); log crítico CreditRefused; rollback = revert do merge e da migração
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (b258d1e); sigilo do crash provado no IT-06
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; supressões MA0025 só no scaffold, com motivo na linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pelo PR #25.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- Minors aceitos do review: resposta de rodada anulada difere entre a decisão em memória (aceita antes da anulação) e a persistida (TooLate) — regra única a fixar com a SPEC-0024/anulação; CashedOut automático pode não ser anunciado se o processo cair entre o crédito e o anúncio (estado e dinheiro corretos; novo CashOut devolve o resultado); `betting.credits_pending` é contador por processo e o alerta "> 0 por 1 min" não foi configurado (SPEC-0014, observabilidade); automáticos publicados um a um no laço do condutor.
+- Premissa registrada: a tolerância de 0 ms depende de relógios sincronizados (NTP) entre instâncias.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0023`. -->
