@@ -15,6 +15,17 @@ export interface BetsHubServer {
     refundStatus: "refunded" | "pending";
     balance: Money | null;
   }>;
+  CashOut(request: { betId: string }): Promise<{
+    cashedOut: {
+      betId: string;
+      multiplier: Multiplier;
+      payout: Money;
+      creditStatus: "credited" | "pending";
+      balance: Money | null;
+      auto: boolean;
+    } | null;
+    pending: { betId: string } | null;
+  }>;
   GetBetLimits(): Promise<{ currency: string; minBet: Money; maxBet: Money; maxWin: Money }>;
   PlaceBet(request: {
     clientBetId: string;
@@ -37,7 +48,17 @@ export interface BetsHubServer {
 
 /** Methods BetsHub calls on the client. */
 export interface BetsHubClient {
+  BalanceUpdated(message: { balance: Money; currency: string }): void;
   BetActivated(message: { betId: string; roundId: string; roundNumber: number }): void;
+  CashOutRejected(message: { betId: string; code: string }): void;
+  CashedOut(message: {
+    betId: string;
+    multiplier: Multiplier;
+    payout: Money;
+    creditStatus: "credited" | "pending";
+    balance: Money | null;
+    auto: boolean;
+  }): void;
 }
 
 /** Methods the client invokes on RoundsHub. */

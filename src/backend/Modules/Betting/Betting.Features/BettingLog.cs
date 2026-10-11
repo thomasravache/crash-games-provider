@@ -43,4 +43,25 @@ internal static partial class BettingLog
 
     [LoggerMessage(EventId = 2204, Level = LogLevel.Information, Message = "{Count} queued bets of room {SalaId} entered round {RoundId}.")]
     public static partial void QueuedActivated(ILogger logger, int count, string salaId, Guid roundId);
+
+    [LoggerMessage(EventId = 2220, Level = LogLevel.Warning, Message = "Credit of the cash-out of bet {BetId} unconfirmed ({Result}); it is retried")]
+    public static partial void CreditPending(ILogger logger, Guid betId, string result);
+
+    [LoggerMessage(EventId = 2221, Level = LogLevel.Information, Message = "Credit of the cash-out of bet {BetId} confirmed")]
+    public static partial void CreditConfirmed(ILogger logger, Guid betId);
+
+    [LoggerMessage(EventId = 2222, Level = LogLevel.Critical, Message = "Credit of the cash-out of bet {BetId} refused permanently by the wallet; reconciliation needed")]
+    public static partial void CreditRefused(ILogger logger, Guid betId);
+
+    [LoggerMessage(EventId = 2223, Level = LogLevel.Warning, Message = "The leader did not decide the cash-out of bet {BetId} in time ({Reason}); it is decided later")]
+    public static partial void CashOutPending(ILogger logger, Guid betId, string reason);
+
+    [LoggerMessage(EventId = 2224, Level = LogLevel.Warning, Message = "A cash-out message of bet {BetId} could not be sent to the player")]
+    public static partial void CashOutNotSent(ILogger logger, Guid betId, Exception exception);
+
+    [LoggerMessage(EventId = 2225, Level = LogLevel.Warning, Message = "The automatic cash-out of bet {BetId} could not be scheduled with the leader")]
+    public static partial void AutoCashOutNotScheduled(ILogger logger, Guid betId, Exception exception);
+
+    [LoggerMessage(EventId = 2226, Level = LogLevel.Warning, Message = "The automatic cash-out of bet {BetId} was executed by the leader but the bet is {Status}")]
+    public static partial void AutoCashOutIgnored(ILogger logger, Guid betId, string status);
 }

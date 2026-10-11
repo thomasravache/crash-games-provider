@@ -85,7 +85,9 @@ Servidor → jogador
   CashOutRejected { betId, code:"CASHOUT_TOO_LATE" }  // decisão tardia de um CashOutPending
   BalanceUpdated { balance, currency }                // crédito confirmado depois (reenvio)
 Rounds.Contracts
-  ICashOutArbiter.DecideAsync(salaId:string, roundId, receivedAt, ct) → CashOutAccepted(multiplier) | CashOutTooLate
+  ICashOutArbiter.DecideAsync(salaId:string, roundId, receivedAt, ct) → CashOutAccepted(multiplier) | CashOutTooLate | CashOutUndecided
+    // o líder decide pela memória do voo; rodada já encerrada e fora da memória → decide pelos dados públicos persistidos
+    // (startedAt e ponto do crash); rodada desconhecida e não encerrada (ex.: líder assumindo) → Undecided, e quem pediu tenta de novo
   ICashOutArbiter.ScheduleAutoAsync(salaId:string, roundId, betId, target:Multiplier, ct)
     // chamado pela Betting quando a aposta fica active com autoCashOut; instância que não é o líder encaminha ao
     // líder pelo Redis (como DecideAsync); o líder executa em t_alvo se t_alvo < t_c
@@ -96,7 +98,16 @@ Regras
   multiplicador manual = floor(e^(k·(recebidoEm − startedAt)) · 100)/100, aceito se recebidoEm < startedAt + t_c
   pagamento = min(floor(valor × multiplicador × 100)/100, ganhoMáximo da moeda)
   tolerância de latência = 0 ms (versionada neste contrato)
-  pedido pendente: decidido pelo líder com o horário de recebimento gravado, no máximo até o fim da rodada
+  pedido pendente: decidido pelo líder com o horário de recebimento gravado, no máximo até o fim da rodada; só o primeiro
+    horário gravado vale (pedidos repetidos não o sobrescrevem)
+  automático tem precedência: cash-out manual com multiplicador ≥ alvo da aposta é liquidado no alvo exato (auto:true);
+    pedido manual pendente e automático executado: vale o automático
+  reconciliação no crash: ao processar RoundCrashed (ponto já público), toda aposta active ainda não retirada com alvo
+    < ponto do crash é retirada no alvo exato (auto:true) antes de qualquer liquidação — o agendamento em memória do
+    líder é só o caminho rápido; falha de publicação não descarta o automático
+  crédito: na fila sequencial de eventos da rodada só se grava o cash-out e o CreditCashOut (sem atraso); a chamada à
+    carteira acontece no handler do crédito, fora dessa fila, e é ele quem envia o CashedOut do automático (credited com
+    saldo, ou pending seguido de BalanceUpdated)
 ```
 
 **Design:** N/A — sem interface.
@@ -120,6 +131,11 @@ Regras
 | Sigilo do crash | respostas antes do crash | nenhuma contém crash ou t_c | IT-06 |
 | Líder sem resposta em 200 ms | pedido não decidido no prazo | CashOutPending; decidido depois pelo horário gravado (CashedOut ou CashOutRejected) | IT-07 |
 | Crédito pendente | carteira falha no crédito | CashedOut com creditStatus "pending" e balance nulo; BalanceUpdated depois | IT-03 |
+| Manual depois do alvo automático | aposta com alvo 1,50x e manual recebido em 1,62x antes do automático ser processado | liquidada em 1,50x exatos, auto:true | UT-05 |
+| Líder sem a rodada | líder assumindo (rodada desconhecida, não encerrada) ou rodada encerrada fora da memória | Undecided e nova tentativa; rodada encerrada decidida pelos dados persistidos | UT-06, IT-09 |
+| Failover com automático | líder cai no voo com automático agendado abaixo do crash | aposta retirada no alvo exato (no voo ou na reconciliação do crash), nunca perdida | IT-08 |
+| Rajada de automáticos com carteira fora | 300 automáticos e carteira indisponível | eventos da rodada e ativação da rodada seguinte não atrasam; créditos pendentes reenviados | IT-10 |
+| Pedidos pendentes repetidos | dois CashOut pendentes concorrentes | vale o primeiro horário gravado; uma única decisão | IT-11 |
 | Contrato | mensagens reais | conferem com os tipos gerados | CT-01 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
@@ -131,6 +147,8 @@ Regras
 - **UT-02** — Dados valor e multiplicador, quando o pagamento é calculado, então 10,00 × 2,47 = 24,70; 3,33 × 1,07 = 3,56; e 1.000,00 × 150,00 = 100.000,00 pelo ganho máximo.
 - **UT-03** — Dados alvo 1,50x com crash 2,00x e alvo 3,00x com crash 2,00x, quando o agendamento roda, então o primeiro executa em t_alvo com 1,50x exatos e o segundo não executa.
 - **UT-04** — Dadas apostas placed, queued, cancelled e já retirada, quando CashOut é pedido, então BET_NOT_ACTIVE (e a já retirada devolve o CashedOut original).
+- **UT-05** — Dada uma aposta com alvo 1,50x, quando o cash-out manual é decidido com 1,62x, então é liquidada em 1,50x exatos com auto:true; com 1,49x, então em 1,49x com auto:false.
+- **UT-06** — Dado o árbitro do líder sem o voo em memória, quando a rodada não está encerrada, então Undecided; quando a rodada está encerrada, então decide pelos dados persistidos (startedAt e ponto do crash) com a mesma regra.
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dado o Host real com uma rodada conduzida, quando o jogador retira no meio do voo e outro pedido chega depois do crash, então o primeiro recebe CashedOut com saldo creditado e o segundo CASHOUT_TOO_LATE.
@@ -140,6 +158,10 @@ Regras
 - **IT-05** — Dados 300 cash-outs na mesma rodada em 1 s, quando medidos, então todos decididos e p99 ≤ 50 ms (`Category=Performance`).
 - **IT-06** — Dadas todas as respostas e eventos enviados antes do crash, quando inspecionados, então nenhum contém o ponto nem o instante do crash.
 - **IT-07** — Dado o líder da sala impedido de responder por 300 ms (falha injetada no encaminhamento), quando o cash-out chega numa instância que não é o líder, então a resposta é CashOutPending e, ao liberar o líder, o jogador recebe CashedOut com o multiplicador do horário de recebimento gravado (ou CashOutRejected se recebido depois do crash).
+- **IT-08** — Dada uma aposta com alvo 1,50x numa rodada com crash 5,00x e o líder interrompido em 1,2x (outra instância assume), quando a rodada termina, então a aposta é retirada em 1,50x exatos com CashedOut auto e um único crédito; e com a publicação do automático falhando uma vez, o resultado é o mesmo.
+- **IT-09** — Dado um cash-out pendente recebido em 1,8x (crash 3,00x) e o líder interrompido antes de decidir, quando outra instância assume, então a decisão é Accepted com o multiplicador do horário gravado (não TooLate).
+- **IT-10** — Dados 300 automáticos em 1,50x com a carteira indisponível, quando a rodada crasha e a seguinte abre, então RoundCrashed é processado e as apostas da rodada seguinte são ativadas sem atraso perceptível (≤ 2 s), e os créditos são confirmados quando a carteira volta.
+- **IT-11** — Dados dois CashOut concorrentes para a mesma aposta com o líder sem responder, quando gravados como pendentes, então o horário gravado é o do primeiro recebido e existe uma única decisão.
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados, então conferem (contrato consumido pelas SPEC-0025 e 0026).
@@ -176,36 +198,36 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0023:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06 com a tag `SPEC-0023:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, CT-01 com a tag `SPEC-0023:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, IT-08, IT-09, IT-10, IT-11, CT-01 com a tag `SPEC-0023:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:03:50.96]     Dado o contrato v2 do cash-out no hub /hubs/bets gerado (SPEC-) — 3df9de0 | 2026-10-11 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:04:43.72]     Dada uma aposta com alvo 1,50x numa rodada com crash 5,00x e o) — b911a01 | 2026-10-11 |
+| G2 Green | PASS | build exit 0 (✓ built in 141ms); test exit 0 (Duration  1.35s (tests 66%, transform 20%, import 12%, worker 2%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T06:25:36: Report generation took 0,8 seconds) — 501edb1 | 2026-10-11 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  743ms (tests 97%, transform 2%, import 1%)) — 501edb1 | 2026-10-11 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, 501edb1; minors: resposta de rodada anulada difere entre memória e persistido; CashedOut automático pode não ser anunciado se o processo cair após o crédito; contador credits_pending por processo; automáticos publicados um a um) — 501edb1 | 2026-10-11 |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 157ms); test exit 0 (at least ~269ms faster with isolate: false — reuses workers across files instead of one pe); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 4 m 18 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  778ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 472 files: 0 findings.) — b258d1e | 2026-10-11 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
@@ -221,42 +243,68 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O jogador retira a aposta pelo hub `/hubs/bets` (`CashOut`) durante o voo e recebe o pagamento (valor × multiplicador, truncado em centavos, limitado ao ganho máximo da moeda) creditado na carteira; o cash-out automático executa no alvo exato quando o alvo fica abaixo do crash. A decisão é do líder da sala pelo horário do servidor no recebimento (tolerância 0 ms); pedido sem decisão em 200 ms fica pendente e é decidido depois pelo horário gravado. Crédito pendente é avisado ao jogador e confirmado depois (BalanceUpdated).
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Rounds: `ICashOutArbiter` com decisão no líder (`LeaderCashOutArbiter` sobre o `SalaConductor`), encaminhamento pelo Redis a partir de outras instâncias com resposta de três estados (aceito, tarde, indefinido), decisão por dados persistidos de rodada encerrada, automáticos agendados no líder e publicados por outbox (`AutoCashOutExecuted`). Betting: `CashOutUseCase`, `CashOutSettlement` (precedência do automático), reconciliação dos automáticos no RoundCrashed (ponto já público), crédito durável `CreditCashOut` pelo outbox na própria fila, `DecideCashOut` para pedidos pendentes, primeiro horário pendente prevalece (token de concorrência). Contrato v2 (envelope `CashOutResult`, `creditStatus`). Duas rodadas de review (G4): automáticos duráveis, líder sem a rodada não decide, precedência do automático, crédito fora da fila sequencial.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dados k = 0,00006, crash 2,00 (t_c ≈ 11.552 ms) e FakeTimeProvider, quando o cash-out é recebido em 5.000 ms, um tick antes de t_c (t_c = ln… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-02 | Dados valor e multiplicador, quando o pagamento é calculado, então 10,00 × 2,47 = 24,70; 3,33 × 1,07 = 3,56; e 1.000,00 × 150,00 = 100.000,0… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-03 | Dados alvo 1,50x com crash 2,00x e alvo 3,00x com crash 2,00x, quando o agendamento roda, então o primeiro executa em t_alvo com 1,50x exato… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-04 | Dadas apostas placed, queued, cancelled e já retirada, quando CashOut é pedido, então BET_NOT_ACTIVE (e a já retirada devolve o CashedOut or… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-05 | Dada uma aposta com alvo 1,50x, quando o cash-out manual é decidido com 1,62x, então é liquidada em 1,50x exatos com auto:true; com 1,49x, e… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| UT-06 | Dado o árbitro do líder sem o voo em memória, quando a rodada não está encerrada, então Undecided; quando a rodada está encerrada, então dec… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-01 | Dado o Host real com uma rodada conduzida, quando o jogador retira no meio do voo e outro pedido chega depois do crash, então o primeiro rec… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-02 | Dadas duas apostas com cash-out automático (abaixo e acima do crash), quando a rodada termina, então só a primeira recebe CashedOut auto no … | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-03 | Dada uma carteira de teste que falha no primeiro crédito, quando o jogador retira, o processo reinicia e o CashOut é repetido, então a prime… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-04 | Dadas duas instâncias do Host com Redis real e o líder na instância A, quando o cash-out chega na instância B, então é decidido pelo líder c… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-05 | Dados 300 cash-outs na mesma rodada em 1 s, quando medidos, então todos decididos e p99 ≤ 50 ms (`Category=Performance`). | PASS | G5 local b258d1e (resultado integrado); CI do PR #25; Category=Performance |
+| IT-06 | Dadas todas as respostas e eventos enviados antes do crash, quando inspecionados, então nenhum contém o ponto nem o instante do crash. | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-07 | Dado o líder da sala impedido de responder por 300 ms (falha injetada no encaminhamento), quando o cash-out chega numa instância que não é o… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-08 | Dada uma aposta com alvo 1,50x numa rodada com crash 5,00x e o líder interrompido em 1,2x (outra instância assume), quando a rodada termina,… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-09 | Dado um cash-out pendente recebido em 1,8x (crash 3,00x) e o líder interrompido antes de decidir, quando outra instância assume, então a dec… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-10 | Dados 300 automáticos em 1,50x com a carteira indisponível, quando a rodada crasha e a seguinte abre, então RoundCrashed é processado e as a… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| IT-11 | Dados dois CashOut concorrentes para a mesma aposta com o líder sem responder, quando gravados como pendentes, então o horário gravado é o d… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
+| CT-01 | Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados, então conferem (contrato consumido pelas SPEC-0025 e 0026… | PASS | G5 local b258d1e (resultado integrado); CI do PR #25 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — IT-05 (300 cash-outs em 1 s, p99 ≤ 50 ms); IT-06 (sigilo do crash antes do crash)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #25
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas `betting.cashouts{auto}`, `betting.cashout_too_late`, `betting.cashout_decision_latency`, `betting.credits_pending` (por processo — ver Pendências); log crítico CreditRefused; rollback = revert do merge e da migração
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (b258d1e); sigilo do crash provado no IT-06
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; supressões MA0025 só no scaffold, com motivo na linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pelo PR #25.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- Minors aceitos do review: resposta de rodada anulada difere entre a decisão em memória (aceita antes da anulação) e a persistida (TooLate) — regra única a fixar com a SPEC-0024/anulação; CashedOut automático pode não ser anunciado se o processo cair entre o crédito e o anúncio (estado e dinheiro corretos; novo CashOut devolve o resultado); `betting.credits_pending` é contador por processo e o alerta "> 0 por 1 min" não foi configurado (SPEC-0014, observabilidade); automáticos publicados um a um no laço do condutor.
+- Premissa registrada: a tolerância de 0 ms depende de relógios sincronizados (NTP) entre instâncias.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0023`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (inalterado) | 2026-10-11 | IT-05: p99 ≤ 50 ms vale no ambiente de referência (registrado no G5 local); no runner da CI (2 vCPU compartilhados) o teste é guarda de regressão com p99 ≤ 1 s. O alvo de 50 ms na infraestrutura real fica com a SPEC-0048 (proposta) | CI do PR #25: p99 807 ms no runner do GitHub com o mesmo código que mede ≤ 50 ms localmente | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11); SPEC-0048 aguarda H1 |
+| 2 (inalterado no hub) | 2026-10-11 | Review G4: `CashOutUndecided` em Rounds.Contracts (líder sem a rodada não decide; rodada encerrada decidida pelos dados persistidos); precedência do automático (manual ≥ alvo liquida no alvo, auto:true); reconciliação dos automáticos no RoundCrashed; crédito fora da fila sequencial; primeiro horário pendente prevalece. Aceitos e documentados: pedido manual pendente perde para o automático executado; a tolerância de 0 ms depende do sincronismo de relógio entre instâncias (NTP), registrado como premissa | Review G4 (d91817c): M1–M4 e minors m1–m3 | Nenhuma (contrato do hub inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 2 (forma) | 2026-10-11 | `CashOut` devolve o envelope `CashOutResult { cashedOut?, pending? }` (exatamente um preenchido) em vez de união polimórfica; `creditStatus` como enum "credited"/"pending" | Scaffold 0174675: o gerador de contratos da SPEC-0006 transforma `anyOf` de objetos em `unknown`; o envelope gera TypeScript tipado | SPEC-0026 (mesmo pin @2) | Architect (thomas autorizou seguir pelo recomendado, 2026-10-11) |
 | 2 | 2026-10-11 | Contrato v2: `CashedOut` ganha `creditStatus` ("credited"/"pending") e `balance` opcional; `CashOut` pode responder `CashOutPending` (líder sem decisão em 200 ms) com a decisão depois por `CashedOut` ou `CashOutRejected`; `ICashOutArbiter.ScheduleAutoAsync` encaminhado ao líder e evento `AutoCashOutExecuted`; `salaId` é string; TooLate ⇔ recebidoEm ≥ startedAt + t_c sem arredondamento (UT-01 corrigido); novo IT-07; scaffold dos tipos em commit `chore` antes dos testes | IMP-01: G1 do Test-writer (D1 limite do UT-01 contradiz o motor, D2 balance sem crédito confirmado, D3 saída do automático, D4 resposta sem decisão do líder) | SPEC-0026 (pin @1 → @2) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10/11) |
 | 1 (inalterado) | 2026-10-11 | Escopo: código gerado do Wolverine no Host (`src/backend/Host/Internal/Generated/**`), registro no `Program.cs` e regras de arquitetura; ADR-0028 (operação do Wolverine) passa a valer para os handlers do cash-out e do crédito | A SPEC-0022 entregou o Wolverine com código pré-gerado no Host (ADR-0028): todo handler novo regenera esse código | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |

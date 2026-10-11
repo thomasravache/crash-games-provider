@@ -10,4 +10,10 @@ namespace Apogeu.Rounds.Infrastructure.Persistence;
 public interface IRoundOutbox
 {
     Task SaveAsync(Round round, object integrationEvent, CancellationToken ct);
+
+    /// <summary>
+    /// Publishes an integration event that changes no round (<c>AutoCashOutExecuted</c>, SPEC-0023) through the same durable
+    /// outbox: it is delivered once committed.
+    /// </summary>
+    Task PublishAsync(object integrationEvent, CancellationToken ct);
 }

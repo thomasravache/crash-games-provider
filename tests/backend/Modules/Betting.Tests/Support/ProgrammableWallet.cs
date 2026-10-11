@@ -12,6 +12,7 @@ namespace Apogeu.Betting.Tests.Support;
 internal sealed class ProgrammableWallet(FakeOperatorWallet inner) : IOperatorWallet
 {
     private int _rollbackAttempts;
+    private int _creditAttempts;
 
     public ProgrammableWallet()
         : this(new FakeOperatorWallet())
@@ -31,6 +32,12 @@ internal sealed class ProgrammableWallet(FakeOperatorWallet inner) : IOperatorWa
 
     /// <summary>A non-null result answers the rollback without reaching <see cref="Inner"/> (nothing is posted).</summary>
     public Func<WalletRollback, WalletResult?>? OnRollback { get; set; }
+
+    /// <summary>A non-null result answers the credit without reaching <see cref="Inner"/> (nothing is posted): SPEC-0023 IT-03.</summary>
+    public Func<WalletOperation, WalletResult?>? OnCredit { get; set; }
+
+    /// <summary>Every credit attempt, answered by <see cref="OnCredit"/> or by the wallet.</summary>
+    public int CreditAttempts => Volatile.Read(ref _creditAttempts);
 
     /// <summary>Every rollback attempt, answered by <see cref="OnRollback"/> or by the wallet.</summary>
     public int RollbackAttempts => Volatile.Read(ref _rollbackAttempts);
@@ -60,7 +67,11 @@ internal sealed class ProgrammableWallet(FakeOperatorWallet inner) : IOperatorWa
         return result;
     }
 
-    public Task<WalletResult> CreditAsync(WalletOperation op, CancellationToken ct) => Inner.CreditAsync(op, ct);
+    public Task<WalletResult> CreditAsync(WalletOperation op, CancellationToken ct)
+    {
+        Interlocked.Increment(ref _creditAttempts);
+        return OnCredit?.Invoke(op) is { } programmed ? Task.FromResult(programmed) : Inner.CreditAsync(op, ct);
+    }
 
     public Task<WalletResult> RollbackAsync(WalletRollback op, CancellationToken ct)
     {

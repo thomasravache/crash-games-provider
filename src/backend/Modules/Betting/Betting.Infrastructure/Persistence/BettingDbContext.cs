@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Apogeu.Betting.Infrastructure.Persistence;
 
@@ -26,7 +27,7 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
         {
             bet.ToTable("bets", table =>
             {
-                table.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled')");
+                table.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled', 'cashed_out')");
                 table.HasCheckConstraint("ck_bets_accepted_status", "accepted_status IN ('placed', 'queued')");
                 table.HasCheckConstraint("ck_bets_panel", "panel IN (1, 2)");
                 table.HasCheckConstraint("ck_bets_amount", "amount > 0");
@@ -73,6 +74,32 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
 
             // The reservations the sweeper reverses (debit not confirmed in time).
             bet.HasIndex(b => b.CreatedAt).HasFilter("status = 'pending'").HasDatabaseName("ix_bets_pending_created_at");
+
+            MapCashOut(bet);
         });
+    }
+
+    /// <summary>The cash-out of a bet (SPEC-0023): its multiplier, payout and credit, and a manual request waiting for the leader.</summary>
+    private static void MapCashOut(EntityTypeBuilder<BetRecord> bet)
+    {
+        bet.ToTable(table =>
+        {
+            // A cashed-out bet has its multiplier, payout and credit; no other bet has them.
+            table.HasCheckConstraint("ck_bets_credit_status", "credit_status IS NULL OR credit_status IN ('credited', 'pending')");
+            table.HasCheckConstraint(
+                "ck_bets_cash_out",
+                "(status = 'cashed_out') = (cash_out_multiplier IS NOT NULL AND payout IS NOT NULL AND credit_status IS NOT NULL)");
+        });
+        bet.Property(b => b.CashOutMultiplier).HasColumnName("cash_out_multiplier").HasPrecision(18, 8);
+        bet.Property(b => b.Payout).HasColumnName("payout").HasPrecision(18, 2);
+        bet.Property(b => b.CashOutAuto).HasColumnName("cash_out_auto");
+        bet.Property(b => b.CashedOutAt).HasColumnName("cashed_out_at");
+        bet.Property(b => b.CreditStatus).HasColumnName("credit_status").HasMaxLength(16);
+        bet.Property(b => b.CreditBalance).HasColumnName("credit_balance").HasPrecision(18, 2);
+        // A concurrency token: of concurrent pending requests the first reception instant stays (review G4, m1).
+        bet.Property(b => b.CashOutRequestedAt).HasColumnName("cash_out_requested_at").IsConcurrencyToken();
+
+        // The credits of cash-outs not confirmed yet (betting.credits_pending, SPEC-0023 §8).
+        bet.HasIndex(b => b.CashedOutAt).HasFilter("credit_status = 'pending'").HasDatabaseName("ix_bets_credit_pending");
     }
 }

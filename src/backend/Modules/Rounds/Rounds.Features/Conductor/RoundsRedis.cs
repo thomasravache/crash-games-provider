@@ -27,18 +27,23 @@ internal sealed class RoundsRedis(IConfiguration configuration) : IAsyncDisposab
         return options;
     }
 
-    public async Task<IDatabase> DatabaseAsync()
+    public async Task<IDatabase> DatabaseAsync() => (await ConnectionAsync().ConfigureAwait(false)).GetDatabase();
+
+    /// <summary>Pub/sub of the same connection: the cash-out requests forwarded to the leader (SPEC-0023).</summary>
+    public async Task<ISubscriber> SubscriberAsync() => (await ConnectionAsync().ConfigureAwait(false)).GetSubscriber();
+
+    private async Task<ConnectionMultiplexer> ConnectionAsync()
     {
         if (_connection is { } open)
         {
-            return open.GetDatabase();
+            return open;
         }
 
         await _gate.WaitAsync().ConfigureAwait(false);
         try
         {
             _connection ??= await ConnectionMultiplexer.ConnectAsync(Options(configuration)).ConfigureAwait(false);
-            return _connection.GetDatabase();
+            return _connection;
         }
         finally
         {

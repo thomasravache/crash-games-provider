@@ -58,6 +58,24 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("balance_after");
 
+                    b.Property<bool?>("CashOutAuto")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cash_out_auto");
+
+                    b.Property<decimal?>("CashOutMultiplier")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)")
+                        .HasColumnName("cash_out_multiplier");
+
+                    b.Property<DateTimeOffset?>("CashOutRequestedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cash_out_requested_at");
+
+                    b.Property<DateTimeOffset?>("CashedOutAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cashed_out_at");
+
                     b.Property<Guid>("ClientBetId")
                         .HasColumnType("uuid")
                         .HasColumnName("client_bet_id");
@@ -65,6 +83,16 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<decimal?>("CreditBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("credit_balance");
+
+                    b.Property<string>("CreditStatus")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("credit_status");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -81,6 +109,11 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                     b.Property<short>("Panel")
                         .HasColumnType("smallint")
                         .HasColumnName("panel");
+
+                    b.Property<decimal?>("Payout")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("payout");
 
                     b.Property<string>("PlayerId")
                         .IsRequired()
@@ -127,6 +160,10 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_bets");
 
+                    b.HasIndex("CashedOutAt")
+                        .HasDatabaseName("ix_bets_credit_pending")
+                        .HasFilter("credit_status = 'pending'");
+
                     b.HasIndex("CreatedAt")
                         .HasDatabaseName("ix_bets_pending_created_at")
                         .HasFilter("status = 'pending'");
@@ -157,13 +194,17 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_bets_amount", "amount > 0");
 
+                            t.HasCheckConstraint("ck_bets_cash_out", "(status = 'cashed_out') = (cash_out_multiplier IS NOT NULL AND payout IS NOT NULL AND credit_status IS NOT NULL)");
+
+                            t.HasCheckConstraint("ck_bets_credit_status", "credit_status IS NULL OR credit_status IN ('credited', 'pending')");
+
                             t.HasCheckConstraint("ck_bets_panel", "panel IN (1, 2)");
 
                             t.HasCheckConstraint("ck_bets_refund_status", "refund_status IS NULL OR refund_status IN ('refunded', 'pending')");
 
                             t.HasCheckConstraint("ck_bets_round", "(status = 'queued') = (round_id IS NULL) OR status IN ('cancelled', 'pending')");
 
-                            t.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled')");
+                            t.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled', 'cashed_out')");
                         });
                 });
 #pragma warning restore 612, 618

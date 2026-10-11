@@ -1,5 +1,6 @@
 using Apogeu.Backoffice.Features;
 using Apogeu.Betting.Features;
+using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.BuildingBlocks.Messaging;
 using Apogeu.Fairness.Features;
@@ -62,6 +63,9 @@ builder.UseWolverine(options =>
     options.PublishMessage<RoundFlying>().ToLocalQueue(BettingModule.RoundEventsQueue);
     options.PublishMessage<RoundCrashed>().ToLocalQueue(BettingModule.RoundEventsQueue);
     options.PublishMessage<RoundAnnulled>().ToLocalQueue(BettingModule.RoundEventsQueue);
+
+    // SPEC-0023: an automatic cash-out reaches Betting in order with the round events (after RoundFlying, before RoundCrashed).
+    options.PublishMessage<AutoCashOutExecuted>().ToLocalQueue(BettingModule.RoundEventsQueue);
     options.LocalQueue(BettingModule.RoundEventsQueue).Sequential();
 
     // A handler whose database is briefly unreachable retries before its message is given up.
@@ -78,6 +82,8 @@ builder.UseWolverine(options =>
     // Service location only where the generated code cannot build a service itself (internal type or factory registration).
     options.ServiceLocationPolicy = ServiceLocationPolicy.AllowedButWarn;
     options.CodeGeneration.AlwaysUseServiceLocationFor<IBetStore>();
+    options.CodeGeneration.AlwaysUseServiceLocationFor<ICashOutArbiter>();
+    options.CodeGeneration.AlwaysUseServiceLocationFor<CashOutSettlement>();
 });
 MessagingLifecycle.AddMessagingLifecycle(builder.Services, RoundsModule.ConnectionName);
 builder.Services.AddSingleton<IMessagingReadiness>(provider =>

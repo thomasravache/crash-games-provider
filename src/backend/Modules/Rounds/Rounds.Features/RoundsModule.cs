@@ -1,5 +1,6 @@
 using Apogeu.BuildingBlocks.Security;
 using Apogeu.Rounds.Contracts;
+using Apogeu.Rounds.Features.CashOut;
 using Apogeu.Rounds.Features.Conductor;
 using Apogeu.Rounds.Features.History;
 using Apogeu.Rounds.Features.Live;
@@ -72,6 +73,13 @@ public static class RoundsModule
             provider.GetRequiredService<IOptions<RoundsOptions>>().Value.SnapshotReadTimeout));
 
         services.AddSingleton<RoundsRedis>();
+
+        // SPEC-0023: the cash-outs are decided by the leader of the room; the other instances forward them through Redis.
+        services.AddSingleton<LeaderArbiters>();
+        services.AddSingleton<IAutoCashOutSink, OutboxAutoCashOutSink>();
+        services.AddSingleton<CashOutRelay>();
+        services.AddHostedService(provider => provider.GetRequiredService<CashOutRelay>());
+        services.AddSingleton<ICashOutArbiter, CashOutArbiter>();
         services.AddSingleton<RoundsLeadershipService>();
         services.AddSingleton<IRoundsLeadership>(provider => provider.GetRequiredService<RoundsLeadershipService>());
         services.AddHostedService(provider => provider.GetRequiredService<RoundsLeadershipService>());
