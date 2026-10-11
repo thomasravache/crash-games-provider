@@ -49,6 +49,11 @@ public sealed class LateDebitTests(BettingContainers containers)
         await rounds.NextBettingAsync(TimeSpan.FromSeconds(1.5));
         var outcome = await bets.PlaceAsync(panel: 1, amount: "10.00", ct).WaitAsync(TimeSpan.FromSeconds(90), ct);
 
+        // PlaceBet answers before PendingTimeout; the held debit is applied only after the sweeper's rollback, later.
+        await Eventually.HoldsAsync(
+            () => wallet.Inner.AppliedDebits.Count == 1,
+            TimeSpan.FromSeconds(60),
+            () => $"the held debit applied after the sweeper's rollback (calls: {string.Join(", ", wallet.Inner.Calls)})");
         var debit = Assert.Single(wallet.Inner.AppliedDebits);
         Assert.True(SweptWithoutDebit(wallet, debit.BetId), $"Precondition: the sweeper's rollback ran before the debit (calls: {string.Join(", ", wallet.Inner.Calls)}).");
         Assert.True(outcome.Result is null, $"The bet whose reservation was voided is not accepted; got {outcome}");

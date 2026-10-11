@@ -24,4 +24,6 @@ internal sealed class FixedRoundFeed(RoundWindow? current) : IRoundFeed
     }
 
     public RoundWindow? Current(string salaId) => current;
+
+    public Task<RoundWindow?> CurrentAsync(string salaId, CancellationToken ct) => Task.FromResult(current);
 }
