@@ -5,6 +5,7 @@ using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Domain;
 using Apogeu.Rounds.Features.Live;
 using Apogeu.Rounds.Features.Salas;
+using Apogeu.Rounds.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
 using ContractMultiplier = Apogeu.BuildingBlocks.Contracts.Multiplier;
 using FairnessMultiplier = Apogeu.Fairness.Contracts.Multiplier;
@@ -51,6 +52,7 @@ public sealed class SalaConductor
     private readonly DateTimeOffset? _leaderLastSeenAt;
     private readonly SalaId _fairnessSala;
     private readonly ISalaSnapshotPublisher? _snapshots;
+    private readonly IRoundOutbox? _outbox;
 
     // The last crashed rounds of the room, newest first: kept only when the state is published (IMP-02).
     private RoundSummary[] _history = [];
@@ -132,6 +134,37 @@ public sealed class SalaConductor
         IRoundChainStore? chains,
         DateTimeOffset? leaderLastSeenAt,
         ISalaSnapshotPublisher? snapshots)
+        : this(sala, fairness, store, broadcaster, metrics, time, logger, chains, leaderLastSeenAt, snapshots, outbox: null)
+    {
+    }
+
+    /// <param name="sala">The room conducted.</param>
+    /// <param name="fairness">SPEC-0007@2: commitment, crash point and reveal of each round.</param>
+    /// <param name="store">The rounds of the room (source of truth for resuming).</param>
+    /// <param name="broadcaster">The room group of the hub.</param>
+    /// <param name="metrics">Business metrics of the module.</param>
+    /// <param name="time">The server clock.</param>
+    /// <param name="logger">Logger (ids only, never a crash point or seed before the crash).</param>
+    /// <param name="chains">Records the public data of every chain created, for the verification of its rounds.</param>
+    /// <param name="leaderLastSeenAt">The last instant the previous leader of the room was seen alive, when known.</param>
+    /// <param name="snapshots">Receives the state of the room after every transition is persisted.</param>
+    /// <param name="outbox">
+    /// Saves each transition together with its integration event (<see cref="RoundBettingOpened"/>, <see cref="RoundFlying"/>,
+    /// <see cref="RoundCrashed"/>, <see cref="RoundAnnulled"/>) in one transaction (SPEC-0022, ADR-0002); without it the
+    /// transitions are saved in <paramref name="store"/> and no event is published.
+    /// </param>
+    public SalaConductor(
+        SalaConfig sala,
+        IFairnessService fairness,
+        IRoundStore store,
+        IRoundBroadcaster broadcaster,
+        RoundsMetrics metrics,
+        TimeProvider time,
+        ILogger<SalaConductor> logger,
+        IRoundChainStore? chains,
+        DateTimeOffset? leaderLastSeenAt,
+        ISalaSnapshotPublisher? snapshots,
+        IRoundOutbox? outbox)
     {
         ArgumentNullException.ThrowIfNull(sala);
         ArgumentNullException.ThrowIfNull(fairness);
@@ -151,6 +184,7 @@ public sealed class SalaConductor
         _chains = chains;
         _leaderLastSeenAt = leaderLastSeenAt;
         _snapshots = snapshots;
+        _outbox = outbox;
         _curve = new GrowthCurve(sala.GrowthK);
         _fairnessSala = SalaIdentity.ToFairness(sala.Id);
     }
@@ -263,7 +297,7 @@ public sealed class SalaConductor
             RoundParameters.Of(_sala));
         activity?.SetTag("rounds.sala_id", _sala.Id).SetTag("rounds.round_id", round.Id.Value).SetTag("rounds.round_number", round.Number);
 
-        await _store.SaveAsync(round, ct).ConfigureAwait(false);
+        await SaveAsync(round, new RoundBettingOpened(_sala.Id, round.Id, round.Number, ContractInstant(round.BettingEndsAt)), ct).ConfigureAwait(false);
         _round = round;
         _nextNumber = round.Number + 1;
         _crashPoint = null;
@@ -286,7 +320,7 @@ public sealed class SalaConductor
             .ConfigureAwait(false);
         var startedAt = _time.GetUtcNow();
         round.StartFlight(startedAt);
-        await _store.SaveAsync(round, ct).ConfigureAwait(false);
+        await SaveAsync(round, new RoundFlying(_sala.Id, round.Id, ContractInstant(startedAt), (decimal)parameters.GrowthK), ct).ConfigureAwait(false);
         Schedule(round, crashPoint.Value);
         PublishSnapshot();
 
@@ -316,7 +350,7 @@ public sealed class SalaConductor
         }
 
         round.Crash(crashPoint, revealed.Seed.ToHex(), crashedAt);
-        await _store.SaveAsync(round, ct).ConfigureAwait(false);
+        await SaveAsync(round, new RoundCrashed(_sala.Id, round.Id, crashPoint, ContractInstant(crashedAt)), ct).ConfigureAwait(false);
         _crashPoint = null;
         _nextRoundAt = crashedAt + _sala.CooldownDuration;
         if (_snapshots is not null)
@@ -338,7 +372,7 @@ public sealed class SalaConductor
         using var activity = StartRoundActivity("rounds.annul", round);
         var now = _time.GetUtcNow();
         round.Annul(reason, now);
-        await _store.SaveAsync(round, ct).ConfigureAwait(false);
+        await SaveAsync(round, new RoundAnnulled(_sala.Id, round.Id, reason), ct).ConfigureAwait(false);
         _crashPoint = null;
         _nextRoundAt = now + _sala.CooldownDuration;
         PublishSnapshot();
@@ -469,6 +503,14 @@ public sealed class SalaConductor
 
         RoundsLog.ChainCreated(_logger, _sala.Id, chain.ChainId.Value, chain.Length);
     }
+
+    /// <summary>An instant as the contract carries it (ADR-0008: milliseconds), so an event matches the hub message of the round.</summary>
+    private static DateTimeOffset ContractInstant(DateTimeOffset instant) =>
+        new(instant.Ticks - (instant.Ticks % TimeSpan.TicksPerMillisecond), instant.Offset);
+
+    /// <summary>Saves a transition of the round, with its integration event when the conductor has an outbox.</summary>
+    private Task SaveAsync(Round round, object integrationEvent, CancellationToken ct) =>
+        _outbox is null ? _store.SaveAsync(round, ct) : _outbox.SaveAsync(round, integrationEvent, ct);
 
     /// <summary>Publishes the state of the room as persisted: the crash point of a round in flight is never part of it.</summary>
     private void PublishSnapshot() =>

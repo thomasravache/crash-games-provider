@@ -72,6 +72,27 @@ internal static partial class TypeConditions
             type => ReferencedTypes(type).Where(target => string.Equals(target.FullName, fullName, StringComparison.Ordinal)),
             "depends on");
 
+    /// <summary>
+    /// ADR-0028: the type does not handle the hosted services of the host — no <c>RemoveAll&lt;IHostedService&gt;()</c>, no
+    /// resolution of <c>IHostedService</c> or <c>IEnumerable&lt;IHostedService&gt;</c>, no <c>typeof(IHostedService)</c>.
+    /// Implementing <c>IHostedService</c> (or deriving from <c>BackgroundService</c>) and registering the module's own hosted
+    /// service (<c>AddHostedService&lt;TOwn&gt;</c>) stay allowed.
+    /// </summary>
+    public static ICondition<IType> NotHandleHostedServicesOfOthers() =>
+        Condition(
+            "not handle the host's hosted services",
+            type => type.Dependencies
+                .Where(dependency => dependency is not ImplementsInterfaceDependency)
+                .Where(dependency => Mentions(dependency.Target, dependency.TargetGenericArguments, HostedService))
+                .Select(dependency => dependency.Target),
+            "handles the hosted services through");
+
+    private const string HostedService = "Microsoft.Extensions.Hosting.IHostedService";
+
+    private static bool Mentions(IType target, IEnumerable<GenericArgument> arguments, string fullName) =>
+        string.Equals(target.FullName, fullName, StringComparison.Ordinal)
+        || arguments.Any(argument => Mentions(argument.Type, argument.GenericArguments, fullName));
+
     /// <summary>The type reads no system clock (DateTime.Now/UtcNow/Today, DateTimeOffset.Now/UtcNow, TimeProvider.System).</summary>
     public static ICondition<IType> NotReadSystemClock() =>
         Condition(

@@ -118,6 +118,17 @@ jobs:
         run: dotnet build Apogeu.slnx --no-restore
       - name: Format
         run: dotnet format Apogeu.slnx --verify-no-changes --no-restore
+      # ADR-0028: the Wolverine handler code is generated ahead of time into the Host. `codegen test` compiles it and needs
+      # the runtime compiler the Host does not ship, so the check regenerates it and fails when it differs from the commit.
+      - name: Wolverine generated code up to date (ADR-0028)
+        env:
+          DOTNET_ENVIRONMENT: Production
+          ConnectionStrings__apogeu: Host=127.0.0.1;Port=1;Database=apogeu;Username=apogeu;Timeout=1
+          ConnectionStrings__redis: 127.0.0.1:1,abortConnect=false,connectTimeout=200
+        run: |
+          dotnet run --project src/backend/Host --no-build -- codegen write
+          git add --intent-to-add src/backend/Host/Internal/Generated
+          git diff --exit-code -- src/backend/Host/Internal/Generated
       # sdd-config `test` (.NET half): unit, integration (Testcontainers on the runner's Docker) and architecture,
       # i.e. also `test_integration` and the .NET half of `arch_test`; coverage collected as in `coverage`.
       - name: Test (unit, integration, architecture)
