@@ -29,6 +29,7 @@ public sealed class PlaceBetUseCase(
     IOperatorLimits limits,
     ISalaCaps caps,
     IOperatorWallet wallet,
+    ICashOutArbiter arbiter,
     BetsNotifier notifier,
     BettingMetrics metrics,
     IOptions<BettingOptions> options,
@@ -348,7 +349,11 @@ public sealed class PlaceBetUseCase(
         if (bet.Status == BetStatus.Placed && now is not null && (now.RoundId != bet.RoundId || now.Phase != RoundPhase.Betting))
         {
             bet.StartFlight(bet.RoundId!.Value);
-            await store.TransitionAsync(bet, BetStatus.Placed, ct).ConfigureAwait(false);
+            if (await store.TransitionAsync(bet, BetStatus.Placed, ct).ConfigureAwait(false))
+            {
+                // Active after the flight's event was handled: its automatic cash-out is scheduled here (SPEC-0023).
+                await RoundEventsHandler.ScheduleAutoAsync(arbiter, salaId, bet, logger, ct).ConfigureAwait(false);
+            }
         }
         else if (bet.Status == BetStatus.Queued && now is { Phase: RoundPhase.Betting } opened && opened.RoundId != seen?.RoundId)
         {

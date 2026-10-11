@@ -38,4 +38,10 @@ public static class BettingErrorCodes
 
     /// <summary>No bet with that id belongs to the session's player.</summary>
     public const string BetNotFound = "BET_NOT_FOUND";
+
+    /// <summary>The cash-out was received at or after the crash instant (SPEC-0023 §6).</summary>
+    public const string CashOutTooLate = "CASHOUT_TOO_LATE";
+
+    /// <summary>The bet is not in flight (placed, queued or cancelled), so it cannot be cashed out (SPEC-0023 §6).</summary>
+    public const string BetNotActive = "BET_NOT_ACTIVE";
 }

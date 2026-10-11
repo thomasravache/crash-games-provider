@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Wolverine;
 using Wolverine.EntityFrameworkCore;
 
 namespace Apogeu.Betting.Infrastructure.Persistence;
@@ -19,6 +20,12 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
     private static readonly string Placed = StatusName(BetStatus.Placed);
     private static readonly string Queued = StatusName(BetStatus.Queued);
     private static readonly string Active = StatusName(BetStatus.Active);
+    private static readonly string CashedOut = StatusName(BetStatus.CashedOut);
+    private const string CreditPending = "pending";
+    private const string Credited = "credited";
+
+    /// <summary>Attempts of a compare-and-set of a bet whose row changes concurrently.</summary>
+    private const int ConcurrencyAttempts = 5;
 
     public async Task<AcceptedBet?> FindByClientBetIdAsync(BetOwner owner, Guid clientBetId, CancellationToken ct)
     {
@@ -237,6 +244,139 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         return activated;
     }
 
+    public async Task<AcceptedBet?> FindByIdAsync(Guid betId, CancellationToken ct)
+    {
+        var record = await db.Bets.AsNoTracking().SingleOrDefaultAsync(b => b.Id == betId && b.Status != Pending, ct).ConfigureAwait(false);
+        return record is null ? null : ToAccepted(record);
+    }
+
+    public async Task<IReadOnlyList<Bet>> ListAutoCashOutsAsync(RoundId roundId, CancellationToken ct)
+    {
+        var records = await db.Bets.AsNoTracking()
+            .Where(b => b.RoundId == roundId.Value && b.Status == Active && b.AutoCashOut != null)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        return [.. records.Select(ToDomain)];
+    }
+
+    public async Task<bool> CashOutAsync(Bet bet, bool automatic, DateTimeOffset at, TimeSpan creditDelay, bool announce, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(bet);
+        if (bet is not { Status: BetStatus.CashedOut, CashOutMultiplier: { } multiplier, Payout: { } payout, RoundId: { } round })
+        {
+            throw new InvalidOperationException($"Bet {bet.Id} is not cashed out in a round.");
+        }
+
+        // A pending request recorded meanwhile changes the row's concurrency token, not whether the bet can be cashed out.
+        for (var attempt = 0; attempt < ConcurrencyAttempts; attempt++)
+        {
+            if (await TryCashOutAsync(new CashOutChange(bet.Id, round.Value, multiplier, payout, automatic, at, creditDelay, announce), ct).ConfigureAwait(false) is { } done)
+            {
+                return done;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>One attempt of <see cref="CashOutAsync"/>: <see langword="null"/> when the row changed meanwhile (try again).</summary>
+    private async Task<bool?> TryCashOutAsync(CashOutChange change, CancellationToken ct)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            var record = await outbox.DbContext.Bets.SingleOrDefaultAsync(b => b.Id == change.BetId && b.Status == Active, ct).ConfigureAwait(false);
+            if (record is null)
+            {
+                return false;
+            }
+
+            record.Status = CashedOut;
+            record.CashOutMultiplier = change.Multiplier;
+            record.Payout = change.Payout;
+            record.CashOutAuto = change.Automatic;
+            record.CashedOutAt = change.At;
+            record.CreditStatus = CreditPending;
+
+            // ADR-0007: the credit is stored with the cash-out itself.
+            var credit = new CreditCashOut(record.Id, record.OperatorId, record.PlayerId, record.Currency, change.RoundId, change.Payout, Announce: change.Announce);
+            await outbox.PublishAsync(credit, change.CreditDelay > TimeSpan.Zero ? new DeliveryOptions { ScheduleDelay = change.CreditDelay } : null)
+                .ConfigureAwait(false);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return null;
+            }
+        }
+    }
+
+    public async Task<bool> RequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, CancellationToken ct)
+    {
+        for (var attempt = 0; attempt < ConcurrencyAttempts; attempt++)
+        {
+            if (await TryRequestCashOutAsync(betId, receivedAt, ct).ConfigureAwait(false) is { } pending)
+            {
+                return pending;
+            }
+        }
+
+        return await db.Bets.AsNoTracking().AnyAsync(b => b.Id == betId && b.Status == Active && b.CashOutRequestedAt != null, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>One attempt of <see cref="RequestCashOutAsync"/>: <see langword="null"/> when the row changed meanwhile (try again).</summary>
+    private async Task<bool?> TryRequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, CancellationToken ct)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            var record = await outbox.DbContext.Bets.SingleOrDefaultAsync(b => b.Id == betId && b.Status == Active, ct).ConfigureAwait(false);
+            if (record is null)
+            {
+                return false;
+            }
+
+            if (record.CashOutRequestedAt is { } recorded && recorded <= receivedAt)
+            {
+                // The first reception stays.
+                return true;
+            }
+
+            if (record.CashOutRequestedAt is null)
+            {
+                // One decision per request: the command is stored with its first record only.
+                await outbox.PublishAsync(new DecideCashOut(betId)).ConfigureAwait(false);
+            }
+
+            record.CashOutRequestedAt = receivedAt;
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return null;
+            }
+        }
+    }
+
+    public Task ClearCashOutRequestAsync(Guid betId, CancellationToken ct) =>
+        db.Bets
+            .Where(b => b.Id == betId && b.Status == Active)
+            .ExecuteUpdateAsync(set => set.SetProperty(b => b.CashOutRequestedAt, (DateTimeOffset?)null), ct);
+
+    public async Task<bool> ConfirmCreditAsync(Guid betId, decimal balance, CancellationToken ct) =>
+        await db.Bets
+            .Where(b => b.Id == betId && b.Status == CashedOut && b.CreditStatus == CreditPending)
+            .ExecuteUpdateAsync(set => set.SetProperty(b => b.CreditStatus, Credited).SetProperty(b => b.CreditBalance, balance), ct)
+            .ConfigureAwait(false) == 1;
+
     private async Task<bool> ActivateAsync(Bet bet, CancellationToken ct) =>
         await db.Bets
             .Where(b => b.Id == bet.Id && b.Status == Queued)
@@ -267,7 +407,11 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         string.Equals(record.Status, Pending, StringComparison.Ordinal),
         record is { Refunded: { } refunded, RefundStatus: { } status }
             ? new BetRefund(refunded, string.Equals(status, "refunded", StringComparison.Ordinal), record.RefundBalance)
-            : null);
+            : null,
+        record is { CashOutMultiplier: { } multiplier, Payout: { } payout, CreditStatus: { } credit }
+            ? new CashOutRecord(multiplier, payout, record.CashOutAuto ?? false, string.Equals(credit, Credited, StringComparison.Ordinal), record.CreditBalance)
+            : null,
+        record.CashOutRequestedAt);
 
     private static Bet ToDomain(BetRecord record) => Bet.Restore(
         record.Id,
@@ -275,7 +419,9 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         new BetRequest(record.ClientBetId, record.Panel, record.Amount, record.AutoCashOut),
         string.Equals(record.Status, Pending, StringComparison.Ordinal) ? ParseStatus(record.AcceptedStatus) : ParseStatus(record.Status),
         record.RoundId is { } round ? new RoundId(round) : null,
-        record.RoundNumber);
+        record.RoundNumber,
+        record.CashOutMultiplier,
+        record.Payout);
 
     private static string StatusName(BetStatus status) => status switch
     {
@@ -283,6 +429,7 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         BetStatus.Active => "active",
         BetStatus.Queued => "queued",
         BetStatus.Cancelled => "cancelled",
+        BetStatus.CashedOut => "cashed_out",
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown bet status."),
     };
 
@@ -292,9 +439,21 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         "active" => BetStatus.Active,
         "queued" => BetStatus.Queued,
         "cancelled" => BetStatus.Cancelled,
+        "cashed_out" => BetStatus.CashedOut,
         _ => throw new InvalidOperationException($"Unknown bet status '{status}' in the schema betting."),
     };
 
     [LoggerMessage(EventId = 2210, Level = LogLevel.Error, Message = "Queued bet {BetId} of room {SalaId} could not be activated; the room's other bets go on")]
     private static partial void ActivationFailed(ILogger logger, Guid betId, string salaId, Exception exception);
+
+    /// <summary>The cash-out <see cref="CashOutAsync"/> stores, with how its credit runs.</summary>
+    private sealed record CashOutChange(
+        Guid BetId,
+        Guid RoundId,
+        decimal Multiplier,
+        decimal Payout,
+        bool Automatic,
+        DateTimeOffset At,
+        TimeSpan CreditDelay,
+        bool Announce);
 }

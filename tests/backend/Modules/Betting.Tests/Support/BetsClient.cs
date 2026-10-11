@@ -11,13 +11,15 @@ namespace Apogeu.Betting.Tests.Support;
 /// <summary>
 /// A player on <c>/hubs/bets</c> through a real SignalR client: invokes <c>PlaceBet</c>, <c>CancelBet</c> and
 /// <c>GetBetLimits</c> with contract JSON (money and multipliers as decimal strings, ADR-0008) and records, in order, every
-/// result and every <c>BetActivated</c> it receives as raw JSON.
+/// result and every <c>BetActivated</c> it receives as raw JSON; for SPEC-0023 also <c>CashOut</c> and the server messages
+/// <c>CashedOut</c>, <c>CashOutRejected</c> and <c>BalanceUpdated</c>, with their receipt time.
 /// </summary>
 internal sealed class BetsClient : IAsyncDisposable
 {
     private readonly Lock _gate = new();
     private readonly List<HubOutcome> _outcomes = [];
     private readonly List<JsonElement> _activated = [];
+    private readonly List<HubEvent> _events = [];
 
     private BetsClient(string player, HubConnection connection)
     {
@@ -30,7 +32,20 @@ internal sealed class BetsClient : IAsyncDisposable
                 _activated.Add(payload.Clone());
             }
         });
+        foreach (var target in ServerTargets)
+        {
+            connection.On<JsonElement>(target, payload =>
+            {
+                lock (_gate)
+                {
+                    _events.Add(new HubEvent(target, payload.Clone(), DateTimeOffset.UtcNow));
+                }
+            });
+        }
     }
+
+    /// <summary>The server messages of SPEC-0023 recorded by <see cref="Events"/>.</summary>
+    public static IReadOnlyList<string> ServerTargets { get; } = ["CashedOut", "CashOutRejected", "BalanceUpdated"];
 
     public string Player { get; }
 
@@ -58,6 +73,25 @@ internal sealed class BetsClient : IAsyncDisposable
         }
     }
 
+    /// <summary>Every <c>CashedOut</c>, <c>CashOutRejected</c> and <c>BalanceUpdated</c> received, in order.</summary>
+    public IReadOnlyList<HubEvent> Events
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _events];
+            }
+        }
+    }
+
+    /// <summary>The server messages <paramref name="target"/> received for the bet <paramref name="betId"/>.</summary>
+    public IReadOnlyList<HubEvent> EventsOf(string target, Guid betId) =>
+        [.. Events.Where(e => string.Equals(e.Target, target, StringComparison.Ordinal)
+            && e.Payload.TryGetProperty("betId", out var id) && id.GetGuid() == betId)];
+
+    public string DescribeEvents() => string.Join(Environment.NewLine, Events);
+
     public static async Task<BetsClient> ConnectAsync(BettingHost host, string player, CancellationToken ct, string mode = "demo")
     {
         ArgumentNullException.ThrowIfNull(host);
@@ -72,6 +106,31 @@ internal sealed class BetsClient : IAsyncDisposable
     public Task<HubOutcome> PlaceAsync(int panel, string amount, CancellationToken ct) => PlaceAsync(Guid.NewGuid(), panel, amount, null, ct);
 
     public Task<HubOutcome> CancelAsync(Guid betId, CancellationToken ct) => InvokeAsync("CancelBet", new { betId }, ct);
+
+    /// <summary><c>CashOut</c> (SPEC-0023 §6): its result is the envelope <c>CashOutResult { cashedOut?, pending? }</c>.</summary>
+    public Task<HubOutcome> CashOutAsync(Guid betId, CancellationToken ct) => InvokeAsync("CashOut", new { betId }, ct);
+
+    /// <summary>Waits for a server message <paramref name="target"/> for <paramref name="betId"/> (any, when <paramref name="match"/> is null).</summary>
+    public async Task<HubEvent> WaitForEventAsync(string target, Guid? betId, TimeSpan timeout, Func<JsonElement, bool>? match = null)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var watch = Stopwatch.StartNew();
+        while (watch.Elapsed < timeout)
+        {
+            var found = Events.FirstOrDefault(e => string.Equals(e.Target, target, StringComparison.Ordinal)
+                && (betId is null || (e.Payload.TryGetProperty("betId", out var id) && id.GetGuid() == betId))
+                && (match is null || match(e.Payload)));
+            if (found is not null)
+            {
+                return found;
+            }
+
+            await Task.Delay(20, ct).ConfigureAwait(false);
+        }
+
+        Assert.Fail($"No {target} for {betId} within {timeout}. Received:{Environment.NewLine}{DescribeEvents()}");
+        return null!;
+    }
 
     public async Task<HubOutcome> LimitsAsync(CancellationToken ct)
     {

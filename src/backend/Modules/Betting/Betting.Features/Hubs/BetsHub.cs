@@ -1,4 +1,5 @@
 using Apogeu.Betting.Features.CancelBet;
+using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Features.PlaceBet;
 using Apogeu.Betting.Features.Sessions;
 using Apogeu.BuildingBlocks.Security;
@@ -14,7 +15,8 @@ namespace Apogeu.Betting.Features.Hubs;
 /// whose message is the code (<c>BettingErrorCodes</c>).
 /// </summary>
 [Authorize(Policy = SecurityPolicies.PlayerSession)]
-public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet, IOperatorLimits limits) : Hub<IBetsClient>
+public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet, CashOutUseCase cashOut, IOperatorLimits limits, TimeProvider time)
+    : Hub<IBetsClient>
 {
     public const string Path = "/hubs/bets";
 
@@ -32,6 +34,17 @@ public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet
     /// <summary>Cancels a placed or queued bet of the session's player with its full amount refunded.</summary>
     public async Task<BetCancelled> CancelBet(CancelBetRequest request) =>
         Answer(await cancelBet.CancelAsync(Session, request, Context.ConnectionAborted).ConfigureAwait(false));
+
+    /// <summary>
+    /// Cashes out an active bet of the session's player (SPEC-0023 §6): the leader of the room decides with the server instant
+    /// of reception. Errors: <c>CASHOUT_TOO_LATE</c>, <c>BET_NOT_ACTIVE</c>, <c>BET_NOT_FOUND</c>.
+    /// </summary>
+    public async Task<CashOutResult> CashOut(CashOutRequest request)
+    {
+        // The instant of the cash-out is the server clock when the request is received (ADR-0005, tolerance 0).
+        var receivedAt = time.GetUtcNow();
+        return Answer(await cashOut.CashOutAsync(Session, request, receivedAt).ConfigureAwait(false));
+    }
 
     /// <summary>The bet limits of the session's operator in its currency (SPEC-0020@1).</summary>
     public Task<BetLimitsResponse> GetBetLimits()

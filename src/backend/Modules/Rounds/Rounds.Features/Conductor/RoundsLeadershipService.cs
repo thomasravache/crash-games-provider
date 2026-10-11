@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Apogeu.Fairness.Contracts;
+using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Domain;
+using Apogeu.Rounds.Features.CashOut;
 using Apogeu.Rounds.Features.Live;
 using Apogeu.Rounds.Features.Salas;
 using Apogeu.Rounds.Infrastructure.Persistence;
@@ -29,6 +31,8 @@ internal sealed class RoundsLeadershipService(
     IRoundBroadcaster broadcaster,
     SalaLiveViews views,
     RoundsMetrics metrics,
+    LeaderArbiters arbiters,
+    IAutoCashOutSink autoCashOuts,
     TimeProvider time,
     ILoggerFactory loggers) : BackgroundService, IRoundsLeadership
 {
@@ -214,27 +218,19 @@ internal sealed class RoundsLeadershipService(
             await using (scope.ConfigureAwait(false))
             using (snapshots)
             {
-                var services = scope.ServiceProvider;
-                var conductor = new SalaConductor(
-                    sala,
-                    services.GetRequiredService<IFairnessService>(),
-                    services.GetRequiredService<IRoundStore>(),
-                    fenced,
-                    metrics,
-                    time,
-                    loggers.CreateLogger<SalaConductor>(),
-                    services.GetRequiredService<IRoundChainStore>(),
-                    lastSeen,
-                    snapshots,
-                    services.GetRequiredService<IRoundOutbox>());
+                var conductor = CreateConductor(sala, scope.ServiceProvider, fenced, lastSeen, snapshots);
+
+                // The cash-outs of the room are decided here while this conductor runs (SPEC-0023).
+                using var arbiter = arbiters.Lead(sala.Id, new LeaderCashOutArbiter(conductor, autoCashOuts, FindRoundAsync));
                 try
                 {
                     while (true)
                     {
                         lease.Ensure();
+                        var woken = conductor.Woken;
                         var next = await conductor.StepAsync(term).ConfigureAwait(false);
                         var wait = next - time.GetUtcNow();
-                        if (wait > TimeSpan.Zero && !await DelayAsync(wait, term).ConfigureAwait(false))
+                        if (wait > TimeSpan.Zero && !await DelayAsync(wait, woken, term).ConfigureAwait(false))
                         {
                             return;
                         }
@@ -264,6 +260,35 @@ internal sealed class RoundsLeadershipService(
         }
     }
 
+    /// <summary>A persisted round read in a scope of its own: the cash-out decisions run on any thread, beside the conductor.</summary>
+    private async Task<Round?> FindRoundAsync(RoundId roundId, CancellationToken ct)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            return await scope.ServiceProvider.GetRequiredService<IRoundStore>().FindAsync(roundId, ct).ConfigureAwait(false);
+        }
+    }
+
+    private SalaConductor CreateConductor(
+        SalaConfig sala,
+        IServiceProvider services,
+        IRoundBroadcaster fenced,
+        DateTimeOffset? lastSeen,
+        ISalaSnapshotPublisher snapshots) =>
+        new(
+            sala,
+            services.GetRequiredService<IFairnessService>(),
+            services.GetRequiredService<IRoundStore>(),
+            fenced,
+            metrics,
+            time,
+            loggers.CreateLogger<SalaConductor>(),
+            services.GetRequiredService<IRoundChainStore>(),
+            lastSeen,
+            snapshots,
+            services.GetRequiredService<IRoundOutbox>());
+
     private async Task ReleaseAsync(string salaId, IDatabase db)
     {
         try
@@ -287,6 +312,19 @@ internal sealed class RoundsLeadershipService(
         return value.HasValue && long.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var milliseconds)
             ? DateTimeOffset.FromUnixTimeMilliseconds(milliseconds)
             : null;
+    }
+
+    /// <summary>
+    /// Waits on the server clock until <paramref name="delay"/> passes or <paramref name="woken"/> completes (an automatic
+    /// cash-out was scheduled earlier than the next action); <see langword="false"/> when cancelled.
+    /// </summary>
+    private async Task<bool> DelayAsync(TimeSpan delay, Task woken, CancellationToken ct)
+    {
+        using var waiting = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var delaying = Task.Delay(delay, time, waiting.Token);
+        await Task.WhenAny(delaying, woken).ConfigureAwait(false);
+        await waiting.CancelAsync().ConfigureAwait(false);
+        return !ct.IsCancellationRequested;
     }
 
     /// <summary>Waits on the server clock; <see langword="false"/> when cancelled.</summary>

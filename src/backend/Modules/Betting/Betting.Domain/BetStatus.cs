@@ -2,7 +2,7 @@ namespace Apogeu.Betting.Domain;
 
 /// <summary>
 /// Life cycle of a bet (SPEC-0022 §6): <c>Placed → Active</c> (the flight started); <c>Queued → Placed</c> (the next round
-/// opened its bets); <c>Placed | Queued → Cancelled</c>.
+/// opened its bets); <c>Placed | Queued → Cancelled</c>; <c>Active → CashedOut</c> (SPEC-0023).
 /// </summary>
 public enum BetStatus
 {
@@ -17,4 +17,7 @@ public enum BetStatus
 
     /// <summary>Terminal: cancelled with the full amount refunded.</summary>
     Cancelled,
+
+    /// <summary>Terminal: cashed out during the flight, with its multiplier and payout (SPEC-0023).</summary>
+    CashedOut,
 }

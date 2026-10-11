@@ -51,6 +51,18 @@ public sealed class Bet
     /// <summary>The number of the round of the bet; <see langword="null"/> while it is queued.</summary>
     public long? RoundNumber { get; private set; }
 
+    /// <summary>The multiplier of the cash-out; <see langword="null"/> unless <see cref="BetStatus.CashedOut"/> (SPEC-0023).</summary>
+    public decimal? CashOutMultiplier { get; private set; }
+
+    /// <summary>The payout of the cash-out; <see langword="null"/> unless <see cref="BetStatus.CashedOut"/> (SPEC-0023).</summary>
+    public decimal? Payout { get; private set; }
+
+    /// <summary>
+    /// The payout of a cash-out (SPEC-0023 §6): <c>min(floor(amount × multiplier × 100)/100, maxWin)</c>, truncated in cents.
+    /// </summary>
+    public static decimal PayoutOf(decimal amount, decimal multiplier, decimal maxWin) =>
+        Math.Min(Math.Floor(amount * multiplier * 100m) / 100m, maxWin);
+
     /// <summary>
     /// Validates a new bet of <paramref name="owner"/> against <paramref name="rules"/> and the player's non-final bets
     /// (<paramref name="openBets"/>), and places it in <paramref name="current"/> when its bets are open at
@@ -102,6 +114,25 @@ public sealed class Bet
     }
 
     /// <summary>
+    /// Rebuilds a bet already accepted (persistence), with its cash-out when it is <see cref="BetStatus.CashedOut"/>
+    /// (<paramref name="cashOutMultiplier"/> and <paramref name="payout"/>, both <see langword="null"/> otherwise).
+    /// </summary>
+    public static Bet Restore(
+        Guid id,
+        BetOwner owner,
+        BetRequest request,
+        BetStatus status,
+        RoundId? roundId,
+        long? roundNumber,
+        decimal? cashOutMultiplier,
+        decimal? payout) =>
+        new(id, owner ?? throw new ArgumentNullException(nameof(owner)), request ?? throw new ArgumentNullException(nameof(request)), status, roundId, roundNumber)
+        {
+            CashOutMultiplier = cashOutMultiplier,
+            Payout = payout,
+        };
+
+    /// <summary>
     /// The room opened the bets of <paramref name="opened"/>: a queued bet becomes placed in it (the player gets
     /// <c>BetActivated</c>). Returns whether the bet changed.
     /// </summary>
@@ -126,6 +157,28 @@ public sealed class Bet
         {
             Status = BetStatus.Active;
         }
+    }
+
+    /// <summary>
+    /// Cashes out an active bet at <paramref name="multiplier"/> (decided by the leader, SPEC-0023): it becomes
+    /// <see cref="BetStatus.CashedOut"/> with <see cref="PayoutOf"/> limited by <paramref name="maxWin"/>. A bet already cashed
+    /// out answers its original <see cref="BetCashOutAccepted"/>; a placed, queued or cancelled one <c>BET_NOT_ACTIVE</c>.
+    /// </summary>
+    public BetCashOut CashOut(decimal multiplier, decimal maxWin)
+    {
+        switch (Status)
+        {
+            case BetStatus.CashedOut:
+                // Idempotent: the cash-out the bet already has.
+                return new BetCashOutAccepted(CashOutMultiplier!.Value, Payout!.Value);
+            case not BetStatus.Active:
+                return new BetCashOutRejected(BettingErrorCodes.BetNotActive);
+        }
+
+        Status = BetStatus.CashedOut;
+        CashOutMultiplier = multiplier;
+        Payout = PayoutOf(Amount, multiplier, maxWin);
+        return new BetCashOutAccepted(multiplier, Payout.Value);
     }
 
     /// <summary>
