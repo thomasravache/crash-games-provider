@@ -97,6 +97,7 @@ Regras
 | Evento repetido | RoundCrashed/RoundAnnulled processado de novo | nada muda | IT-02 |
 | Reinício e pendências | estorno falhou e o processo reiniciou | estorno reenviado até confirmar, uma vez só | IT-03 |
 | Volume | 5.000 apostas | liquidadas em ≤ 2 s | IT-04 |
+| Contrato dos eventos | BetSettled e BetRefunded reais | conferem com os tipos gerados do hub | CT-01 |
 | Cash-out pendente no crash | pedido de cash-out gravado (CashOutPending) quando a rodada crasha | aposta não vira lost antes da decisão; decidida pelo horário gravado (cashed_out ou lost) e o resumo só fecha depois | IT-05 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
@@ -116,7 +117,7 @@ Regras
 - **IT-05** — Dada uma aposta active com pedido de cash-out pendente (líder impedido de responder) recebido antes do crash, quando a rodada crasha e o líder volta, então a aposta vira cashed_out com o multiplicador do horário gravado (não lost), o crédito é feito uma vez e o resumo da rodada inclui o pagamento; e um pedido gravado depois do crash termina lost.
 
 ### 7.4 Testes de Contrato
-- N/A — eventos ao jogador seguem o contrato do hub gerado e são validados no CT-01 da SPEC-0026; `IRoundSettlementQuery` não tem consumidor neste épico.
+- **CT-01** — Dadas as mensagens reais BetSettled e BetRefunded (refunded e pending) de IT-01 e IT-03, quando validadas contra os tipos gerados do hub /hubs/bets (SPEC-0006), então conferem (contrato consumido pela SPEC-0026). `IRoundSettlementQuery` não tem consumidor neste épico.
 
 ### 7.5 Testes E2E
 - N/A — a jornada do jogador (apostar, retirar, perder) é provada pelos E2E da SPEC-0026, que consome este contrato (user_facing: false).
@@ -157,7 +158,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -173,7 +174,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | FAIL | verify G1: FAIL — testes do plano sem tag no código versionado: SPEC-0024:CT-01 — b48ff19 | 2026-10-11 |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:08:45.97]     Dada uma carteira que falha no estorno e um reinício do proces) — b48ff19 | 2026-10-11 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
