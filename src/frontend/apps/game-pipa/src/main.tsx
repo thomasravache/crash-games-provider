@@ -3,6 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
+import { createSoundController } from "./audio/sound-controller";
 import { apiBaseUrl } from "./config";
 import "./styles.css";
 import { installTestHook } from "./test-hook";
@@ -27,6 +28,8 @@ const launchToken = takeLaunchToken(window.location, window.history);
 const client = createGameClient({ apiBaseUrl: apiBaseUrl() });
 installTestHook(client.store);
 runFrameTicker(client.store);
+// The sound (SPEC-0018) loads on demand and stays silent until the player's first gesture.
+const sound = createSoundController(client.store);
 const session =
   launchToken === null
     ? Promise.reject(new SessionError("LAUNCH_TOKEN_INVALID", "No launch token in the URL."))
@@ -36,6 +39,6 @@ session.catch(() => undefined);
 
 createRoot(container).render(
   <StrictMode>
-    <App client={client} session={session} />
+    <App client={client} session={session} sound={sound} />
   </StrictMode>,
 );

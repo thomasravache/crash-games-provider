@@ -34,8 +34,36 @@ module.exports = {
         "they only read the state exposed by game-sdk. Checked by reachability, so the transport is also rejected " +
         "when it arrives through the game-sdk entry (a re-export) or any other module in between.",
       severity: "error",
-      from: { path: ["^packages/scene-kit/", "^apps/[^/]+/src/scene/"] },
+      from: { path: ["^packages/scene-kit/", "^apps/[^/]+/src/(scene|audio)/"] },
       to: { path: "^packages/game-sdk/src/transport/", reachable: true },
+    },
+    {
+      name: "audio-only-through-scene-kit",
+      comment:
+        "ADR-0024: only scene-kit touches the Web Audio API (AudioContext and its nodes, packages/scene-kit/src/" +
+        "audio); everyone else plays sound through the GameAudio of the scene-kit entry, never through its internals. " +
+        "dependency-cruiser sees imports, not globals: this rule closes the import path to the audio internals.",
+      severity: "error",
+      from: { path: "^(apps|packages)/", pathNot: "^packages/scene-kit/" },
+      to: { path: "^packages/scene-kit/src/audio/" },
+    },
+    {
+      name: "no-audio-library",
+      comment:
+        "ADR-0024: native Web Audio API with our own synthesis, no audio library (Howler.js, Tone.js and the like).",
+      severity: "error",
+      from: { path: "^(apps|packages)/" },
+      to: {
+        dependencyTypes: [
+          "npm",
+          "npm-dev",
+          "npm-optional",
+          "npm-peer",
+          "npm-no-pkg",
+          "npm-unknown",
+        ],
+        path: "node_modules/(howler|tone|standardized-audio-context|pizzicato|wad)/",
+      },
     },
     {
       name: "no-app-imports-another-app",

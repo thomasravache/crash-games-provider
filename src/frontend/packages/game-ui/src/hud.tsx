@@ -8,6 +8,7 @@ import type { JSX, ReactNode } from "react";
 import { formatMultiplier, secondsLeft } from "./format";
 import { HistoryStrip } from "./history-strip";
 import { hudAnnouncement, hudTestIds, hudText } from "./hud-text";
+import { SoundToggle, type SoundToggleProps } from "./sound/sound-toggle";
 import { useNow } from "./use-round-state";
 
 export interface HudProps {
@@ -19,6 +20,8 @@ export interface HudProps {
   readonly onOpenFairness: () => void;
   /** The game scene (decorative canvas), drawn behind the multiplier. */
   readonly scene?: ReactNode;
+  /** Sound control of the header (SPEC-0018); absent until the game's sound is ready. */
+  readonly sound?: SoundToggleProps;
   /** Windows opened from the HUD (for example "Comprovadamente Justo"), kept inside the main landmark. */
   readonly children?: ReactNode;
 }
@@ -99,6 +102,7 @@ export function Hud({
   demoBalance,
   onOpenFairness,
   scene,
+  sound,
   children,
 }: HudProps): JSX.Element {
   return (
@@ -116,12 +120,15 @@ export function Hud({
             {hudText.reconnecting}
           </span>
         ) : null}
-        <div className="ml-auto text-right">
-          <p className="max-w-40 truncate text-xs text-hud-muted">{nickname}</p>
-          <p className="text-sm font-semibold tabular-nums">
-            <span className="sr-only">{`${hudText.balance}: `}</span>
-            <span data-testid={hudTestIds.balance}>{demoBalance}</span>
-          </p>
+        <div className="ml-auto flex items-center gap-3">
+          {sound === undefined ? null : <SoundToggle {...sound} />}
+          <div className="text-right">
+            <p className="max-w-40 truncate text-xs text-hud-muted">{nickname}</p>
+            <p className="text-sm font-semibold tabular-nums">
+              <span className="sr-only">{`${hudText.balance}: `}</span>
+              <span data-testid={hudTestIds.balance}>{demoBalance}</span>
+            </p>
+          </div>
         </div>
       </header>
 
