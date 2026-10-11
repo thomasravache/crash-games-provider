@@ -218,7 +218,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:03:33.52]     Dado um débito que a carteira só aplica depois de a varredura ) — bfe7448 | 2026-10-10 |
 | G2 Green | PASS | build exit 0 (✓ built in 172ms); test exit 0 (Duration  1.25s (tests 67%, transform 21%, import 10%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T22:50:24: Report generation took 0,5 seconds) — e6d909c | 2026-10-10 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  765ms (tests 97%, transform 2%, import 1%)) — e6d909c | 2026-10-10 |
-| G4 Review | FAIL | CHANGES_REQUESTED (a3fdf33): M1 débito tardio após o estorno da varredura se perde (sem timeout por tentativa; Voided após WalletOk sem novo estorno nem alerta); M2 IRoundFeed.CurrentAsync com corpo padrão faz os decoradores de teste lerem a fase local | 2026-10-10 |
+| G4 Review | FAIL | CHANGES_REQUESTED (e6d909c): M1-bis SettleLateDebitAsync casa a aposta errada quando o clientBetId é reutilizado e deixa o débito tardio sem estorno; verify: fixtures de arquitetura fora do touches da cópia do worktree | 2026-10-10 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
