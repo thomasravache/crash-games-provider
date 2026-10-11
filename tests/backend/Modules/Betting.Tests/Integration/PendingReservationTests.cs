@@ -10,7 +10,8 @@ namespace Apogeu.Betting.Tests.Integration;
 public sealed class PendingReservationTests(BettingContainers containers)
 {
     private static readonly TimeSpan SweepBudget = TimeSpan.FromSeconds(30);
-    private static readonly string[] AcceptedStatuses = ["placed", "active", "queued"];
+    // Every status a persisted (accepted) bet can reach, including those of settlement (SPEC-0024).
+    private static readonly string[] AcceptedStatuses = ["placed", "active", "queued", "cashed_out", "lost", "refunded"];
 
     [Fact(DisplayName = "Dado um débito confirmado pela carteira e a instância interrompida antes do commit da aposta, quando a varredura de reservas pendentes roda, então o débito é estornado uma única vez em ≤ 30 s e a aposta não fica aceita")]
     [Trait("Spec", "SPEC-0022:IT-08")]
