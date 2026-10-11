@@ -58,6 +58,12 @@ public sealed class Bet
     public decimal? Payout { get; private set; }
 
     /// <summary>
+    /// What the refund of an annulled round returned (SPEC-0024): the amount, or 0,00 when the wallet had no debit to reverse;
+    /// <see langword="null"/> unless <see cref="BetStatus.Refunded"/>.
+    /// </summary>
+    public decimal? Refunded { get; private set; }
+
+    /// <summary>
     /// The payout of a cash-out (SPEC-0023 §6): <c>min(floor(amount × multiplier × 100)/100, maxWin)</c>, truncated in cents.
     /// </summary>
     public static decimal PayoutOf(decimal amount, decimal multiplier, decimal maxWin) =>
@@ -126,10 +132,27 @@ public sealed class Bet
         long? roundNumber,
         decimal? cashOutMultiplier,
         decimal? payout) =>
+        Restore(id, owner, request, status, roundId, roundNumber, cashOutMultiplier, payout, refunded: null);
+
+    /// <summary>
+    /// Rebuilds a bet already accepted (persistence), with its cash-out and, when <see cref="BetStatus.Refunded"/>, what its
+    /// refund returned (<paramref name="refunded"/>; the amount when not given).
+    /// </summary>
+    public static Bet Restore(
+        Guid id,
+        BetOwner owner,
+        BetRequest request,
+        BetStatus status,
+        RoundId? roundId,
+        long? roundNumber,
+        decimal? cashOutMultiplier,
+        decimal? payout,
+        decimal? refunded) =>
         new(id, owner ?? throw new ArgumentNullException(nameof(owner)), request ?? throw new ArgumentNullException(nameof(request)), status, roundId, roundNumber)
         {
             CashOutMultiplier = cashOutMultiplier,
             Payout = payout,
+            Refunded = status == BetStatus.Refunded ? refunded ?? request.Amount : null,
         };
 
     /// <summary>
@@ -208,6 +231,7 @@ public sealed class Bet
         }
 
         Status = BetStatus.Refunded;
+        Refunded = Amount;
         return new BetClosedRefunded(Amount);
     }
 

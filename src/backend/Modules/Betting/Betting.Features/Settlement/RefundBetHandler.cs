@@ -48,13 +48,13 @@ public static class RefundBetHandler
         switch (await RollbackAsync(wallet, command, logger, ct).ConfigureAwait(false))
         {
             case WalletOk ok:
-                await ConfirmAsync(store, metrics, notice, ok.BalanceAfter.Amount.Value, ct).ConfigureAwait(false);
+                await ConfirmAsync(store, metrics, notice, command.Amount, ok.BalanceAfter.Amount.Value, ct).ConfigureAwait(false);
                 return;
             case WalletTransactionNotFound:
-                // Reconciliation: the wallet has no debit of this bet to reverse.
+                // Reconciliation (SPEC-0022 rule): the wallet has no debit of this bet to reverse, so nothing was refunded.
                 BettingLog.ReconciliationNoDebit(logger, command.BetId);
                 var balance = await wallet.GetBalanceAsync(Player(command), new Currency(command.Currency), ct).ConfigureAwait(false);
-                await ConfirmAsync(store, metrics, notice, balance.Amount.Value, ct).ConfigureAwait(false);
+                await ConfirmAsync(store, metrics, notice, 0.00m, balance.Amount.Value, ct).ConfigureAwait(false);
                 return;
             case WalletUnavailable { Retryable: false }:
                 BettingLog.RoundRefundRefused(logger, command.BetId);
@@ -94,15 +94,15 @@ public static class RefundBetHandler
         }
     }
 
-    private static async Task ConfirmAsync(IBetStore store, BettingMetrics metrics, Notice notice, decimal balance, CancellationToken ct)
+    private static async Task ConfirmAsync(IBetStore store, BettingMetrics metrics, Notice notice, decimal refunded, decimal balance, CancellationToken ct)
     {
-        var confirmed = await store.ConfirmRefundAsync(notice.Command.BetId, balance, ct).ConfigureAwait(false);
+        var confirmed = await store.ConfirmRefundAsync(notice.Command.BetId, refunded, balance, ct).ConfigureAwait(false);
         if (confirmed)
         {
             metrics.RefundPending(-1);
         }
 
-        await notice.ConfirmedAsync(balance, confirmed).ConfigureAwait(false);
+        await notice.ConfirmedAsync(refunded, balance, confirmed).ConfigureAwait(false);
     }
 
     /// <summary>What the player is told about the refund of <see cref="Command"/>.</summary>
@@ -110,14 +110,14 @@ public static class RefundBetHandler
     {
         /// <summary>Unconfirmed: <c>BetRefunded</c> pending without a balance, on the first attempt only.</summary>
         public Task PendingAsync() =>
-            Command.Announce ? SendAsync(() => Notifier.BetRefundedAsync(Found.Bet.Owner, Refunded(balance: null))) : Task.CompletedTask;
+            Command.Announce ? SendAsync(() => Notifier.BetRefundedAsync(Found.Bet.Owner, Refunded(Command.Amount, balance: null))) : Task.CompletedTask;
 
         /// <summary>Confirmed: <c>BetRefunded</c> with the balance on the first attempt, <c>BalanceUpdated</c> on a later one.</summary>
-        public Task ConfirmedAsync(decimal balance, bool recorded)
+        public Task ConfirmedAsync(decimal refunded, decimal balance, bool recorded)
         {
             if (Command.Announce)
             {
-                return SendAsync(() => Notifier.BetRefundedAsync(Found.Bet.Owner, Refunded(balance)));
+                return SendAsync(() => Notifier.BetRefundedAsync(Found.Bet.Owner, Refunded(refunded, balance)));
             }
 
             return recorded
@@ -125,11 +125,11 @@ public static class RefundBetHandler
                 : Task.CompletedTask;
         }
 
-        private BetRefunded Refunded(decimal? balance) =>
+        private BetRefunded Refunded(decimal refunded, decimal? balance) =>
             new(
                 Command.BetId,
                 Command.RoundId,
-                new Money(Command.Amount),
+                new Money(refunded),
                 balance is { } after ? new Money(after) : null,
                 balance is null ? RefundStatus.Pending : RefundStatus.Refunded);
 

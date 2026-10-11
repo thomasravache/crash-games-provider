@@ -24,7 +24,8 @@ public static class RoundSettlementCalculator
     {
         var wagered = bets.Sum(bet => bet.Amount);
         var paid = bets.Where(bet => bet.Status == BetStatus.CashedOut).Sum(bet => bet.Payout ?? 0m);
-        var refunded = bets.Where(bet => bet.Status == BetStatus.Refunded).Sum(bet => bet.Amount);
+        // What the refunds returned: 0,00 for one the wallet answered TransactionNotFound (SPEC-0024 review G4).
+        var refunded = bets.Where(bet => bet.Status == BetStatus.Refunded).Sum(bet => bet.Refunded ?? bet.Amount);
         return new RoundSettlementSummary(operatorId, currency, bets.Count, wagered, paid, refunded, wagered - paid - refunded);
     }
 }

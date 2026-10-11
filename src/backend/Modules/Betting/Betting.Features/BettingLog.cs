@@ -79,4 +79,10 @@ internal static partial class BettingLog
 
     [LoggerMessage(EventId = 2234, Level = LogLevel.Warning, Message = "A settlement message of bet {BetId} could not be sent to the player")]
     public static partial void SettlementNotSent(ILogger logger, Guid betId, Exception exception);
+
+    [LoggerMessage(EventId = 2235, Level = LogLevel.Warning, Message = "Reconciliation: bet {BetId} was still placed when round {RoundId} crashed (its activation was lost); it is refunded in full")]
+    public static partial void PlacedAtCrash(ILogger logger, Guid betId, Guid roundId);
+
+    [LoggerMessage(EventId = 2236, Level = LogLevel.Critical, Message = "Reconciliation: the cash-out of bet {BetId} was accepted by the leader but the bet is lost and its round's summary is closed ({Reason})")]
+    public static partial void LateCashOutUnreconciled(ILogger logger, Guid betId, string reason);
 }

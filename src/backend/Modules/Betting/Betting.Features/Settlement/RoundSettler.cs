@@ -22,15 +22,45 @@ public sealed class RoundSettler(IBetStore store, BetsNotifier notifier, Betting
     public const string Annulled = "annulled";
 
     /// <summary>
+    /// How long after the end of a crashed round its summary stays open (SPEC-0024 review G4, M1): the decision deadline of a
+    /// cash-out received before the crash plus the relay to the leader, so an accepted one can still turn a lost bet into
+    /// cashed out.
+    /// </summary>
+    public static readonly TimeSpan SummaryGrace = CashOut.CashOutUseCase.DecisionDeadline + TimeSpan.FromMilliseconds(300);
+
+    private static readonly TimeSpan GraceMargin = TimeSpan.FromMilliseconds(50);
+
+    /// <summary>
     /// The round crashed (after the reconciliation of its automatic cash-outs, SPEC-0023): its active bets without a pending
     /// request become lost, its summary closes when nothing is left open, and the players are told.
     /// </summary>
     public async Task SettleCrashAsync(RoundId roundId, CancellationToken ct)
     {
         var started = time.GetTimestamp();
-        await store.MarkRoundEndedAsync(roundId, Crashed, time.GetUtcNow(), ct).ConfigureAwait(false);
+        var endedAt = time.GetUtcNow();
+        await store.MarkRoundEndedAsync(roundId, Crashed, endedAt, ct).ConfigureAwait(false);
         var lost = await SettleLostAsync(roundId, ct).ConfigureAwait(false);
+
+        // A bet still placed (its activation was lost) never flew: refunded in full, with a reconciliation alert (IT-07).
+        var placed = await store.RefundRoundAsync(roundId, placedOnly: true, ct).ConfigureAwait(false);
+        foreach (var bet in placed)
+        {
+            BettingLog.PlacedAtCrash(logger, bet.Id, roundId.Value);
+        }
+
+        metrics.BetsSettled("refunded", placed.Count);
+        metrics.RefundPending(placed.Count);
         metrics.SettledIn(time.GetElapsedTime(started));
+
+        // The summary closes once a cash-out received before the crash can no longer revive a lost bet.
+        // (A margin over the grace: the delay's timer and the wall clock the grace is checked against may differ slightly.)
+        var wait = endedAt + SummaryGrace + GraceMargin - time.GetUtcNow();
+        if (wait > TimeSpan.Zero)
+        {
+            await Task.Delay(wait, time, ct).ConfigureAwait(false);
+        }
+
+        await CloseAsync(roundId, ct).ConfigureAwait(false);
         await NotifyLostAsync(roundId, lost).ConfigureAwait(false);
     }
 
@@ -39,11 +69,13 @@ public sealed class RoundSettler(IBetStore store, BetsNotifier notifier, Betting
     {
         var started = time.GetTimestamp();
         await store.MarkRoundEndedAsync(roundId, Annulled, time.GetUtcNow(), ct).ConfigureAwait(false);
-        var refunded = await store.RefundRoundAsync(roundId, ct).ConfigureAwait(false);
+        var refunded = await store.RefundRoundAsync(roundId, placedOnly: false, ct).ConfigureAwait(false);
         metrics.BetsSettled("refunded", refunded.Count);
         metrics.RefundPending(refunded.Count);
         BettingLog.RoundSettled(logger, roundId.Value, refunded.Count, "refunded");
-        await CloseAsync(roundId, ct).ConfigureAwait(false);
+
+        // No cash-out of an annulled round is accepted (TooLate on both paths): its summary needs no grace.
+        await CloseAsync(roundId, TimeSpan.Zero, ct).ConfigureAwait(false);
         metrics.SettledIn(time.GetElapsedTime(started));
     }
 
@@ -55,14 +87,18 @@ public sealed class RoundSettler(IBetStore store, BetsNotifier notifier, Betting
     {
         if (string.Equals(await store.RoundOutcomeAsync(roundId, ct).ConfigureAwait(false), Crashed, StringComparison.Ordinal))
         {
-            await NotifyLostAsync(roundId, await SettleLostAsync(roundId, ct).ConfigureAwait(false)).ConfigureAwait(false);
+            var lost = await SettleLostAsync(roundId, ct).ConfigureAwait(false);
+            await CloseAsync(roundId, ct).ConfigureAwait(false);
+            await NotifyLostAsync(roundId, lost).ConfigureAwait(false);
         }
     }
 
-    /// <summary>Closes the summary of the round when it ended and no bet of it is open (idempotent).</summary>
-    public async Task CloseAsync(RoundId roundId, CancellationToken ct)
+    /// <summary>Closes the summary of the round when it ended (past its grace) and no bet of it is open (idempotent).</summary>
+    public Task CloseAsync(RoundId roundId, CancellationToken ct) => CloseAsync(roundId, SummaryGrace, ct);
+
+    private async Task CloseAsync(RoundId roundId, TimeSpan grace, CancellationToken ct)
     {
-        if (await store.CloseSettlementAsync(roundId, time.GetUtcNow(), ct).ConfigureAwait(false))
+        if (await store.CloseSettlementAsync(roundId, time.GetUtcNow(), grace, ct).ConfigureAwait(false))
         {
             BettingLog.SummaryClosed(logger, roundId.Value);
         }
@@ -73,7 +109,6 @@ public sealed class RoundSettler(IBetStore store, BetsNotifier notifier, Betting
         var lost = await store.SettleLostAsync(roundId, ct).ConfigureAwait(false);
         metrics.BetsSettled("lost", lost.Count);
         BettingLog.RoundSettled(logger, roundId.Value, lost.Count, "lost");
-        await CloseAsync(roundId, ct).ConfigureAwait(false);
         return lost;
     }
 
