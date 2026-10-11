@@ -1,4 +1,5 @@
 using Apogeu.Rounds.Domain;
+using Apogeu.ServiceDefaults.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Wolverine.EntityFrameworkCore;
 
@@ -8,7 +9,7 @@ namespace Apogeu.Rounds.Infrastructure.Persistence;
 /// <see cref="IRoundOutbox"/> on Wolverine's EF Core outbox of the <see cref="RoundsDbContext"/>. Each save runs in a scope
 /// of its own: a Wolverine message context flushes its outgoing messages once, while a conductor lives for many rounds.
 /// </summary>
-internal sealed class RoundOutbox(IServiceScopeFactory scopes, MessagingReadiness messaging) : IRoundOutbox
+internal sealed class RoundOutbox(IServiceScopeFactory scopes, IMessagingReadiness messaging) : IRoundOutbox
 {
     public async Task SaveAsync(Round round, object integrationEvent, CancellationToken ct)
     {

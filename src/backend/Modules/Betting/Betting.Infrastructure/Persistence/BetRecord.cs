@@ -34,8 +34,17 @@ internal sealed class BetRecord
 
     public long? AcceptedRoundNumber { get; set; }
 
-    /// <summary>Balance right after the debit, as the wallet answered it.</summary>
+    /// <summary>Balance right after the debit, as the wallet answered it (0 while the reservation is pending).</summary>
     public decimal BalanceAfter { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>Amount the cancellation refunded (contract v3); <see langword="null"/> until cancelled.</summary>
+    public decimal? Refunded { get; set; }
+
+    /// <summary><c>refunded</c> or <c>pending</c>, as the cancellation answered.</summary>
+    public string? RefundStatus { get; set; }
+
+    /// <summary>Balance after the refund, when the cancellation confirmed it.</summary>
+    public decimal? RefundBalance { get; set; }
 }

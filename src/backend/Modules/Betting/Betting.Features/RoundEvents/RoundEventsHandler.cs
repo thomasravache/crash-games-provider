@@ -1,3 +1,4 @@
+using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Hubs;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.Rounds.Contracts;
@@ -27,8 +28,9 @@ public static class RoundEventsHandler
         ArgumentNullException.ThrowIfNull(notifier);
         ArgumentNullException.ThrowIfNull(metrics);
 
+        // Applied before the activation (emenda 3), so a bet racing the opening already sees the round open.
         feed.Apply(opened);
-        var window = feed.Current(opened.SalaId)!;
+        var window = new RoundWindow(opened.RoundId, opened.RoundNumber, opened.BettingEndsAt, RoundPhase.Betting);
         var activated = await store.ActivateQueuedAsync(opened.SalaId, window, betId: null, ct).ConfigureAwait(false);
         if (activated.Count == 0)
         {
@@ -39,7 +41,16 @@ public static class RoundEventsHandler
         metrics.BetReached("placed", activated.Count);
         foreach (var bet in activated)
         {
-            await notifier.BetActivatedAsync(bet).ConfigureAwait(false);
+            try
+            {
+                await notifier.BetActivatedAsync(bet).ConfigureAwait(false);
+            }
+#pragma warning disable CA1031 // One notification that fails (the backplane) does not stop the others; the bet is placed anyway.
+            catch (Exception exception)
+#pragma warning restore CA1031
+            {
+                BettingLog.ActivationNotSent(logger, bet.Id, exception);
+            }
         }
     }
 

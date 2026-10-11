@@ -88,6 +88,21 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(128)")
                         .HasColumnName("player_id");
 
+                    b.Property<decimal?>("RefundBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("refund_balance");
+
+                    b.Property<string>("RefundStatus")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("refund_status");
+
+                    b.Property<decimal?>("Refunded")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("refunded");
+
                     b.Property<Guid?>("RoundId")
                         .HasColumnType("uuid")
                         .HasColumnName("round_id");
@@ -103,6 +118,7 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                         .HasColumnName("sala_id");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
@@ -110,6 +126,10 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_bets");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_bets_pending_created_at")
+                        .HasFilter("status = 'pending'");
 
                     b.HasIndex("RoundId", "Status")
                         .HasDatabaseName("ix_bets_round_id_status");
@@ -139,9 +159,11 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_bets_panel", "panel IN (1, 2)");
 
-                            t.HasCheckConstraint("ck_bets_round", "(status = 'queued') = (round_id IS NULL) OR status = 'cancelled'");
+                            t.HasCheckConstraint("ck_bets_refund_status", "refund_status IS NULL OR refund_status IN ('refunded', 'pending')");
 
-                            t.HasCheckConstraint("ck_bets_status", "status IN ('placed', 'active', 'queued', 'cancelled')");
+                            t.HasCheckConstraint("ck_bets_round", "(status = 'queued') = (round_id IS NULL) OR status IN ('cancelled', 'pending')");
+
+                            t.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled')");
                         });
                 });
 #pragma warning restore 612, 618

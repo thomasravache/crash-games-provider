@@ -1232,6 +1232,7 @@
           "Apogeu.BuildingBlocks": "[1.0.0, )",
           "Apogeu.Operators.Contracts": "[1.0.0, )",
           "Apogeu.Rounds.Contracts": "[1.0.0, )",
+          "Apogeu.ServiceDefaults": "[1.0.0, )",
           "Apogeu.Wallet.Contracts": "[1.0.0, )",
           "OpenTelemetry.Extensions.Hosting": "[1.19.1, )",
           "WolverineFx": "[6.48.1, )"
@@ -1243,7 +1244,8 @@
           "Apogeu.Betting.Contracts": "[1.0.0, )",
           "Apogeu.Betting.Domain": "[1.0.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.12, )",
-          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )"
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
+          "WolverineFx.EntityFrameworkCore": "[6.48.1, )"
         }
       },
       "Apogeu.BuildingBlocks": {
@@ -1347,6 +1349,7 @@
         "dependencies": {
           "Apogeu.Rounds.Contracts": "[1.0.0, )",
           "Apogeu.Rounds.Domain": "[1.0.0, )",
+          "Apogeu.ServiceDefaults": "[1.0.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.12, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "WolverineFx.EntityFrameworkCore": "[6.48.1, )"

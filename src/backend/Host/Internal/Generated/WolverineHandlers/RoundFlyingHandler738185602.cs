@@ -25,10 +25,7 @@ namespace Internal.Generated.WolverineHandlers
         {
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wolverine.Runtime.ScopedMessageContextHolder>(serviceScope.ServiceProvider).Context = context;
-            
-            /*
-            * Concrete type Apogeu.Betting.Infrastructure.Persistence.BetStore is not public, so requires service location
-            */
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var betStore = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Apogeu.Betting.Infrastructure.Persistence.IBetStore>(serviceScope.ServiceProvider);
             // The actual message body
             var roundFlying = (Apogeu.Rounds.Contracts.RoundFlying)context.Envelope.Message;

@@ -17,6 +17,8 @@
     <ProjectReference Include="../Betting.Infrastructure/Betting.Infrastructure.csproj" />
     <!-- Contract scalars (Money, Multiplier) of the hub messages and the player-session policy (ADR-0008, SPEC-0009). -->
     <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
+    <!-- IMessagingReadiness of the Host's messaging lifecycle (ADR-0028). -->
+    <ProjectReference Include="../../../ServiceDefaults/ServiceDefaults.csproj" />
     <!-- ADR-0001: only the Contracts of other modules — round events (SPEC-0008), limits (SPEC-0020@1), wallet (SPEC-0021@4). -->
     <ProjectReference Include="../../Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
     <ProjectReference Include="../../Operators/Operators.Contracts/Operators.Contracts.csproj" />

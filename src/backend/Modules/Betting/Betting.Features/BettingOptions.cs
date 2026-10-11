@@ -16,4 +16,13 @@ public sealed class BettingOptions
     /// </summary>
     [System.ComponentModel.DataAnnotations.Range(1, MaxPoolSizeLimit)]
     public int MaxPoolSize { get; set; } = BettingInfrastructure.DefaultMaxPoolSize;
+
+    /// <summary>
+    /// Age after which a bet reservation whose debit was not confirmed is voided and its debit reversed (emenda 3); well above
+    /// a normal wallet answer, so a debit reversed by the sweeper is reversed within 30 s even if the instance died.
+    /// </summary>
+    public TimeSpan PendingTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+    /// <summary>How often each instance sweeps the reservations older than <see cref="PendingTimeout"/>.</summary>
+    public TimeSpan SweepInterval { get; set; } = TimeSpan.FromSeconds(2);
 }

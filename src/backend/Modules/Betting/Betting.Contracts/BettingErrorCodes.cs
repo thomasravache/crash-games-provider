@@ -1,6 +1,6 @@
 namespace Apogeu.Betting.Contracts;
 
-/// <summary>Error codes of the hub <c>/hubs/bets</c> (SPEC-0022 §6, contract v1): the message of the <c>HubException</c>.</summary>
+/// <summary>Error codes of the hub <c>/hubs/bets</c> (SPEC-0022 §6, contract v3): the message of the <c>HubException</c>.</summary>
 public static class BettingErrorCodes
 {
     /// <summary>Amount ≤ 0 or with more than 2 decimal places.</summary>
@@ -26,6 +26,12 @@ public static class BettingErrorCodes
 
     /// <summary>The session is in real-money mode, which is not enabled.</summary>
     public const string RealMoneyDisabled = "REAL_MONEY_DISABLED";
+
+    /// <summary>The panel is neither 1 nor 2.</summary>
+    public const string InvalidPanel = "INVALID_PANEL";
+
+    /// <summary>The round of a placed bet ended before the bet was confirmed; its debit is reversed.</summary>
+    public const string RoundClosed = "ROUND_CLOSED";
 
     /// <summary>The flight of the bet's round already started.</summary>
     public const string CancelNotAllowed = "CANCEL_NOT_ALLOWED";

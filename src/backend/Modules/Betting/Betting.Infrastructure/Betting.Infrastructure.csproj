@@ -9,6 +9,8 @@
     <!-- Schema `betting` in PostgreSQL with its own DbContext and migrations (ADR-0010). -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Transactional outbox of the reversals of the debits (ADR-0002, SPEC-0022 emenda 3). -->
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
   </ItemGroup>
 
   <ItemGroup>

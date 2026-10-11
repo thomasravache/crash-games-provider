@@ -9,9 +9,12 @@ export type HubName = (typeof hubNames)[number];
 
 /** Methods the client invokes on BetsHub. */
 export interface BetsHubServer {
-  CancelBet(request: {
+  CancelBet(request: { betId: string }): Promise<{
     betId: string;
-  }): Promise<{ betId: string; refunded: Money; balance: Money }>;
+    refunded: Money;
+    refundStatus: "refunded" | "pending";
+    balance: Money | null;
+  }>;
   GetBetLimits(): Promise<{ currency: string; minBet: Money; maxBet: Money; maxWin: Money }>;
   PlaceBet(request: {
     clientBetId: string;

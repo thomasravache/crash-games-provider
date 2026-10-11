@@ -1,19 +1,24 @@
 using Apogeu.Backoffice.Features;
 using Apogeu.Betting.Features;
+using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.Fairness.Features;
 using Apogeu.Host.OpenApi;
 using Apogeu.Host.Security;
 using Apogeu.Operators.Features;
+using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Features;
 using Apogeu.ServiceDefaults;
+using Apogeu.ServiceDefaults.Messaging;
 using Apogeu.Wallet.Features;
 using JasperFx;
 using JasperFx.CodeGeneration;
 using JasperFx.CodeGeneration.Model;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 using OpenTelemetry.Metrics;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
+using Wolverine.ErrorHandling;
 using Wolverine.Postgresql;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,10 +38,10 @@ builder.Services.AddContractOpenApi();
 // Clock shared by every module (tests replace it); registered by the Host, not by a module.
 builder.Services.TryAddSingleton(TimeProvider.System);
 
-// ADR-0002: Wolverine for the handlers and the transactional outbox between modules, its envelopes in the schema
-// `wolverine` of the same PostgreSQL. Its tables are created at startup only in Development (local Aspire environment),
-// like the modules' migrations; elsewhere the deployment pipeline creates them (ADR-0010). Registered before the modules:
-// the Rounds module starts its runtime right before the conductor that publishes through its outbox.
+// ADR-0002/ADR-0028: Wolverine for the handlers and the transactional outbox between modules, its envelopes in the schema
+// `wolverine` of the same PostgreSQL — created at startup only in Development (local Aspire environment), like the modules'
+// migrations; elsewhere by the pipeline (SPEC-0012). Only the Host configures it; its lifecycle is the Host's too: it starts
+// once the database answers and the modules wait for IMessagingReadiness.
 builder.UseWolverine(options =>
 {
     var messagesConnectionString = builder.Configuration.GetConnectionString(RoundsModule.ConnectionName);
@@ -47,19 +52,32 @@ builder.UseWolverine(options =>
 
     options.UseEntityFrameworkCoreTransactions();
     options.AutoBuildMessageStorageOnStartup = builder.Environment.IsDevelopment() ? AutoCreate.CreateOrUpdate : AutoCreate.None;
-    options.ConfigureBettingMessaging();
+    options.Discovery.IncludeAssembly(typeof(BettingModule).Assembly);
 
-    // The handlers' code is generated ahead of time into Betting.Features (`dotnet run --project src/backend/Host --
-    // codegen write`) and loaded at startup; nothing is compiled at runtime.
-    options.ApplicationAssembly = typeof(BettingModule).Assembly;
+    // Every local queue is durable (the reversals of debits, ADR-0007); the round events of Rounds reach Betting through one
+    // sequential queue, in the order the conductor published them (SPEC-0022 IT-05).
+    options.Policies.UseDurableLocalQueues();
+    options.PublishMessage<RoundBettingOpened>().ToLocalQueue(BettingModule.RoundEventsQueue);
+    options.PublishMessage<RoundFlying>().ToLocalQueue(BettingModule.RoundEventsQueue);
+    options.PublishMessage<RoundCrashed>().ToLocalQueue(BettingModule.RoundEventsQueue);
+    options.PublishMessage<RoundAnnulled>().ToLocalQueue(BettingModule.RoundEventsQueue);
+    options.LocalQueue(BettingModule.RoundEventsQueue).Sequential();
+
+    // A handler whose database is briefly unreachable retries before its message is given up.
+    options.OnException<NpgsqlException>()
+        .RetryWithCooldown(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
+
+    // ADR-0028: the handlers' code is generated ahead of time into this assembly (Internal/Generated, `dotnet run --project
+    // src/backend/Host -- codegen write`; the CI runs `codegen test`) and loaded at startup; nothing is compiled at runtime.
+    options.ApplicationAssembly = typeof(Program).Assembly;
     options.CodeGeneration.TypeLoadMode = TypeLoadMode.Static;
+    options.CodeGeneration.GeneratedCodeOutputPath = Path.Combine(builder.Environment.ContentRootPath, "Internal", "Generated");
 
-    // The modules' services stay internal (or are registered by factory): the generated handlers resolve them from the
-    // container, so every registration (including the tests' replacements) is honoured.
-    options.ServiceLocationPolicy = ServiceLocationPolicy.AlwaysAllowed;
-    options.CodeGeneration.GeneratedCodeOutputPath = Path.GetFullPath(
-        Path.Combine(builder.Environment.ContentRootPath, "..", "Modules", "Betting", "Betting.Features", "Internal", "Generated"));
+    // Service location only where the generated code cannot build a service itself (internal type or factory registration).
+    options.ServiceLocationPolicy = ServiceLocationPolicy.AllowedButWarn;
+    options.CodeGeneration.AlwaysUseServiceLocationFor<IBetStore>();
 });
+MessagingLifecycle.AddMessagingLifecycle(builder.Services, RoundsModule.ConnectionName);
 
 builder.Services.AddBackofficeModule();
 builder.Services.AddBettingModule();

@@ -55,7 +55,7 @@ public sealed class Bet
     /// Validates a new bet of <paramref name="owner"/> against <paramref name="rules"/> and the player's non-final bets
     /// (<paramref name="openBets"/>), and places it in <paramref name="current"/> when its bets are open at
     /// <paramref name="now"/> (server clock), otherwise queues it for the next round. Codes: <c>INVALID_AMOUNT</c>,
-    /// <c>BET_BELOW_MIN</c>, <c>BET_ABOVE_MAX</c>, <c>AUTO_CASHOUT_INVALID</c>, <c>PANEL_BUSY</c>.
+    /// <c>BET_BELOW_MIN</c>, <c>BET_ABOVE_MAX</c>, <c>AUTO_CASHOUT_INVALID</c>, <c>INVALID_PANEL</c>, <c>PANEL_BUSY</c>.
     /// </summary>
     public static BetPlacement Place(
         Guid betId,
@@ -70,11 +70,6 @@ public sealed class Bet
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(openBets);
-        if (request.Panel is not (1 or 2))
-        {
-            throw new ArgumentOutOfRangeException(nameof(request), request.Panel, "The panel of a bet is 1 or 2.");
-        }
-
         if (Validate(request, rules) is { } code)
         {
             return new BetPlacementRejected(code);
@@ -156,6 +151,11 @@ public sealed class Bet
 
     private static string? Validate(BetRequest request, BetRules rules)
     {
+        if (request.Panel is not (1 or 2))
+        {
+            return BettingErrorCodes.InvalidPanel;
+        }
+
         if (request.Amount <= 0 || decimal.Round(request.Amount, AmountScale) != request.Amount)
         {
             return BettingErrorCodes.InvalidAmount;
@@ -177,12 +177,12 @@ public sealed class Bet
     }
 
     /// <summary>
-    /// Whether this new bet takes the panel of <paramref name="other"/>: a non-final bet of the same player in the same panel
-    /// for the same round, or, for a queued bet, another queued bet (both for the next round).
+    /// Whether the panel of this new bet is held by <paramref name="other"/>, a non-final bet of the same player in the same
+    /// panel: a queued bet holds its panel until it is activated or cancelled (emenda 3), whatever round the new bet is for;
+    /// a placed bet holds it for its round.
     /// </summary>
     private bool SharesPanelWith(Bet other) =>
         other.Owner == Owner
         && other.Panel == Panel
-        && other.Status != BetStatus.Cancelled
-        && (Status == BetStatus.Queued ? other.Status == BetStatus.Queued : other.RoundId == RoundId);
+        && (other.Status == BetStatus.Queued || (other.Status != BetStatus.Cancelled && Status != BetStatus.Queued && other.RoundId == RoundId));
 }

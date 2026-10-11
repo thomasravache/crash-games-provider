@@ -1,17 +1,21 @@
 using Apogeu.Betting.Domain;
+using Apogeu.Betting.Infrastructure.Messaging;
 using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.Rounds.Contracts;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
+using Wolverine.EntityFrameworkCore;
 
 namespace Apogeu.Betting.Infrastructure.Persistence;
 
 /// <summary><see cref="IBetStore"/> on the schema <c>betting</c>; reads are not tracked.</summary>
-internal sealed class BetStore(BettingDbContext db) : IBetStore
+internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory scopes, ILogger<BetStore> logger) : IBetStore
 {
     private const string UniqueViolation = "23505";
 
+    private static readonly string Pending = "pending";
     private static readonly string Placed = StatusName(BetStatus.Placed);
     private static readonly string Queued = StatusName(BetStatus.Queued);
     private static readonly string Active = StatusName(BetStatus.Active);
@@ -26,7 +30,7 @@ internal sealed class BetStore(BettingDbContext db) : IBetStore
     public async Task<AcceptedBet?> FindAsync(BetOwner owner, Guid betId, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(owner);
-        var record = await Of(owner).SingleOrDefaultAsync(b => b.Id == betId, ct).ConfigureAwait(false);
+        var record = await Of(owner).SingleOrDefaultAsync(b => b.Id == betId && b.Status != Pending, ct).ConfigureAwait(false);
         return record is null ? null : ToAccepted(record);
     }
 
@@ -37,12 +41,12 @@ internal sealed class BetStore(BettingDbContext db) : IBetStore
         return [.. records.Select(ToDomain)];
     }
 
-    public async Task<IBetReservation> ReserveAsync(Bet bet, string salaId, DateTimeOffset now, CancellationToken ct)
+    public async Task ReserveAsync(Bet bet, string salaId, DateTimeOffset now, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(bet);
         ArgumentNullException.ThrowIfNull(salaId);
 
-        var record = new BetRecord
+        db.Bets.Add(new BetRecord
         {
             Id = bet.Id,
             OperatorId = bet.Owner.OperatorId.Value,
@@ -53,55 +57,127 @@ internal sealed class BetStore(BettingDbContext db) : IBetStore
             Panel = (short)bet.Panel,
             Amount = bet.Amount,
             AutoCashOut = bet.AutoCashOut,
-            Status = StatusName(bet.Status),
+            Status = Pending,
             RoundId = bet.RoundId?.Value,
             RoundNumber = bet.RoundNumber,
             AcceptedStatus = StatusName(bet.Status),
             AcceptedRoundId = bet.RoundId?.Value,
             AcceptedRoundNumber = bet.RoundNumber,
             CreatedAt = now,
-        };
-
-        var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+        });
         try
         {
-            db.Bets.Add(record);
-
-            // Blocks while a concurrent transaction holds the same clientBetId (or panel), until it commits or rolls back.
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            return new Reservation(db, transaction, record);
         }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: UniqueViolation } unique)
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: UniqueViolation })
         {
-            await transaction.DisposeAsync().ConfigureAwait(false);
-            db.ChangeTracker.Clear();
-            var conflict = string.Equals(unique.ConstraintName, BettingDbContext.ClientBetIdIndex, StringComparison.Ordinal)
-                ? BetConflict.ClientBetId
-                : BetConflict.Panel;
-            throw new BetConflictException(conflict, exception);
+            throw new BetConflictException(BetConflict.ClientBetId, exception);
         }
-        catch
+        finally
         {
-            await transaction.DisposeAsync().ConfigureAwait(false);
             db.ChangeTracker.Clear();
-            throw;
         }
     }
 
-    public async Task<bool> TransitionAsync(Bet bet, BetStatus expected, CancellationToken ct)
+    public async Task<BetConfirmation> ConfirmAsync(Guid betId, decimal balanceAfter, CancellationToken ct)
+    {
+        try
+        {
+            var confirmed = await db.Bets
+                .Where(b => b.Id == betId && b.Status == Pending)
+                .ExecuteUpdateAsync(
+                    set => set.SetProperty(b => b.Status, b => b.AcceptedStatus).SetProperty(b => b.BalanceAfter, balanceAfter),
+                    ct)
+                .ConfigureAwait(false);
+            return confirmed == 1 ? BetConfirmation.Confirmed : BetConfirmation.Voided;
+        }
+        catch (Exception exception) when (IsUniqueViolation(exception))
+        {
+            return BetConfirmation.PanelTaken;
+        }
+    }
+
+    public Task ReleaseAsync(Guid betId, CancellationToken ct) =>
+        db.Bets.Where(b => b.Id == betId && b.Status == Pending).ExecuteDeleteAsync(ct);
+
+    public async Task<bool> VoidAsync(Guid betId, CancellationToken ct)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            var record = await outbox.DbContext.Bets.SingleOrDefaultAsync(b => b.Id == betId && b.Status == Pending, ct).ConfigureAwait(false);
+            if (record is null)
+            {
+                return false;
+            }
+
+            // The concurrency token is the status: a reservation confirmed meanwhile is not voided.
+            outbox.DbContext.Bets.Remove(record);
+            await outbox.PublishAsync(Reversal(record)).ConfigureAwait(false);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return false;
+            }
+        }
+    }
+
+    public async Task<IReadOnlyList<Guid>> ListStalePendingAsync(DateTimeOffset createdBefore, int limit, CancellationToken ct) =>
+        await db.Bets.AsNoTracking()
+            .Where(b => b.Status == Pending && b.CreatedAt < createdBefore)
+            .OrderBy(b => b.CreatedAt)
+            .Select(b => b.Id)
+            .Take(limit)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+    public Task<bool> TransitionAsync(Bet bet, BetStatus expected, CancellationToken ct) => TransitionAsync(bet, expected, refund: null, ct);
+
+    public async Task<bool> TransitionAsync(Bet bet, BetStatus expected, BetRefund? refund, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(bet);
-        var from = StatusName(expected);
-        var to = StatusName(bet.Status);
-        var moved = await db.Bets
-            .Where(b => b.Id == bet.Id && b.Status == from)
-            .ExecuteUpdateAsync(
-                set => set.SetProperty(b => b.Status, to)
-                    .SetProperty(b => b.RoundId, bet.RoundId == null ? null : bet.RoundId.Value.Value)
-                    .SetProperty(b => b.RoundNumber, bet.RoundNumber),
-                ct)
-            .ConfigureAwait(false);
-        return moved == 1;
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            var from = StatusName(expected);
+            var record = await outbox.DbContext.Bets.SingleOrDefaultAsync(b => b.Id == bet.Id && b.Status == from, ct).ConfigureAwait(false);
+            if (record is null)
+            {
+                return false;
+            }
+
+            record.Status = StatusName(bet.Status);
+            record.RoundId = bet.RoundId?.Value;
+            record.RoundNumber = bet.RoundNumber;
+            if (refund is not null)
+            {
+                record.Refunded = refund.Refunded;
+                record.RefundStatus = refund.Confirmed ? "refunded" : "pending";
+                record.RefundBalance = refund.Balance;
+            }
+
+            if (bet.Status == BetStatus.Cancelled && expected != BetStatus.Cancelled)
+            {
+                // ADR-0007: the refund of a cancelled bet is stored with the cancellation itself.
+                await outbox.PublishAsync(Reversal(record)).ConfigureAwait(false);
+            }
+
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return false;
+            }
+        }
     }
 
     public Task<int> StartFlightAsync(RoundId roundId, CancellationToken ct) =>
@@ -123,18 +199,42 @@ internal sealed class BetStore(BettingDbContext db) : IBetStore
         foreach (var record in queued)
         {
             var bet = ToDomain(record);
-            if (bet.Activate(opened) && await TransitionAsync(bet, BetStatus.Queued, ct).ConfigureAwait(false))
+            try
             {
-                activated.Add(bet);
+                if (bet.Activate(opened) && await ActivateAsync(bet, ct).ConfigureAwait(false))
+                {
+                    activated.Add(bet);
+                }
+            }
+            catch (Exception exception) when (exception is DbUpdateException or NpgsqlException or InvalidOperationException)
+            {
+                // One bet that cannot be activated does not stop the room's other bets (emenda 3).
+                ActivationFailed(logger, bet.Id, salaId, exception);
             }
         }
 
         return activated;
     }
 
+    private async Task<bool> ActivateAsync(Bet bet, CancellationToken ct) =>
+        await db.Bets
+            .Where(b => b.Id == bet.Id && b.Status == Queued)
+            .ExecuteUpdateAsync(
+                set => set.SetProperty(b => b.Status, Placed)
+                    .SetProperty(b => b.RoundId, bet.RoundId!.Value.Value)
+                    .SetProperty(b => b.RoundNumber, bet.RoundNumber),
+                ct)
+            .ConfigureAwait(false) == 1;
+
+    private static bool IsUniqueViolation(Exception exception) =>
+        exception is PostgresException { SqlState: UniqueViolation } || exception.InnerException is PostgresException { SqlState: UniqueViolation };
+
     private IQueryable<BetRecord> Of(BetOwner owner) =>
         db.Bets.AsNoTracking().Where(b =>
             b.OperatorId == owner.OperatorId.Value && b.PlayerId == owner.PlayerId.Value && b.Currency == owner.Currency.Code);
+
+    private static ReverseBetDebit Reversal(BetRecord record) =>
+        new(record.Id, record.OperatorId, record.PlayerId, record.Currency, record.RoundId);
 
     private static AcceptedBet ToAccepted(BetRecord record) => new(
         ToDomain(record),
@@ -142,13 +242,17 @@ internal sealed class BetStore(BettingDbContext db) : IBetStore
         ParseStatus(record.AcceptedStatus),
         record.AcceptedRoundId is { } round ? new RoundId(round) : null,
         record.AcceptedRoundNumber,
-        record.BalanceAfter);
+        record.BalanceAfter,
+        string.Equals(record.Status, Pending, StringComparison.Ordinal),
+        record is { Refunded: { } refunded, RefundStatus: { } status }
+            ? new BetRefund(refunded, string.Equals(status, "refunded", StringComparison.Ordinal), record.RefundBalance)
+            : null);
 
     private static Bet ToDomain(BetRecord record) => Bet.Restore(
         record.Id,
         new BetOwner(new OperatorId(record.OperatorId), new PlayerId(record.PlayerId), new Currency(record.Currency)),
         new BetRequest(record.ClientBetId, record.Panel, record.Amount, record.AutoCashOut),
-        ParseStatus(record.Status),
+        string.Equals(record.Status, Pending, StringComparison.Ordinal) ? ParseStatus(record.AcceptedStatus) : ParseStatus(record.Status),
         record.RoundId is { } round ? new RoundId(round) : null,
         record.RoundNumber);
 
@@ -170,21 +274,6 @@ internal sealed class BetStore(BettingDbContext db) : IBetStore
         _ => throw new InvalidOperationException($"Unknown bet status '{status}' in the schema betting."),
     };
 
-    /// <summary>The open transaction of a reserved bet: disposed without <see cref="CommitAsync"/>, it rolls back.</summary>
-    private sealed class Reservation(BettingDbContext db, IDbContextTransaction transaction, BetRecord record) : IBetReservation
-    {
-        public async Task<AcceptedBet> CommitAsync(decimal balanceAfter, CancellationToken ct)
-        {
-            record.BalanceAfter = balanceAfter;
-            await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            await transaction.CommitAsync(ct).ConfigureAwait(false);
-            return ToAccepted(record);
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            await transaction.DisposeAsync().ConfigureAwait(false);
-            db.ChangeTracker.Clear();
-        }
-    }
+    [LoggerMessage(EventId = 2210, Level = LogLevel.Error, Message = "Queued bet {BetId} of room {SalaId} could not be activated; the room's other bets go on")]
+    private static partial void ActivationFailed(ILogger logger, Guid betId, string salaId, Exception exception);
 }

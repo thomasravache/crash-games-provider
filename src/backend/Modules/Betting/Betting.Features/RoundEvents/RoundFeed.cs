@@ -4,8 +4,11 @@ using Apogeu.Rounds.Contracts;
 
 namespace Apogeu.Betting.Features.RoundEvents;
 
-/// <summary>In-memory <see cref="IRoundFeed"/> of this instance: the latest round received per room.</summary>
-internal sealed class RoundFeed : IRoundFeed
+/// <summary>
+/// <see cref="IRoundFeed"/> of this instance: the latest round received per room and, for <see cref="CurrentAsync"/>, the
+/// room's round read through <see cref="ISalaPhase"/> (the same on every instance, emenda 3).
+/// </summary>
+internal sealed class RoundFeed(ISalaPhase phases) : IRoundFeed
 {
     private readonly ConcurrentDictionary<string, RoundWindow> _rounds = new(StringComparer.Ordinal);
 
@@ -34,6 +37,19 @@ internal sealed class RoundFeed : IRoundFeed
     }
 
     public RoundWindow? Current(string salaId) => _rounds.TryGetValue(salaId, out var round) ? round : null;
+
+    public async Task<RoundWindow?> CurrentAsync(string salaId, CancellationToken ct)
+    {
+        var round = await phases.CurrentAsync(salaId, ct).ConfigureAwait(false);
+        return round is null
+            ? null
+            : new RoundWindow(round.RoundId, round.RoundNumber, round.BettingEndsAt, round.State switch
+            {
+                RoundState.Betting => RoundPhase.Betting,
+                RoundState.Flying => RoundPhase.Flying,
+                _ => RoundPhase.Ended,
+            });
+    }
 
     /// <summary>
     /// The round moved to <paramref name="phase"/>. A round whose opening this instance did not receive (it started after

@@ -16,6 +16,8 @@
   <ItemGroup>
     <ProjectReference Include="../Rounds.Contracts/Rounds.Contracts.csproj" />
     <ProjectReference Include="../Rounds.Domain/Rounds.Domain.csproj" />
+    <!-- IMessagingReadiness of the Host's messaging lifecycle (ADR-0028). -->
+    <ProjectReference Include="../../../ServiceDefaults/ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

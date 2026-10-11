@@ -18,6 +18,9 @@ public static class ArchitectureRules
     private const string FairnessModule = @"^Apogeu\.Fairness(\.|$)";
     private const string FairnessDomain = @"^Apogeu\.Fairness\.Domain(\.|$)";
 
+    // Module code: everything of the solution but the Host and its shared building blocks (ServiceDefaults, BuildingBlocks).
+    private const string ModuleTypes = @"^Apogeu\.(?!(Host|ServiceDefaults|BuildingBlocks)(\.|$))[A-Za-z0-9]+(\.|$)";
+
     // Money modules. Betting, Wallet and the Rounds contracts never hold double/float; inside Rounds the multiplier curve
     // uses double, so only money-named members are checked there.
     private const string MonetaryNamespaces = @"^Apogeu\.(Betting|Wallet|Rounds)(\.|$)";
@@ -97,6 +100,18 @@ public static class ArchitectureRules
             .Because("ADR-0002: money is decimal in Betting, Wallet and Rounds")
             .WithoutRequiringPositiveResults();
 
+    /// <summary>
+    /// ADR-0028: only the Host configures Wolverine (no module depends on <c>WolverineOptions</c> nor on <c>UseWolverine</c>)
+    /// and no module manipulates service registrations (<c>ServiceDescriptor</c>), such as another assembly's hosted services.
+    /// </summary>
+    public static IArchRule MessagingOwnedByHost() =>
+        Types().That().ResideInNamespaceMatching(ModuleTypes)
+            .Should().FollowCustomCondition(TypeConditions.NotDependOnType("Wolverine.WolverineOptions"))
+            .AndShould().FollowCustomCondition(TypeConditions.NotDependOnType("Wolverine.HostBuilderExtensions"))
+            .AndShould().FollowCustomCondition(TypeConditions.NotDependOnType("Microsoft.Extensions.DependencyInjection.ServiceDescriptor"))
+            .Because("ADR-0028: the Host owns the configuration and the lifecycle of the messaging")
+            .WithoutRequiringPositiveResults();
+
     /// <summary>Every rule of ADR-0001, ADR-0002 and ADR-0006 that applies to the structure, including the four above.</summary>
     public static IReadOnlyList<ArchitectureRule> All() =>
     [
@@ -107,5 +122,6 @@ public static class ArchitectureRules
         new(nameof(ForbiddenPackages), "ADR-0002", ForbiddenPackages()),
         new(nameof(MonetaryValuesAreDecimal), "ADR-0002", MonetaryValuesAreDecimal()),
         new(nameof(FairnessUsesCryptographicRandomness), "ADR-0006", FairnessUsesCryptographicRandomness()),
+        new(nameof(MessagingOwnedByHost), "ADR-0028", MessagingOwnedByHost()),
     ];
 }

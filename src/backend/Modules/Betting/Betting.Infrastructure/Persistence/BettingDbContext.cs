@@ -26,13 +26,14 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
         {
             bet.ToTable("bets", table =>
             {
-                table.HasCheckConstraint("ck_bets_status", "status IN ('placed', 'active', 'queued', 'cancelled')");
+                table.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled')");
                 table.HasCheckConstraint("ck_bets_accepted_status", "accepted_status IN ('placed', 'queued')");
                 table.HasCheckConstraint("ck_bets_panel", "panel IN (1, 2)");
                 table.HasCheckConstraint("ck_bets_amount", "amount > 0");
 
                 // A bet has its round unless it is waiting for the next one.
-                table.HasCheckConstraint("ck_bets_round", "(status = 'queued') = (round_id IS NULL) OR status = 'cancelled'");
+                table.HasCheckConstraint("ck_bets_round", "(status = 'queued') = (round_id IS NULL) OR status IN ('cancelled', 'pending')");
+                table.HasCheckConstraint("ck_bets_refund_status", "refund_status IS NULL OR refund_status IN ('refunded', 'pending')");
             });
             bet.HasKey(b => b.Id).HasName("pk_bets");
             bet.Property(b => b.Id).HasColumnName("id").ValueGeneratedNever();
@@ -44,7 +45,7 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
             bet.Property(b => b.Panel).HasColumnName("panel");
             bet.Property(b => b.Amount).HasColumnName("amount").HasPrecision(18, 2);
             bet.Property(b => b.AutoCashOut).HasColumnName("auto_cash_out").HasPrecision(18, 8);
-            bet.Property(b => b.Status).HasColumnName("status").HasMaxLength(16);
+            bet.Property(b => b.Status).HasColumnName("status").HasMaxLength(16).IsConcurrencyToken();
             bet.Property(b => b.RoundId).HasColumnName("round_id");
             bet.Property(b => b.RoundNumber).HasColumnName("round_number");
             bet.Property(b => b.AcceptedStatus).HasColumnName("accepted_status").HasMaxLength(16);
@@ -52,6 +53,9 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
             bet.Property(b => b.AcceptedRoundNumber).HasColumnName("accepted_round_number");
             bet.Property(b => b.BalanceAfter).HasColumnName("balance_after").HasPrecision(18, 2);
             bet.Property(b => b.CreatedAt).HasColumnName("created_at");
+            bet.Property(b => b.Refunded).HasColumnName("refunded").HasPrecision(18, 2);
+            bet.Property(b => b.RefundStatus).HasColumnName("refund_status").HasMaxLength(16);
+            bet.Property(b => b.RefundBalance).HasColumnName("refund_balance").HasPrecision(18, 2);
 
             bet.HasIndex(b => new { b.OperatorId, b.PlayerId, b.ClientBetId }).IsUnique().HasDatabaseName(ClientBetIdIndex);
             bet.HasIndex(b => new { b.OperatorId, b.PlayerId, b.Panel, b.RoundId })
@@ -66,6 +70,9 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
             // The bets a round event moves: the queued bets of a room and the placed bets of a round.
             bet.HasIndex(b => new { b.SalaId, b.Status }).HasDatabaseName("ix_bets_sala_id_status");
             bet.HasIndex(b => new { b.RoundId, b.Status }).HasDatabaseName("ix_bets_round_id_status");
+
+            // The reservations the sweeper reverses (debit not confirmed in time).
+            bet.HasIndex(b => b.CreatedAt).HasFilter("status = 'pending'").HasDatabaseName("ix_bets_pending_created_at");
         });
     }
 }
