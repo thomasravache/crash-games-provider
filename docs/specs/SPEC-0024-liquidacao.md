@@ -80,6 +80,14 @@ Regras
     apostas com pedido pendente ficam abertas e são fechadas pela decisão do líder (TooLate → lost; aceito → cashed_out)
   o resumo fecha quando não resta aposta aberta da rodada (placed, active ou com cash-out pendente); quem fecha a última
     aposta tenta fechar o resumo (idempotente)
+  cash-out em andamento no crash: o hub grava o pedido (cash_out_requested_at = recebidoEm, com DecideCashOut durável de
+    reserva) ANTES de pedir a decisão ao líder; a marcação lost ignora apostas com pedido gravado. Se ainda assim o líder
+    aceitar um pedido de aposta já marcada lost, a aposta passa de lost para cashed_out (CAS) enquanto o resumo da rodada não
+    fechou; o resumo só fecha depois de uma carência (prazo de decisão + tempo do relay) após o fim da rodada; fora disso,
+    log crítico de conciliação
+  aposta placed numa rodada que crashou (ativação perdida): estornada integralmente, com alerta
+  estorno com TransactionNotFound: refunded 0,00 e alerta (regra da SPEC-0022); o resumo conta 0,00 estornado
+  o resumo de todas as (operador, moeda) da rodada é gravado numa única transação
   o resumo conta só as apostas da rodada fechadas por ela: lost, cashed_out e refunded (canceladas antes do voo não entram)
   fora do escopo: reserva pendente (débito incerto) numa rodada anulada é estornada pela varredura da SPEC-0022
 ```
@@ -97,6 +105,9 @@ Regras
 | Evento repetido | RoundCrashed/RoundAnnulled processado de novo | nada muda | IT-02 |
 | Reinício e pendências | estorno falhou e o processo reiniciou | estorno reenviado até confirmar, uma vez só | IT-03 |
 | Volume | 5.000 apostas | liquidadas em ≤ 2 s | IT-04 |
+| Cash-out aceito em corrida com o crash | líder aceita pedido recebido antes do crash e a Betting processa o RoundCrashed antes do commit do cash-out | aposta cashed_out (não lost), um crédito, resumo com o pagamento | IT-06 |
+| Aposta placed em rodada que crashou | ativação perdida | estornada integralmente, alerta; resumo fecha | IT-07 |
+| Estorno sem débito original | carteira responde TransactionNotFound | refunded 0,00 e alerta; resumo com 0,00 estornado | UT-04 |
 | Contrato dos eventos | BetSettled e BetRefunded reais | conferem com os tipos gerados do hub | CT-01 |
 | Cash-out pendente no crash | pedido de cash-out gravado (CashOutPending) quando a rodada crasha | aposta não vira lost antes da decisão; decidida pelo horário gravado (cashed_out ou lost) e o resumo só fecha depois | IT-05 |
 
@@ -108,6 +119,7 @@ Regras
 - **UT-01** — Dada uma rodada com 3 apostas active (1 retirada), quando o crash é processado, então 2 viram lost com BetSettled e a retirada não muda.
 - **UT-02** — Dada uma rodada com apostas placed, active e uma retirada, quando a anulação é processada, então placed e active viram refunded com estorno integral e a retirada não muda.
 - **UT-03** — Dadas apostas de 10,00, 20,00 e 30,00 com um pagamento de 24,70, quando o resumo é calculado, então apostado 60,00, pago 24,70 e GGR 35,30.
+- **UT-04** — Dado um estorno respondido com TransactionNotFound, quando registrado, então refunded é 0,00, o alerta de conciliação é emitido e o resumo conta 0,00 estornado para essa aposta.
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dado o Host real com duas rodadas (uma termina em crash e outra anulada), quando liquidadas, então estados, saldos e resumos batem com o livro-razão da carteira.
@@ -115,6 +127,8 @@ Regras
 - **IT-03** — Dada uma carteira que falha no estorno e um reinício do processo, quando a varredura roda, então BetRefunded chega com refundStatus "pending" e balance nulo, o estorno é confirmado uma única vez e BalanceUpdated chega ao jogador.
 - **IT-04** — Dadas 5.000 apostas active numa rodada, quando o crash é liquidado, então termina em ≤ 2 s (`Category=Performance`).
 - **IT-05** — Dada uma aposta active com pedido de cash-out pendente (líder impedido de responder) recebido antes do crash, quando a rodada crasha e o líder volta, então a aposta vira cashed_out com o multiplicador do horário gravado (não lost), o crédito é feito uma vez e o resumo da rodada inclui o pagamento; e um pedido gravado depois do crash termina lost.
+- **IT-06** — Dado um cash-out recebido pouco antes do crash, o líder aceitando e a Betting processando o RoundCrashed antes de o hub gravar o cash-out (falha injetada: o commit do cash-out espera o fim do RoundCrashed), quando tudo termina, então a aposta é cashed_out com o multiplicador do horário de recebimento, existe um único crédito e o resumo inclui o pagamento; o jogador recebe CashedOut.
+- **IT-07** — Dada uma aposta placed cuja ativação foi perdida numa rodada que crasha, quando a liquidação roda, então a aposta é estornada integralmente com BetRefunded, há alerta de conciliação e o resumo fecha.
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dadas as mensagens reais BetSettled e BetRefunded (refunded e pending) de IT-01 e IT-03, quando validadas contra os tipos gerados do hub /hubs/bets (SPEC-0006), então conferem (contrato consumido pela SPEC-0026). `IRoundSettlementQuery` não tem consumidor neste épico.
@@ -152,13 +166,13 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0002, ADR-0007, ADR-0010, ADR-0017, ADR-0018 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03 com a tag `SPEC-0024:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0024:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar, seguindo os ADRs
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, CT-01 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -229,6 +243,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0024`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (inalterado) | 2026-10-11 | Review G4: pedido de cash-out gravado antes da decisão do líder; aposta lost vira cashed_out se o líder aceitou, enquanto o resumo não fechou, com carência no fechamento (IT-06); aposta placed em rodada que crashou é estornada (IT-07); TransactionNotFound no estorno → 0,00 + alerta (UT-04); resumo de todas as moedas numa transação. Pendência: BetSettled pode não ser reenviado se o processo cair depois do commit (estado correto) | Review G4 (dc9f499): M1 cash-out aceito a tempo terminava como perda; minors m1–m3 | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 2 (inalterado) | 2026-10-11 | Escopo inclui o condutor e o árbitro do cash-out (Rounds) para a regra única de rodada anulada (TooLate nos dois caminhos — minor m-a do review da SPEC-0023); cash-out em aposta já perdida responde CASHOUT_TOO_LATE; tabela `betting.round_closures` marca que a Betting processou o fim da rodada | Implementação 28fb63b | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 2 | 2026-10-11 | Contrato v2: `BetRefunded` com `refundStatus` e `balance` opcional (BalanceUpdated depois), `RoundSettlement.totalRefunded`; ordem da liquidação no RoundCrashed com cash-out pendente; fechamento do resumo pela última aposta fechada, único por índice; o resumo conta lost, cashed_out e refunded; reserva pendente em rodada anulada fica com a varredura da SPEC-0022; IT-03 ajustado | Scaffold 8a07dad: estorno pendente sem saldo confirmado, unicidade e fechamento do resumo indefinidos | SPEC-0026 (pin @1 → @2) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 1 (inalterado) | 2026-10-11 | Interação com o cash-out pendente da SPEC-0023@2: aposta com pedido gravado só é liquidada depois da decisão do líder (IT-05); escopo inclui o código gerado do Wolverine no Host e o `Program.cs` (ADR-0028); scaffold em commit `chore` antes dos testes | A SPEC-0023 v2 introduziu CashOutPending e o Wolverine com código pré-gerado | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
