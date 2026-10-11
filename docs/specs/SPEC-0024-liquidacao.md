@@ -189,7 +189,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:06:25.35]     Dado um cash-out recebido pouco antes do crash, o líder aceita) — 2669d0a | 2026-10-11 |
-| G2 Green | FAIL | build exit 0 (✓ built in 492ms); test exit 1 ([xUnit.net 00:05:33.47]     Dada uma aposta X cujo débito fica retido até depois da varred); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T19:28:04: Report generation took 0,9 seconds) — c186b3d | 2026-10-11 |
+| G2 Green | PASS | build exit 0 (✓ built in 145ms); test exit 0 (Duration  1.38s (tests 67%, transform 18%, import 12%, worker 2%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T19:57:57: Report generation took 0,9 seconds) — c186b3d | 2026-10-11 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  773ms (tests 97%, transform 2%, import 1%)) — dc9f499 | 2026-10-11 |
 | G4 Review | FAIL | CHANGES_REQUESTED (dc9f499): M1 cash-out aceito pelo líder antes do crash termina como aposta perdida quando a liquidação marca lost antes do commit do cash-out (janela de ~50 ms, até 200 ms com líder lento) | 2026-10-11 |
 | G5 Integração & CI | PENDING | | |
