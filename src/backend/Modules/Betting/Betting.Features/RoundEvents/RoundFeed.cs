@@ -36,6 +36,7 @@ internal sealed class RoundFeed(ISalaPhase phases) : IRoundFeed
         Move(annulled.SalaId, annulled.RoundId, RoundPhase.Ended, at: null);
     }
 
+    /// <summary>What this instance received (diagnostics); the production phase source is <see cref="CurrentAsync"/> (<see cref="ISalaPhase"/>).</summary>
     public RoundWindow? Current(string salaId) => _rounds.TryGetValue(salaId, out var round) ? round : null;
 
     public async Task<RoundWindow?> CurrentAsync(string salaId, CancellationToken ct)
