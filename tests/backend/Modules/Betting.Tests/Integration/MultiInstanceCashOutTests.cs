@@ -57,7 +57,7 @@ public sealed class MultiInstanceCashOutTests(BettingContainers containers)
         Assert.True(tooLate.FailedWith("CASHOUT_TOO_LATE"), $"Expected CASHOUT_TOO_LATE after the crash, got {tooLate}");
     }
 
-    [Fact(DisplayName = "Dado o líder impedido de responder por 300 ms, quando o cash-out chega numa instância que não é o líder, então CashOutPending e, ao liberar o líder, CashedOut com o multiplicador do horário de recebimento gravado (ou CashOutRejected se recebido depois do crash)")]
+    [Fact(DisplayName = "Dado o líder impedido de responder além do prazo de 200 ms, quando o cash-out chega numa instância que não é o líder, então CashOutPending e, ao liberar o líder, CashedOut com o multiplicador do horário de recebimento gravado (ou CashOutRejected se recebido depois do crash)")]
     [Trait("Spec", "SPEC-0023:IT-07")]
     [Trait("Category", "Integration")]
     public async Task GivenLeaderNotAnsweringWhenCashOutReachesFollowerThenPendingAndDecidedLaterByRecordedReception()
@@ -75,16 +75,27 @@ public sealed class MultiInstanceCashOutTests(BettingContainers containers)
         ], ct);
         var (inFlight, afterCrash) = (placed[0], placed[1]);
 
-        // During the flight: the leader holds its answer for 300 ms (the deadline is 200 ms).
-        await flight.AtAsync(TimeSpan.FromSeconds(1), ct);
-        cluster.LeaderProbe.DelayNextLeaderDecision(TimeSpan.FromMilliseconds(300));
+        // Early in the flight (≈ 3,5 s long) the leader holds its answer for 2,5 s, far beyond the 200 ms deadline.
+        await flight.AtAsync(TimeSpan.FromMilliseconds(300), ct);
+        cluster.LeaderProbe.HoldLeaderDecisions();
         var sentAt = DateTimeOffset.UtcNow;
         var outcome = await bets.CashOutAsync(inFlight, ct);
         var answeredAt = DateTimeOffset.UtcNow;
 
+        // Pending because of the deadline: answered while the leader is still held (nothing decided yet), well before it frees.
         var pending = CashOutFlight.PendingOf(outcome);
         Assert.Equal(inFlight, pending.GetProperty("betId").GetGuid());
-        Assert.True(answeredAt - sentAt < TimeSpan.FromMilliseconds(300), $"CashOutPending answers at the 200 ms deadline, not when the leader frees ({(answeredAt - sentAt).TotalMilliseconds} ms).");
+        Assert.True(answeredAt - sentAt <= TimeSpan.FromSeconds(2), $"CashOutPending answers at the 200 ms deadline, not when the leader frees ({(answeredAt - sentAt).TotalMilliseconds} ms; the leader is held 2,5 s).");
+        Assert.DoesNotContain(cluster.LeaderProbe.Calls, c => c.Leading && c.RoundId.Value == flight.RoundId);
+        Assert.Empty(bets.EventsOf("CashedOut", inFlight));
+        var releaseAt = sentAt + TimeSpan.FromMilliseconds(2_500);
+        if (releaseAt > DateTimeOffset.UtcNow)
+        {
+            await Task.Delay(releaseAt - DateTimeOffset.UtcNow, ct);
+        }
+
+        Assert.Empty(bets.EventsOf("CashedOut", inFlight));
+        cluster.LeaderProbe.ReleaseLeader();
 
         // Decided later with the recorded instant of reception, not with the instant of the late decision.
         var cashedOut = await bets.WaitForEventAsync("CashedOut", inFlight, TimeSpan.FromSeconds(10));
