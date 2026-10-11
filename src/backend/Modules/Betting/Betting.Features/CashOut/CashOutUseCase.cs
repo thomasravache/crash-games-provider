@@ -47,6 +47,13 @@ public sealed class CashOutUseCase(
         }
 
         var bet = found.Bet;
+        if (bet.Status == BetStatus.Lost)
+        {
+            // Its round crashed while it was active: a cash-out now is too late (SPEC-0024).
+            metrics.TooLate();
+            return Refuse(BettingErrorCodes.CashOutTooLate);
+        }
+
         if (bet is not { Status: BetStatus.Active, RoundId: { } roundId })
         {
             return Refuse(BettingErrorCodes.BetNotActive);

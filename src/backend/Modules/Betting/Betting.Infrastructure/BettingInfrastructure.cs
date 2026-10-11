@@ -1,3 +1,4 @@
+using Apogeu.Betting.Contracts;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +36,7 @@ public static class BettingInfrastructure
         services.AddDbContext<BettingDbContext>((provider, options) =>
             Configure(options, OwnPool(connectionString(provider), maxPoolSize(provider))));
         services.AddScoped<IBetStore, BetStore>();
+        services.AddScoped<IRoundSettlementQuery, RoundSettlementQuery>();
 
         return services;
     }

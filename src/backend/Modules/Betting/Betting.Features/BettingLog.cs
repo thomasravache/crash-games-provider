@@ -64,4 +64,19 @@ internal static partial class BettingLog
 
     [LoggerMessage(EventId = 2226, Level = LogLevel.Warning, Message = "The automatic cash-out of bet {BetId} was executed by the leader but the bet is {Status}")]
     public static partial void AutoCashOutIgnored(ILogger logger, Guid betId, string status);
+
+    [LoggerMessage(EventId = 2230, Level = LogLevel.Information, Message = "Round {RoundId} settled: {Count} bets {Status}")]
+    public static partial void RoundSettled(ILogger logger, Guid roundId, int count, string status);
+
+    [LoggerMessage(EventId = 2231, Level = LogLevel.Information, Message = "Summary of round {RoundId} closed")]
+    public static partial void SummaryClosed(ILogger logger, Guid roundId);
+
+    [LoggerMessage(EventId = 2232, Level = LogLevel.Warning, Message = "Refund of bet {BetId} of an annulled round unconfirmed ({Result}); it is retried")]
+    public static partial void RoundRefundPending(ILogger logger, Guid betId, string result);
+
+    [LoggerMessage(EventId = 2233, Level = LogLevel.Critical, Message = "Refund of bet {BetId} of an annulled round refused permanently by the wallet; reconciliation needed")]
+    public static partial void RoundRefundRefused(ILogger logger, Guid betId);
+
+    [LoggerMessage(EventId = 2234, Level = LogLevel.Warning, Message = "A settlement message of bet {BetId} could not be sent to the player")]
+    public static partial void SettlementNotSent(ILogger logger, Guid betId, Exception exception);
 }

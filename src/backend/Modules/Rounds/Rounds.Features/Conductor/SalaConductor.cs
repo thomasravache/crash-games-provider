@@ -382,7 +382,7 @@ public sealed class SalaConductor
         await SaveAsync(round, new RoundCrashed(_sala.Id, round.Id, crashPoint, ContractInstant(crashedAt)), ct).ConfigureAwait(false);
         _crashPoint = null;
         DropAutos();
-        EndFlight(round.Id, crashedAt);
+        EndFlight(round.Id, crashedAt, annulled: false);
         _nextRoundAt = crashedAt + _sala.CooldownDuration;
         if (_snapshots is not null)
         {
@@ -402,7 +402,7 @@ public sealed class SalaConductor
     {
         using var activity = StartRoundActivity("rounds.annul", round);
         var now = _time.GetUtcNow();
-        EndFlight(round.Id, now);
+        EndFlight(round.Id, now, annulled: true);
         round.Annul(reason, now);
         await SaveAsync(round, new RoundAnnulled(_sala.Id, round.Id, reason), ct).ConfigureAwait(false);
         _crashPoint = null;
@@ -518,7 +518,7 @@ public sealed class SalaConductor
     /// </summary>
     internal CashOutDecision Decide(RoundId roundId, DateTimeOffset receivedAt) =>
         _flights.TryGetValue(roundId, out var flight)
-            ? Decide(flight.StartedAt, flight.CrashAt, flight.CrashPoint, flight.Curve, receivedAt)
+            ? flight.Annulled ? new CashOutTooLate() : Decide(flight.StartedAt, flight.CrashAt, flight.CrashPoint, flight.Curve, receivedAt)
             : new CashOutUndecided();
 
     /// <summary>
@@ -648,11 +648,11 @@ public sealed class SalaConductor
     }
 
     /// <summary>The flight ended (crashed, or annulled at <paramref name="at"/>, which also ends it for the decisions).</summary>
-    private void EndFlight(RoundId roundId, DateTimeOffset at)
+    private void EndFlight(RoundId roundId, DateTimeOffset at, bool annulled)
     {
         if (_flights.TryGetValue(roundId, out var flight))
         {
-            _flights[roundId] = flight with { CrashAt = at < flight.CrashAt ? at : flight.CrashAt, Ended = true };
+            _flights[roundId] = flight with { CrashAt = at < flight.CrashAt ? at : flight.CrashAt, Ended = true, Annulled = annulled };
         }
     }
 

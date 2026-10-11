@@ -92,4 +92,33 @@ public interface IBetStore
 
     /// <summary>The wallet confirmed the credit of the cash-out of <paramref name="betId"/>; whether this call recorded it (it was pending).</summary>
     Task<bool> ConfirmCreditAsync(Guid betId, decimal balance, CancellationToken ct);
+
+    /// <summary>How Betting processed the end of <paramref name="roundId"/>: <c>crashed</c>, <c>annulled</c>, or <see langword="null"/> not yet.</summary>
+    Task<string?> RoundOutcomeAsync(RoundId roundId, CancellationToken ct);
+
+    /// <summary>Records that Betting processed the end of <paramref name="roundId"/> (<c>crashed</c> or <c>annulled</c>); idempotent.</summary>
+    Task MarkRoundEndedAsync(RoundId roundId, string outcome, DateTimeOffset at, CancellationToken ct);
+
+    /// <summary>
+    /// The round crashed (SPEC-0024): its active bets without a pending cash-out request become lost, in one statement. Returns
+    /// the bets this call made lost (a repeated crash makes none).
+    /// </summary>
+    Task<IReadOnlyList<Bet>> SettleLostAsync(RoundId roundId, CancellationToken ct);
+
+    /// <summary>
+    /// The round was annulled (SPEC-0024): its placed and active bets (pending cash-out requests included) become refunded with
+    /// their full amount, each with its durable refund stored in the same transaction (Wolverine outbox, ADR-0007). Returns the
+    /// bets this call refunded.
+    /// </summary>
+    Task<IReadOnlyList<Bet>> RefundRoundAsync(RoundId roundId, CancellationToken ct);
+
+    /// <summary>The wallet confirmed the refund of <paramref name="betId"/>; whether this call recorded it (it was pending).</summary>
+    Task<bool> ConfirmRefundAsync(Guid betId, decimal balance, CancellationToken ct);
+
+    /// <summary>
+    /// Closes the summary of <paramref name="roundId"/> when its end was processed and no bet of it is open (placed, active):
+    /// one immutable row per operator and currency, written once (unique index, <c>ON CONFLICT DO NOTHING</c>). Returns whether
+    /// this call wrote it.
+    /// </summary>
+    Task<bool> CloseSettlementAsync(RoundId roundId, DateTimeOffset at, CancellationToken ct);
 }

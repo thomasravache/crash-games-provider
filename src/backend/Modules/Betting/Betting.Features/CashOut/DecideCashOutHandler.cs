@@ -1,6 +1,7 @@
 using Apogeu.Betting.Contracts;
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.Settlement;
 using Apogeu.Betting.Infrastructure.Messaging;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.Rounds.Contracts;
@@ -26,6 +27,7 @@ public static class DecideCashOutHandler
         CashOutSettlement settlement,
         BetsNotifier notifier,
         BettingMetrics metrics,
+        RoundSettler settler,
         IMessageBus bus,
         ILogger<DecideCashOut> logger,
         CancellationToken ct)
@@ -36,6 +38,7 @@ public static class DecideCashOutHandler
         ArgumentNullException.ThrowIfNull(settlement);
         ArgumentNullException.ThrowIfNull(notifier);
         ArgumentNullException.ThrowIfNull(metrics);
+        ArgumentNullException.ThrowIfNull(settler);
         ArgumentNullException.ThrowIfNull(bus);
 
         if (await store.FindByIdAsync(command.BetId, ct).ConfigureAwait(false) is not
@@ -81,13 +84,25 @@ public static class DecideCashOutHandler
                 await SendAsync(() => notifier.CashedOutAsync(bet.Owner, cashedOut), bet.Id, logger).ConfigureAwait(false);
             }
 
+            // The last open bet of an ended round closes its summary (SPEC-0024).
+            await settler.CloseAsync(roundId, ct).ConfigureAwait(false);
             return;
         }
 
         metrics.TooLate();
+        await RefuseAsync(store, notifier, settler, bet, logger, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The request came at or after the crash: it is forgotten and the player told <c>CashOutRejected</c>; once the crash is
+    /// settled the bet is lost like the others, and the summary may close (SPEC-0024).
+    /// </summary>
+    private static async Task RefuseAsync(IBetStore store, BetsNotifier notifier, RoundSettler settler, Bet bet, ILogger logger, CancellationToken ct)
+    {
         await store.ClearCashOutRequestAsync(bet.Id, ct).ConfigureAwait(false);
         await SendAsync(() => notifier.CashOutRejectedAsync(bet.Owner, new CashOutRejected(bet.Id, BettingErrorCodes.CashOutTooLate)), bet.Id, logger)
             .ConfigureAwait(false);
+        await settler.SettleRefusedAsync(bet.RoundId!.Value, ct).ConfigureAwait(false);
     }
 
     private static async Task SendAsync(Func<Task> send, Guid betId, ILogger logger)
