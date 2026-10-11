@@ -33,6 +33,15 @@ public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet
     public async Task<BetCancelled> CancelBet(CancelBetRequest request) =>
         Answer(await cancelBet.CancelAsync(Session, request, Context.ConnectionAborted).ConfigureAwait(false));
 
+    /// <summary>
+    /// Cashes out an active bet of the session's player (SPEC-0023 §6): the leader of the room decides with the server instant
+    /// of reception. Errors: <c>CASHOUT_TOO_LATE</c>, <c>BET_NOT_ACTIVE</c>, <c>BET_NOT_FOUND</c>.
+    /// </summary>
+    public Task<CashOutResult> CashOut(CashOutRequest request) =>
+#pragma warning disable MA0025 // Scaffold of SPEC-0023 (no logic yet): implemented in the green phase.
+        throw new NotImplementedException();
+#pragma warning restore MA0025
+
     /// <summary>The bet limits of the session's operator in its currency (SPEC-0020@1).</summary>
     public Task<BetLimitsResponse> GetBetLimits()
     {
