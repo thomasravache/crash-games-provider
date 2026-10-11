@@ -206,8 +206,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  780ms (tests 97%, transform 2%, import 1%)) — b062a0b | 2026-10-10 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (3ª revisão, b062a0b; 3 minors: verify sem IT-08 na base do worktree, UT-06 só afirma não-Duplicate, IT-08 não distingue a guarda) — b062a0b | 2026-10-10 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 151ms); test exit 0 (Duration  1.31s (tests 65%, transform 20%, import 13%, worker 2%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 4 m 15 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  771ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 433 files: 0 findings.) — 8484e37 | 2026-10-11 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-11 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #23, merge 6980c50) | 2026-10-11 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
