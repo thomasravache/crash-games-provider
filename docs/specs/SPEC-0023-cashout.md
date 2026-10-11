@@ -228,8 +228,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  743ms (tests 97%, transform 2%, import 1%)) — 501edb1 | 2026-10-11 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, 501edb1; minors: resposta de rodada anulada difere entre memória e persistido; CashedOut automático pode não ser anunciado se o processo cair após o crédito; contador credits_pending por processo; automáticos publicados um a um) — 501edb1 | 2026-10-11 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 157ms); test exit 0 (at least ~269ms faster with isolate: false — reuses workers across files instead of one pe); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 4 m 18 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  778ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 472 files: 0 findings.) — b258d1e | 2026-10-11 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-11 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #25, merge 88257d4) | 2026-10-11 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
