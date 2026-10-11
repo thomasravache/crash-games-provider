@@ -2,6 +2,7 @@
 // offset (GetServerTime), joins the sala and maps every hub message to a store event. Resynchronizes from a fresh
 // RoundSnapshot after each reconnection.
 
+import type { BetsClient } from "./bets-client";
 import type { HistoryEntry } from "./state/round-state";
 import { estimateServerOffset, type ServerTimeSample } from "./state/multiplier";
 import { createRoundStore, type RoundStore } from "./state/store";
@@ -24,6 +25,11 @@ export interface GameClientOptions {
   readonly connectHub?: ConnectHub;
   /** Local clock (epoch ms); defaults to Date.now. */
   readonly now?: () => number;
+  /**
+   * Bets client of the game (SPEC-0026): start() starts it with the session token once the sala is joined, and
+   * stop() stops it. Absent: the game runs without the bet panel.
+   */
+  readonly bets?: BetsClient;
 }
 
 /** What the session exchange returned that the game may show (nothing personal besides the nickname). */

@@ -22,6 +22,10 @@ export interface HudProps {
   readonly scene?: ReactNode;
   /** Sound control of the header (SPEC-0018); absent until the game's sound is ready. */
   readonly sound?: SoundToggleProps;
+  /** The two bet panels (SPEC-0026); absent: the disabled "Apostas em breve" panel of SPEC-0010. */
+  readonly bets?: ReactNode;
+  /** Confirmed balance with "Recarregar demo" (SPEC-0026); absent: the fixed `demoBalance`. */
+  readonly balance?: ReactNode;
   /** Windows opened from the HUD (for example "Comprovadamente Justo"), kept inside the main landmark. */
   readonly children?: ReactNode;
 }
@@ -103,6 +107,8 @@ export function Hud({
   onOpenFairness,
   scene,
   sound,
+  bets,
+  balance,
   children,
 }: HudProps): JSX.Element {
   return (
@@ -124,10 +130,12 @@ export function Hud({
           {sound === undefined ? null : <SoundToggle {...sound} />}
           <div className="text-right">
             <p className="max-w-40 truncate text-xs text-hud-muted">{nickname}</p>
-            <p className="text-sm font-semibold tabular-nums">
-              <span className="sr-only">{`${hudText.balance}: `}</span>
-              <span data-testid={hudTestIds.balance}>{demoBalance}</span>
-            </p>
+            {balance ?? (
+              <p className="text-sm font-semibold tabular-nums">
+                <span className="sr-only">{`${hudText.balance}: `}</span>
+                <span data-testid={hudTestIds.balance}>{demoBalance}</span>
+              </p>
+            )}
           </div>
         </div>
       </header>
@@ -155,13 +163,15 @@ export function Hud({
           aria-label="Painel de aposta"
           className="flex flex-col gap-3 border-t border-hud-border bg-hud-surface p-4 md:col-span-4 md:border-t-0 md:border-l"
         >
-          <button
-            type="button"
-            disabled
-            className="min-h-12 w-full cursor-not-allowed rounded-xl bg-hud-surface-raised font-hud-display text-base font-bold tracking-wide text-hud-muted"
-          >
-            {hudText.betDisabled}
-          </button>
+          {bets ?? (
+            <button
+              type="button"
+              disabled
+              className="min-h-12 w-full cursor-not-allowed rounded-xl bg-hud-surface-raised font-hud-display text-base font-bold tracking-wide text-hud-muted"
+            >
+              {hudText.betDisabled}
+            </button>
+          )}
           <button
             type="button"
             onClick={onOpenFairness}
