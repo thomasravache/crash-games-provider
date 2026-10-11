@@ -226,7 +226,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:04:43.72]     Dada uma aposta com alvo 1,50x numa rodada com crash 5,00x e o) — b911a01 | 2026-10-11 |
 | G2 Green | PASS | build exit 0 (✓ built in 141ms); test exit 0 (Duration  1.35s (tests 66%, transform 20%, import 12%, worker 2%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T06:25:36: Report generation took 0,8 seconds) — 501edb1 | 2026-10-11 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  743ms (tests 97%, transform 2%, import 1%)) — 501edb1 | 2026-10-11 |
-| G4 Review | FAIL | CHANGES_REQUESTED (d91817c): M1 automáticos só na memória do líder (falha de publicação, failover, corrida com o crash); M2 líder que não conhece a rodada responde TooLate; M3 manual vence automático vencido e paga acima do alvo; M4 crédito inline na fila sequencial de eventos da rodada | 2026-10-11 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, 501edb1; minors: resposta de rodada anulada difere entre memória e persistido; CashedOut automático pode não ser anunciado se o processo cair após o crédito; contador credits_pending por processo; automáticos publicados um a um) — 501edb1 | 2026-10-11 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
