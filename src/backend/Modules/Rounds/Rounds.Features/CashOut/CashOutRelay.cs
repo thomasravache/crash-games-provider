@@ -31,6 +31,10 @@ internal sealed class CashOutRelay(
     private const string Decide = "decide";
     private const string Auto = "auto";
 
+    private const string Accepted = "accepted";
+    private const string TooLate = "tooLate";
+    private const string Undecided = "undecided";
+
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     private readonly string _instance = Guid.NewGuid().ToString("N");
@@ -41,7 +45,12 @@ internal sealed class CashOutRelay(
     public async Task<CashOutDecision> DecideAsync(string salaId, RoundId roundId, DateTimeOffset receivedAt, CancellationToken ct)
     {
         var reply = await ForwardAsync(new RelayRequest(Guid.NewGuid(), ReplyChannel, Decide, salaId, roundId.Value, receivedAt, null, null), ct).ConfigureAwait(false);
-        return reply.Accepted && reply.Multiplier is { } multiplier ? new CashOutAccepted(new Multiplier(multiplier)) : new CashOutTooLate();
+        return reply.State switch
+        {
+            Accepted when reply.Multiplier is { } multiplier => new CashOutAccepted(new Multiplier(multiplier)),
+            TooLate => new CashOutTooLate(),
+            _ => new CashOutUndecided(),
+        };
     }
 
     public async Task ScheduleAutoAsync(string salaId, RoundId roundId, Guid betId, Multiplier target, CancellationToken ct) =>
@@ -148,14 +157,17 @@ internal sealed class CashOutRelay(
             if (string.Equals(request.Kind, Auto, StringComparison.Ordinal))
             {
                 await arbiter.ScheduleAutoAsync(request.SalaId, roundId, request.BetId!.Value, new Multiplier(request.Target!.Value), CancellationToken.None).ConfigureAwait(false);
-                reply = new RelayReply(request.Id, Accepted: true, Multiplier: null);
+                reply = new RelayReply(request.Id, Accepted, Multiplier: null);
             }
             else
             {
                 var decision = await arbiter.DecideAsync(request.SalaId, roundId, request.ReceivedAt!.Value, CancellationToken.None).ConfigureAwait(false);
-                reply = decision is CashOutAccepted accepted
-                    ? new RelayReply(request.Id, Accepted: true, accepted.Multiplier.Value)
-                    : new RelayReply(request.Id, Accepted: false, Multiplier: null);
+                reply = decision switch
+                {
+                    CashOutAccepted accepted => new RelayReply(request.Id, Accepted, accepted.Multiplier.Value),
+                    CashOutTooLate => new RelayReply(request.Id, TooLate, Multiplier: null),
+                    _ => new RelayReply(request.Id, Undecided, Multiplier: null),
+                };
             }
 
             var subscriber = await SubscribedAsync().ConfigureAwait(false);
@@ -172,6 +184,6 @@ internal sealed class CashOutRelay(
     /// <summary>A request forwarded to the leader: a manual decision (<c>receivedAt</c>) or an automatic cash-out to schedule.</summary>
     private sealed record RelayRequest(Guid Id, string ReplyTo, string Kind, string SalaId, Guid RoundId, DateTimeOffset? ReceivedAt, Guid? BetId, decimal? Target);
 
-    /// <summary>The leader's answer: only the decision (and the multiplier of an accepted cash-out).</summary>
-    private sealed record RelayReply(Guid Id, bool Accepted, decimal? Multiplier);
+    /// <summary>The leader's answer: only the decision — accepted, too late or undecided — and the multiplier of an accepted one.</summary>
+    private sealed record RelayReply(Guid Id, string State, decimal? Multiplier);
 }

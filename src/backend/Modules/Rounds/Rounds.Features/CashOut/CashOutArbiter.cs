@@ -13,7 +13,7 @@ internal sealed class CashOutArbiter(LeaderArbiters arbiters, IRoundsLeadership 
 {
     public Task<CashOutDecision> DecideAsync(string salaId, RoundId roundId, DateTimeOffset receivedAt, CancellationToken ct) =>
         Local(salaId) is { } leader
-            ? Task.FromResult(leader.Decide(roundId, receivedAt))
+            ? leader.DecideAsync(roundId, receivedAt, ct)
             : relay.DecideAsync(salaId, roundId, receivedAt, ct);
 
     public Task ScheduleAutoAsync(string salaId, RoundId roundId, Guid betId, Multiplier target, CancellationToken ct)

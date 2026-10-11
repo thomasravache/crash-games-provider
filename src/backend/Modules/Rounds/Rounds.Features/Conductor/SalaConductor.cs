@@ -44,6 +44,9 @@ public sealed class SalaConductor
     /// <summary>How many of the latest flights the leader still decides cash-outs for (a pending request is decided late).</summary>
     private const int RememberedFlights = 8;
 
+    /// <summary>When an automatic cash-out whose publication failed is tried again.</summary>
+    private static readonly TimeSpan AutoRetryDelay = TimeSpan.FromMilliseconds(100);
+
     private static readonly ActivitySource Activities = new(RoundsMetrics.MeterName);
 
     private readonly SalaConfig _sala;
@@ -379,6 +382,7 @@ public sealed class SalaConductor
         await SaveAsync(round, new RoundCrashed(_sala.Id, round.Id, crashPoint, ContractInstant(crashedAt)), ct).ConfigureAwait(false);
         _crashPoint = null;
         DropAutos();
+        EndFlight(round.Id, crashedAt);
         _nextRoundAt = crashedAt + _sala.CooldownDuration;
         if (_snapshots is not null)
         {
@@ -509,18 +513,40 @@ public sealed class SalaConductor
     /// <summary>
     /// Decides a manual cash-out of <paramref name="roundId"/> received at <paramref name="receivedAt"/> (SPEC-0023 §6,
     /// latency tolerance 0): accepted with the displayed multiplier when received before the crash instant (not rounded),
-    /// too late otherwise — also for a round this leader does not know (it ended before its term).
+    /// too late otherwise. A round this conductor does not have in memory is <see cref="CashOutUndecided"/> (review G4, M2):
+    /// see <see cref="DecidePersisted"/> for one that ended.
     /// </summary>
-    internal CashOutDecision Decide(RoundId roundId, DateTimeOffset receivedAt)
-    {
-        if (!_flights.TryGetValue(roundId, out var flight) || receivedAt >= flight.CrashAt)
-        {
-            return new CashOutTooLate();
-        }
+    internal CashOutDecision Decide(RoundId roundId, DateTimeOffset receivedAt) =>
+        _flights.TryGetValue(roundId, out var flight)
+            ? Decide(flight.StartedAt, flight.CrashAt, flight.CrashPoint, flight.Curve, receivedAt)
+            : new CashOutUndecided();
 
-        var multiplier = flight.Curve.MultiplierAt(receivedAt - flight.StartedAt, flight.CrashPoint);
-        return new CashOutAccepted(new ContractMultiplier(multiplier));
+    /// <summary>
+    /// Decides a cash-out of a round out of this conductor's memory from the round as persisted: a crashed round with the
+    /// same rule from its public data (<c>startedAt</c> and crash point), an annulled one too late, any other one
+    /// (not ended, or not found) <see cref="CashOutUndecided"/>.
+    /// </summary>
+    internal CashOutDecision DecidePersisted(Round? round, DateTimeOffset receivedAt)
+    {
+        switch (round)
+        {
+            case { State: RoundState.Crashed, StartedAt: { } startedAt, CrashPoint: { } crashPoint }:
+                var curve = new GrowthCurve(ParametersOf(round).GrowthK);
+                return Decide(startedAt, startedAt + curve.TimeToCrash(crashPoint), crashPoint, curve, receivedAt);
+            case { State: RoundState.Annulled }:
+                return new CashOutTooLate();
+            default:
+                return new CashOutUndecided();
+        }
     }
+
+    /// <summary>The persisted round <paramref name="roundId"/>, through the conductor's own store.</summary>
+    internal Task<Round?> FindRoundAsync(RoundId roundId, CancellationToken ct) => _store.FindAsync(roundId, ct);
+
+    private static CashOutDecision Decide(DateTimeOffset startedAt, DateTimeOffset crashAt, decimal crashPoint, GrowthCurve curve, DateTimeOffset receivedAt) =>
+        receivedAt >= crashAt
+            ? new CashOutTooLate()
+            : new CashOutAccepted(new ContractMultiplier(curve.MultiplierAt(receivedAt - startedAt, crashPoint)));
 
     /// <summary>
     /// Schedules the automatic cash-out of <paramref name="betId"/> at <paramref name="target"/>: executed at
@@ -528,8 +554,9 @@ public sealed class SalaConductor
     /// </summary>
     internal void ScheduleAuto(RoundId roundId, Guid betId, ContractMultiplier target)
     {
-        if (!_flights.TryGetValue(roundId, out var flight) || target.Value < 1.00m)
+        if (!_flights.TryGetValue(roundId, out var flight) || flight.Ended || target.Value < 1.00m)
         {
+            // Unknown here, or the flight already ended: Betting reconciles it with the public crash point (review G4, M1).
             return;
         }
 
@@ -559,8 +586,8 @@ public sealed class SalaConductor
         List<ScheduledAutoCashOut> due;
         lock (_autoGate)
         {
-            due = [.. _autos.Where(auto => auto.At <= now && auto.At < _crashAt).OrderBy(auto => auto.At)];
-            _autos.RemoveAll(auto => auto.At <= now);
+            due = [.. _autos.Where(auto => auto.DueAt <= now && auto.At < _crashAt).OrderBy(auto => auto.At)];
+            _autos.RemoveAll(due.Contains);
         }
 
         if (due.Count == 0 || _autoSink is not { } sink)
@@ -583,7 +610,12 @@ public sealed class SalaConductor
             catch (Exception exception)
 #pragma warning restore CA1031
             {
+                // Kept and retried shortly (review G4, M1); past the crash, Betting reconciles it with the public crash point.
                 RoundsLog.AutoCashOutFailed(_logger, _sala.Id, auto.RoundId.Value, auto.BetId, exception);
+                lock (_autoGate)
+                {
+                    _autos.Add(auto with { RetryAt = _time.GetUtcNow() + AutoRetryDelay });
+                }
             }
         }
     }
@@ -593,7 +625,7 @@ public sealed class SalaConductor
     {
         lock (_autoGate)
         {
-            return _autos.Count == 0 ? null : _autos.Min(auto => auto.At);
+            return _autos.Count == 0 ? null : _autos.Min(auto => auto.DueAt);
         }
     }
 
@@ -615,12 +647,12 @@ public sealed class SalaConductor
         }
     }
 
-    /// <summary>An annulled flight ends at <paramref name="at"/> for the decisions too.</summary>
+    /// <summary>The flight ended (crashed, or annulled at <paramref name="at"/>, which also ends it for the decisions).</summary>
     private void EndFlight(RoundId roundId, DateTimeOffset at)
     {
-        if (_flights.TryGetValue(roundId, out var flight) && at < flight.CrashAt)
+        if (_flights.TryGetValue(roundId, out var flight))
         {
-            _flights[roundId] = flight with { CrashAt = at };
+            _flights[roundId] = flight with { CrashAt = at < flight.CrashAt ? at : flight.CrashAt, Ended = true };
         }
     }
 

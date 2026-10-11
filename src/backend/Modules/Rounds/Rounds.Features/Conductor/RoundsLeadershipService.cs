@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Apogeu.Fairness.Contracts;
+using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Domain;
 using Apogeu.Rounds.Features.CashOut;
 using Apogeu.Rounds.Features.Live;
@@ -220,7 +221,7 @@ internal sealed class RoundsLeadershipService(
                 var conductor = CreateConductor(sala, scope.ServiceProvider, fenced, lastSeen, snapshots);
 
                 // The cash-outs of the room are decided here while this conductor runs (SPEC-0023).
-                using var arbiter = arbiters.Lead(sala.Id, new LeaderCashOutArbiter(conductor, autoCashOuts));
+                using var arbiter = arbiters.Lead(sala.Id, new LeaderCashOutArbiter(conductor, autoCashOuts, FindRoundAsync));
                 try
                 {
                     while (true)
@@ -256,6 +257,16 @@ internal sealed class RoundsLeadershipService(
             {
                 return;
             }
+        }
+    }
+
+    /// <summary>A persisted round read in a scope of its own: the cash-out decisions run on any thread, beside the conductor.</summary>
+    private async Task<Round?> FindRoundAsync(RoundId roundId, CancellationToken ct)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            return await scope.ServiceProvider.GetRequiredService<IRoundStore>().FindAsync(roundId, ct).ConfigureAwait(false);
         }
     }
 
