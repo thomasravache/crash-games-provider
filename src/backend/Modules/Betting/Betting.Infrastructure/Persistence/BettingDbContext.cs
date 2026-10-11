@@ -96,7 +96,8 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
         bet.Property(b => b.CashedOutAt).HasColumnName("cashed_out_at");
         bet.Property(b => b.CreditStatus).HasColumnName("credit_status").HasMaxLength(16);
         bet.Property(b => b.CreditBalance).HasColumnName("credit_balance").HasPrecision(18, 2);
-        bet.Property(b => b.CashOutRequestedAt).HasColumnName("cash_out_requested_at");
+        // A concurrency token: of concurrent pending requests the first reception instant stays (review G4, m1).
+        bet.Property(b => b.CashOutRequestedAt).HasColumnName("cash_out_requested_at").IsConcurrencyToken();
 
         // The credits of cash-outs not confirmed yet (betting.credits_pending, SPEC-0023 §8).
         bet.HasIndex(b => b.CashedOutAt).HasFilter("credit_status = 'pending'").HasDatabaseName("ix_bets_credit_pending");

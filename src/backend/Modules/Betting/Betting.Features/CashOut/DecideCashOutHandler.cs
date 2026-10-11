@@ -44,7 +44,7 @@ public static class DecideCashOutHandler
             return;
         }
 
-        CashOutDecision decision;
+        CashOutDecision? decision;
         try
         {
             decision = await arbiter.DecideAsync(found.SalaId, roundId, receivedAt, ct).ConfigureAwait(false);
@@ -54,11 +54,26 @@ public static class DecideCashOutHandler
 #pragma warning restore CA1031
         {
             BettingLog.CashOutPending(logger, bet.Id, exception.GetType().Name);
+            decision = null;
+        }
+
+        // Undecided (the leader is taking the round over) is never too late: decided again later (review G4, M2). An earlier
+        // concurrent reception recorded meanwhile is the one decided (m1).
+        if (decision is not (CashOutAccepted or CashOutTooLate)
+            || await store.FindByIdAsync(bet.Id, ct).ConfigureAwait(false) is not { CashOutRequestedAt: { } recorded } current
+            || recorded != receivedAt)
+        {
+            if (decision is CashOutUndecided)
+            {
+                BettingLog.CashOutPending(logger, bet.Id, nameof(CashOutUndecided));
+            }
+
             var delay = Backoff[Math.Min(command.Attempt, Backoff.Length - 1)];
             await bus.ScheduleAsync(command with { Attempt = command.Attempt + 1 }, delay).ConfigureAwait(false);
             return;
         }
 
+        found = current;
         if (decision is CashOutAccepted accepted)
         {
             if (await settlement.SettleAsync(found, accepted.Multiplier.Value, automatic: false).ConfigureAwait(false) is { } cashedOut)

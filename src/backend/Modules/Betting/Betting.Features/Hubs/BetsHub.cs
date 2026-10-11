@@ -43,7 +43,7 @@ public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet
     {
         // The instant of the cash-out is the server clock when the request is received (ADR-0005, tolerance 0).
         var receivedAt = time.GetUtcNow();
-        return Answer(await cashOut.CashOutAsync(Session, request, receivedAt, Context.ConnectionAborted).ConfigureAwait(false));
+        return Answer(await cashOut.CashOutAsync(Session, request, receivedAt).ConfigureAwait(false));
     }
 
     /// <summary>The bet limits of the session's operator in its currency (SPEC-0020@1).</summary>

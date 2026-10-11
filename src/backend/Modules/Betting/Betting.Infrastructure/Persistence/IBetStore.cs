@@ -74,14 +74,16 @@ public interface IBetStore
 
     /// <summary>
     /// Moves the active <paramref name="bet"/>, now cashed out, to <c>cashed_out</c> with its multiplier and payout and its credit
-    /// pending, storing in the same transaction the durable credit of the payout scheduled after <paramref name="creditRetry"/>
-    /// (Wolverine outbox, ADR-0007). Returns whether this call cashed it out (it was still active).
+    /// pending, storing in the same transaction the durable credit of the payout scheduled after <paramref name="creditDelay"/>
+    /// (Wolverine outbox, ADR-0007); with <paramref name="announce"/> that credit also tells the player the cash-out. Returns
+    /// whether this call cashed it out (it was still active).
     /// </summary>
-    Task<bool> CashOutAsync(Bet bet, bool automatic, DateTimeOffset at, TimeSpan creditRetry, CancellationToken ct);
+    Task<bool> CashOutAsync(Bet bet, bool automatic, DateTimeOffset at, TimeSpan creditDelay, bool announce, CancellationToken ct);
 
     /// <summary>
-    /// Records the reception instant of a manual cash-out the leader did not decide in time, with the durable command that has
-    /// it decided later (same transaction). Returns whether it was recorded (the bet is active without another request).
+    /// Records the reception instant of a manual cash-out the leader did not decide in time — the first one stays: a later
+    /// instant never replaces it, an earlier concurrent one does — with the single durable command that has it decided later
+    /// (stored with the first record). Returns whether the bet is active with a pending request.
     /// </summary>
     Task<bool> RequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, CancellationToken ct);
 

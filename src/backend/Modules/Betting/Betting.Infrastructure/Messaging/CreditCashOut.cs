@@ -12,4 +12,8 @@ namespace Apogeu.Betting.Infrastructure.Messaging;
 /// <param name="RoundId">Round of the bet.</param>
 /// <param name="Payout">Amount credited.</param>
 /// <param name="Attempt">How many times the wallet did not confirm it yet (backoff of the next attempt).</param>
-public sealed record CreditCashOut(Guid BetId, string OperatorId, string PlayerId, string Currency, Guid RoundId, decimal Payout, int Attempt = 0);
+/// <param name="Announce">
+/// Whether the first attempt also tells the player the cash-out (<c>CashedOut</c>, credited or pending): an automatic cash-out
+/// stored by the round events, whose queue never waits for the wallet (review G4, M4).
+/// </param>
+public sealed record CreditCashOut(Guid BetId, string OperatorId, string PlayerId, string Currency, Guid RoundId, decimal Payout, int Attempt = 0, bool Announce = false);

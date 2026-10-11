@@ -68,6 +68,7 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                         .HasColumnName("cash_out_multiplier");
 
                     b.Property<DateTimeOffset?>("CashOutRequestedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("cash_out_requested_at");
 

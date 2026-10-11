@@ -10,10 +10,13 @@ using Microsoft.Extensions.Logging;
 namespace Apogeu.Betting.Features.CashOut;
 
 /// <summary>
-/// Settles a cash-out the leader accepted (SPEC-0023 §6, ADR-0007): the bet becomes cashed out with its payout
+/// Settles a cash-out (SPEC-0023 §6, ADR-0007): the bet becomes cashed out with its payout
 /// (<c>min(floor(amount × multiplier × 100)/100, maxWin)</c>) together with the durable credit of the payout (one transaction,
-/// Wolverine outbox); then the credit <c>bet:{betId}:credit</c> is tried at once, outside any transaction. The answer says
-/// <c>credited</c> with the balance when the wallet confirms it, <c>pending</c> otherwise (the durable credit goes on).
+/// Wolverine outbox). The automatic cash-out has precedence: a manual one decided at or above the bet's target is settled at
+/// the exact target, as the automatic one (review G4, M3). <see cref="SettleAsync"/> then tries the credit
+/// <c>bet:{betId}:credit</c> at once, outside any transaction, and answers <c>credited</c> with the balance when the wallet
+/// confirms it, <c>pending</c> otherwise; <see cref="StoreAsync"/> only stores it, with the credit to run at once on its own
+/// queue (the round events never wait for the wallet, M4).
 /// </summary>
 public sealed class CashOutSettlement(
     IBetStore store,
@@ -46,25 +49,27 @@ public sealed class CashOutSettlement(
             return Answer(found);
         }
 
-        var maxWin = limits.Get(bet.Owner.OperatorId, bet.Owner.Currency).MaxWin.Value;
-        if (bet.CashOut(multiplier, maxWin) is not BetCashOutAccepted accepted)
+        (multiplier, automatic) = WithPrecedence(bet, multiplier, automatic);
+        if (CashOut(bet, multiplier) is not { } accepted)
         {
             return null;
         }
 
         // Not tied to the caller: once decided, the cash-out is settled even if the connection is gone.
-        if (!await store.CashOutAsync(bet, automatic, time.GetUtcNow(), CreditRetry, CancellationToken.None).ConfigureAwait(false))
+        if (!await store.CashOutAsync(bet, automatic, time.GetUtcNow(), CreditRetry, announce: false, CancellationToken.None).ConfigureAwait(false))
         {
             return await StoredAsync(bet.Id).ConfigureAwait(false);
         }
 
         metrics.CashedOut(automatic);
         var balance = await CreditAsync(bet, accepted.Payout).ConfigureAwait(false);
-        if (balance is { } confirmed)
+        if (balance is { } confirmed && !await ConfirmAsync(bet.Id, confirmed).ConfigureAwait(false))
         {
-            await store.ConfirmCreditAsync(bet.Id, confirmed, CancellationToken.None).ConfigureAwait(false);
+            // m8: the wallet confirmed it but the record failed: answered pending; the durable credit records it.
+            balance = null;
         }
-        else
+
+        if (balance is null)
         {
             metrics.CreditPending(1);
         }
@@ -76,6 +81,29 @@ public sealed class CashOutSettlement(
             balance is null ? CreditStatus.Pending : CreditStatus.Credited,
             balance is { } after ? new Money(after) : null,
             automatic);
+    }
+
+    /// <summary>
+    /// Stores the cash-out of the active <paramref name="bet"/> at <paramref name="multiplier"/> with its durable credit to run
+    /// at once, which also tells the player (<c>CashedOut</c>); no wallet call here. Returns whether this call cashed it out.
+    /// </summary>
+    public async Task<bool> StoreAsync(Bet bet, decimal multiplier, bool automatic, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(bet);
+        (multiplier, automatic) = WithPrecedence(bet, multiplier, automatic);
+        if (bet.Status != BetStatus.Active || CashOut(bet, multiplier) is null)
+        {
+            return false;
+        }
+
+        if (!await store.CashOutAsync(bet, automatic, time.GetUtcNow(), TimeSpan.Zero, announce: true, ct).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        metrics.CashedOut(automatic);
+        metrics.CreditPending(1);
+        return true;
     }
 
     /// <summary>The persisted cash-out of <paramref name="found"/>, or <see langword="null"/> when it is not cashed out.</summary>
@@ -96,6 +124,30 @@ public sealed class CashOutSettlement(
     /// <summary>The credit of the payout of a bet (SPEC-0021 §6): <c>bet:{betId}:credit</c>, with the round of the bet.</summary>
     public static WalletOperation CreditOf(Guid betId, PlayerRef player, Currency currency, Rounds.Contracts.RoundId roundId, decimal payout) =>
         new(TransactionId.ForCredit(betId), player, currency, new Money(payout), roundId, betId);
+
+    /// <summary>A manual cash-out at or above the bet's automatic target is the automatic one, at the exact target.</summary>
+    private static (decimal Multiplier, bool Automatic) WithPrecedence(Bet bet, decimal multiplier, bool automatic) =>
+        bet.AutoCashOut is { } target && multiplier >= target ? (target, true) : (multiplier, automatic);
+
+    private BetCashOutAccepted? CashOut(Bet bet, decimal multiplier) =>
+        bet.CashOut(multiplier, limits.Get(bet.Owner.OperatorId, bet.Owner.Currency).MaxWin.Value) as BetCashOutAccepted;
+
+    /// <summary>Records the confirmed credit; whether it is recorded (by this call or already).</summary>
+    private async Task<bool> ConfirmAsync(Guid betId, decimal balance)
+    {
+        try
+        {
+            await store.ConfirmCreditAsync(betId, balance, CancellationToken.None).ConfigureAwait(false);
+            return true;
+        }
+#pragma warning disable CA1031 // The credit is applied; only its record failed, and the durable credit records it (duplicate).
+        catch (Exception exception)
+#pragma warning restore CA1031
+        {
+            BettingLog.CreditPending(logger, betId, exception.GetType().Name);
+            return false;
+        }
+    }
 
     private async Task<CashedOut?> StoredAsync(Guid betId) =>
         await store.FindByIdAsync(betId, CancellationToken.None).ConfigureAwait(false) is { } current ? Answer(current) : null;
@@ -135,7 +187,8 @@ public sealed class CashOutSettlement(
 
             if (result is WalletUnavailable { Retryable: false })
             {
-                // Permanent: the durable credit raises it (reconciliation); nothing more is tried here.
+                // Permanent: the durable credit raises it too; nothing more is tried here (m6).
+                BettingLog.CreditRefused(logger, bet.Id);
                 break;
             }
         }

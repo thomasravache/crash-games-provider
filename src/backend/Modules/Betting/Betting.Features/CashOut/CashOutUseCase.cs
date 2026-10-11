@@ -26,13 +26,17 @@ public sealed class CashOutUseCase(
     /// <summary>How long the answer waits for the leader's decision before it is <c>CashOutPending</c> (SPEC-0023 §4).</summary>
     public static readonly TimeSpan DecisionDeadline = TimeSpan.FromMilliseconds(200);
 
-    public async Task<BettingOutcome<CashOutResult>> CashOutAsync(BettingSession session, CashOutRequest request, DateTimeOffset receivedAt, CancellationToken ct)
+    /// <summary>
+    /// The cash-out received at <paramref name="receivedAt"/>. Not cancellable: once received, a closed connection does not lose
+    /// the request (review G4, m2) — it is decided, or recorded as pending, all the same.
+    /// </summary>
+    public async Task<BettingOutcome<CashOutResult>> CashOutAsync(BettingSession session, CashOutRequest request, DateTimeOffset receivedAt)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(request);
         using var activity = BettingMetrics.Activities.StartActivity("betting.cash_out")?.SetTag("betting.bet_id", request.BetId);
 
-        if (await store.FindAsync(session.Owner, request.BetId, ct).ConfigureAwait(false) is not { } found)
+        if (await store.FindAsync(session.Owner, request.BetId, CancellationToken.None).ConfigureAwait(false) is not { } found)
         {
             return Refuse(BettingErrorCodes.BetNotFound);
         }
@@ -53,7 +57,7 @@ public sealed class CashOutUseCase(
             return Pending(bet.Id);
         }
 
-        switch (await DecideAsync(found.SalaId, roundId, bet.Id, receivedAt, ct).ConfigureAwait(false))
+        switch (await DecideAsync(found.SalaId, roundId, bet.Id, receivedAt).ConfigureAwait(false))
         {
             case CashOutAccepted accepted:
                 return await settlement.SettleAsync(found, accepted.Multiplier.Value, automatic: false).ConfigureAwait(false) is { } settled
@@ -63,12 +67,16 @@ public sealed class CashOutUseCase(
                 metrics.TooLate();
                 return Refuse(BettingErrorCodes.CashOutTooLate);
             default:
+                // Not decided in time, or undecided (the leader is taking over the round): decided later, once.
                 return await RequestAsync(bet, receivedAt).ConfigureAwait(false);
         }
     }
 
-    /// <summary>The leader's decision within <see cref="DecisionDeadline"/>; <see langword="null"/> when it did not come in time.</summary>
-    private async Task<CashOutDecision?> DecideAsync(string salaId, RoundId roundId, Guid betId, DateTimeOffset receivedAt, CancellationToken ct)
+    /// <summary>
+    /// The leader's decision within <see cref="DecisionDeadline"/>; <see langword="null"/> when it did not come in time (and
+    /// <see cref="CashOutUndecided"/> when the leader cannot decide yet).
+    /// </summary>
+    private async Task<CashOutDecision?> DecideAsync(string salaId, RoundId roundId, Guid betId, DateTimeOffset receivedAt)
     {
         var started = time.GetTimestamp();
 
@@ -76,7 +84,7 @@ public sealed class CashOutUseCase(
         var deciding = arbiter.DecideAsync(salaId, roundId, receivedAt, CancellationToken.None);
         try
         {
-            var decision = await deciding.WaitAsync(DecisionDeadline, time, ct).ConfigureAwait(false);
+            var decision = await deciding.WaitAsync(DecisionDeadline, time, CancellationToken.None).ConfigureAwait(false);
             metrics.Decided(time.GetElapsedTime(started));
             return decision;
         }
@@ -84,7 +92,9 @@ public sealed class CashOutUseCase(
         {
             BettingLog.CashOutPending(logger, betId, "deadline");
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+#pragma warning disable CA1031 // Any failure to reach the leader leaves the request to be decided later (CashOutPending).
+        catch (Exception exception)
+#pragma warning restore CA1031
         {
             BettingLog.CashOutPending(logger, betId, exception.GetType().Name);
         }
