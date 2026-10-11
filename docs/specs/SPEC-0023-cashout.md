@@ -72,7 +72,7 @@ Implementa o cash-out manual e o automático. A decisão é tomada pelo **líder
 
 ```text
 Hub /hubs/bets
-  CashOut({ betId }) → CashedOut | CashOutPending
+  CashOut({ betId }) → CashOutResult { cashedOut: CashedOut?, pending: CashOutPending? }   // exatamente um preenchido
     CashedOut { betId, multiplier:Multiplier, payout:Money, creditStatus:"credited"|"pending", balance:Money?, auto:false }
       // balance nulo quando creditStatus = "pending" (crédito ainda não confirmado; BalanceUpdated chega depois)
     CashOutPending { betId }   // o líder não decidiu em 200 ms: pedido gravado com o horário de recebimento
@@ -257,5 +257,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0023`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (forma) | 2026-10-11 | `CashOut` devolve o envelope `CashOutResult { cashedOut?, pending? }` (exatamente um preenchido) em vez de união polimórfica; `creditStatus` como enum "credited"/"pending" | Scaffold 0174675: o gerador de contratos da SPEC-0006 transforma `anyOf` de objetos em `unknown`; o envelope gera TypeScript tipado | SPEC-0026 (mesmo pin @2) | Architect (thomas autorizou seguir pelo recomendado, 2026-10-11) |
 | 2 | 2026-10-11 | Contrato v2: `CashedOut` ganha `creditStatus` ("credited"/"pending") e `balance` opcional; `CashOut` pode responder `CashOutPending` (líder sem decisão em 200 ms) com a decisão depois por `CashedOut` ou `CashOutRejected`; `ICashOutArbiter.ScheduleAutoAsync` encaminhado ao líder e evento `AutoCashOutExecuted`; `salaId` é string; TooLate ⇔ recebidoEm ≥ startedAt + t_c sem arredondamento (UT-01 corrigido); novo IT-07; scaffold dos tipos em commit `chore` antes dos testes | IMP-01: G1 do Test-writer (D1 limite do UT-01 contradiz o motor, D2 balance sem crédito confirmado, D3 saída do automático, D4 resposta sem decisão do líder) | SPEC-0026 (pin @1 → @2) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10/11) |
 | 1 (inalterado) | 2026-10-11 | Escopo: código gerado do Wolverine no Host (`src/backend/Host/Internal/Generated/**`), registro no `Program.cs` e regras de arquitetura; ADR-0028 (operação do Wolverine) passa a valer para os handlers do cash-out e do crédito | A SPEC-0022 entregou o Wolverine com código pré-gerado no Host (ADR-0028): todo handler novo regenera esse código | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
