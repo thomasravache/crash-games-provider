@@ -239,37 +239,64 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O jogador aposta pelo hub SignalR `/hubs/bets`: até duas apostas por rodada (painéis 1 e 2), com saída automática opcional; aposta durante o voo vale para a próxima rodada (queued); cancelamento só na fase de apostas, com estorno integral (ou "pending" quando a carteira não confirma, idempotente). Erros do contrato v3: limites, saldo insuficiente, painel ocupado, painel inválido, rodada encerrada, carteira indisponível e dinheiro real desabilitado. Nenhum caminho deixa um débito sem aposta ou sem estorno.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Módulo Betting (ADR-0001) com Wolverine e outbox transacional do EF Core (ADR-0028: código gerado no Host, ciclo de vida no Host com `IMessagingReadiness` em BuildingBlocks, regra de arquitetura MessagingOwnedByHost). Reserva da aposta gravada antes do débito e confirmada depois, sem transação aberta durante a chamada à carteira; tempo-limite por tentativa de débito com reenvio do mesmo id; varredura de reservas pendentes (qualquer instância) estorna pelo outbox; débito tardio depois da varredura gera novo estorno durável e alerta de conciliação, decidido pelo id da aposta. Cancelamento grava o status e a mensagem de estorno na mesma transação. Fase da rodada lida de `ISalaPhase` (independente da instância); ativação das apostas queued por aposta. Quatro rodadas de review (G4). Desvio: a CI confere o código gerado com `codegen write` + diff (ADR-0028 ajustado).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dada uma rodada em apostas e limites BRL padrão, quando uma aposta de 10,00 chega antes de `bettingEndsAt`, então fica placed na rodada atua… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-02 | Dado o relógio do servidor em `bettingEndsAt` e depois durante o voo, quando apostas chegam, então ficam queued; quando abre a próxima rodad… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-03 | Dado um jogador com aposta no painel 1, quando aposta no painel 2 e de novo no painel 1, então a do painel 2 é aceita e a outra recebe PANEL… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-04 | Dados os valores 0,50; 1.000,01; 1,005; 0 e autoCashOut 1,00x e 10.000,01x, quando validados, então BET_BELOW_MIN, BET_ABOVE_MAX, INVALID_AM… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-05 | Dadas apostas placed, queued e active, quando canceladas, então as duas primeiras são cancelled com estorno integral e a active recebe CANCE… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-06 | Dada uma aposta queued no painel 1, quando chega outra aposta no painel 1 (para a rodada atual ou a próxima), então PANEL_BUSY. Uma reserva … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-07 | Dada uma aposta placed cancelada, quando o estorno não confirma, então BetCancelled com refundStatus "pending" e um segundo CancelBet devolv… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-01 | Dado o Host real (Postgres, Redis, carteira demo), quando um jogador aposta 10,00 e depois aposta acima do saldo, então saldo 2.990,00 com a… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-02 | Dada uma rodada voando, quando o jogador aposta, recebe BetActivated na rodada seguinte, aposta de novo e cancela na fase de apostas, então … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-03 | Dadas duas chamadas paralelas com o mesmo clientBetId e uma carteira de teste que expira depois de debitar, então existe um único débito par… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-04 | Dadas sessões de dois jogadores, quando um cancela a aposta do outro e uma conexão sem token tenta apostar, então BET_NOT_FOUND e 401. | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-05 | Dado o condutor real de uma sala, quando uma rodada passa por apostas, voo e crash (e outra é anulada), então o Betting recebe `RoundBetting… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-06 | Dadas 300 apostas sequenciais, quando medidas do recebimento à resposta, então p99 ≤ 100 ms (`Category=Performance`). | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23; Category=Performance |
+| IT-07 | Dada uma aposta queued no painel 1 e uma corrida com nova aposta no mesmo painel e a abertura da rodada seguinte, quando a rodada abre, entã… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-08 | Dado um débito confirmado pela carteira e o processo interrompido antes do commit da aposta (falha injetada), quando a varredura de reservas… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-09 | Dada uma aposta placed e a carteira que falha no estorno, quando o jogador cancela, então BetCancelled com refundStatus "pending", o estorno… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-10 | Dado o crash da rodada entre o débito e a confirmação de uma aposta placed (falha injetada), quando a aposta é confirmada, então ROUND_CLOSE… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-11 | Dadas duas instâncias do Host com o mesmo Redis e PostgreSQL, quando uma aposta chega na instância que não conduz a sala, durante a fase de … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-12 | Dado um débito da carteira que demora mais que o tempo da varredura (falha injetada: o débito só é aplicado depois do estorno da reserva), q… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-13 | Dada uma aposta X cujo débito fica retido até depois da varredura (reserva anulada, estorno com TransactionNotFound), quando o cliente refaz… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| CT-01 | Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados do hub (SPEC-0006), então conferem (contrato v3 consumido … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — IT-06 (p99 do aceite ≤ 100 ms com 300 apostas); IT-11 (duas instâncias do Host)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #23
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas `betting.bets{status}`, `betting.rejected{code}`, latência de aceite, logs de conciliação com o betId; rollback = revert do merge e das migrações (sem dados de produção)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (cc260bb)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; build com 0 avisos no G5
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pela onda 7 (PR #23).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0024 — tornar durável o acerto do débito tardio se a instância cair entre a resposta tardia da carteira e o novo estorno (hoje fica o estorno da varredura e o alerta de conciliação); conciliação periódica com a carteira.
+- Minors aceitos do review: leitura precoce no commit ambíguo pode responder WALLET_UNAVAILABLE para aposta aceita (sem perda de dinheiro; repetir o clientBetId devolve BetAccepted); BetActivated não enviado às apostas já ativadas quando um erro de banco interrompe a ativação; corrida estreita entre queued e placed no mesmo painel (a perdedora não é ativada, com log); ramo `PanelTaken` morto.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0022`. -->

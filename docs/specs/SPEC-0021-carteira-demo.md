@@ -221,37 +221,60 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Carteira demo por jogador e operador: saldo inicial de R$ 3.000,00, débito, crédito e estorno idempotentes por TransactionId, recarga quando o saldo fica abaixo da aposta mínima, e leitura/recarga do saldo pelo jogador (REST, isolado por sessão; sessão de modo real → 403 NOT_DEMO). Livro-razão em partidas dobradas, só de inserção (UPDATE/DELETE/TRUNCATE recusados pelo banco). Contrato público da carteira do operador (seamless) documentado em `docs/integration/operator-wallet-api.md`.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Módulo Wallet novo (ADR-0001/0007): porta `IOperatorWallet` em `Wallet.Contracts` (v4: `RoundId` opcional no débito e no estorno de aposta queued), adaptador `DemoWallet`, `PostgresWalletLedger` com função plpgsql `wallet.try_append_entry` (advisory lock por conta, soma esperada, mapeamento de violação única para 'duplicate') e triggers de imutabilidade; índice único parcial garante um único estorno por débito. Três rodadas de review (G4): valores fora da escala de centavos recusados na porta; estorno único independe da ordem dos ids (provado no PostgreSQL real, IT-08); só falha transitória (timeout, Npgsql transitório ou do cliente) vira `Unavailable(retryable)`, erro permanente e cancelamento propagam; `FindRollbackOfAsync` sem corpo padrão. Desvio aceito pelo Architect: falha de conexão do cliente (NpgsqlException que não é PostgresException) conta como transitória — o resultado é incerto e reenviar o mesmo id é seguro.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dado um jogador sem lançamentos, quando o saldo demo é lido, então é 3.000,00 BRL. | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| UT-02 | Dado saldo 3.000,00, quando débito de 10,00 e depois débito de 5.000,00, então Ok com 2.990,00 e InsufficientFunds com saldo inalterado; cad… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| UT-03 | Dado um débito aplicado, quando o mesmo TransactionId chega de novo, então Duplicate com o resultado original. | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| UT-04 | Dado um débito de 10,00, quando crédito de 25,00 e estorno do débito (duas vezes), então saldo 3.015,00 após o crédito, 3.025,00 após o esto… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| UT-06 | Dados débitos, créditos e estornos com valor de 3 casas (10,005) ou abaixo de um centavo (0,001), quando chegam à porta, então são recusados… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| UT-07 | Dada uma falha transitória do banco (exceção de conexão ou tempo esgotado) durante um débito, quando a operação é executada, então devolve `… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| UT-05 | Dada aposta mínima 1,00, quando a recarga é pedida com saldo 0,50 e com saldo 1,00, então recarrega para 3.000,00 e recusa com RECHARGE_NOT_… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| IT-01 | Dado PostgreSQL real, quando um jogador novo é debitado em 10,00, então o saldo é 2.990,00 e o schema `wallet` tem um lançamento com duas pa… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| IT-02 | Dados 20 débitos com o mesmo TransactionId em paralelo, quando executados, então existe um único lançamento e todos recebem o mesmo resultad… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| IT-03 | Dado débito, crédito e estorno reais, quando repetidos, então o saldo final é o esperado e não há lançamento duplicado. | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| IT-04 | Dado o Host real com sessões de dois jogadores, quando cada um lê o saldo e pede recarga, então cada um só vê o próprio saldo, recarga funci… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| IT-07 | Dado saldo 15,00 e PostgreSQL real, quando dois débitos com TransactionIds diferentes de 10,00 chegam ao mesmo tempo para o mesmo jogador (r… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| IT-05 | Dados 500 débitos sequenciais com Postgres real, quando medidos, então p99 ≤ 20 ms (`Category=Performance`). | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23; Category=Performance |
+| IT-06 | Dado um lançamento gravado, quando se tenta UPDATE, DELETE ou TRUNCATE direto no banco, com a mesma conexão do módulo usada pela aplicação, … | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| IT-08 | Dado um débito de 10,00 no PostgreSQL real, quando chegam dois estornos com TransactionIds distintos e não determinísticos, primeiro em sequ… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
+| CT-01 | Dadas as respostas reais de IT-04, quando validadas contra o OpenAPI gerado, então conferem (contrato v2 consumido pelas SPEC-0022, 0023, 00… | PASS | G5 local 8484e37 (onda 7, resultado integrado); CI do PR #23 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — IT-05 (p99 do débito ≤ 20 ms com Postgres real)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #23
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas `wallet.operations`, `wallet.duplicates`, `wallet.demo_recharges` e trace por TransactionId (Activity `Apogeu.Wallet` com status de erro); rollback = revert do merge e da migração (sem dados de produção)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (8484e37)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; build com 0 avisos no G5
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pela onda 7 (PR #23).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0046 — adaptador seamless real: débito tardio depois de um estorno (tombstone), DUPLICATE depois de INSUFFICIENT_FUNDS e proteção contra replay na documentação pública (achados do review).
+- SPEC-0027 — regras de arquitetura do módulo Wallet (Domain sem Npgsql) e nomes de claims copiados de Operators para Contracts/BuildingBlocks.
+- Dívidas aceitas: modo do saldo sempre "demo" até a carteira real; recarga sem mapeamento de erro inesperado (500); UT-06 de id reutilizado só afirma "não Duplicate" (o código devolve TransactionNotFound).
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0021`. -->

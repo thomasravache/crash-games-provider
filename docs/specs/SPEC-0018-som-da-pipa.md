@@ -213,37 +213,57 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+A Pipa tem som: vento que cresce com o multiplicador, tensão da linha, marcos sonoros, decolagem e o corte da pipa no crash, gerados com Web Audio nativo e arquivos CC0. O som começa ligado depois do primeiro gesto do jogador (política de autoplay), tem botão de mudo no cabeçalho operável por teclado (aria-pressed) e a preferência é lembrada. Em aba oculta o áudio é suspenso e retoma sincronizado com a rodada atual.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Pacote `scene-kit` ganha o motor `PipaAudio` (interface `GameAudio` opcional, o app funciona sem ela), ligado ao mesmo fluxo de estados do `GameAnimator` (contrato da SPEC-0010@1, inalterado). Testes de síntese com `OfflineAudioContext` (dublê) e Vitest; E2E no Playwright com dispositivo de áudio falso. Emendas: caminho dos testes no Vitest, dublê do `OfflineAudioContext`, escopo de integração (índices do scene-kit/game-ui, `hud.tsx`, `App.tsx`/`main.tsx`, dependency-cruiser); o tique da contagem regressiva foi para a SPEC-0026. O harness de renderização para revisão foi tornado determinístico (o silêncio de 0–6 s era do harness, não do jogo; teste de guarda 31d2696). Som aprovado por thomas (2026-10-10). E2E-03 usa Option+Tab no WebKit do macOS (navegação por teclado do sistema).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dados m = 1, 2, 5, 10, 25, 50 e 100, quando `windGain` e `tensionHz` são calculados, então ficam nas faixas do contrato ([0,15; 0,60] e [220… | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| UT-02 | Dada uma rodada de 1x a 120x com uma ressincronização de 12x para 11,8x, quando os marcos são avaliados, então cada um dos 6 marcos toca exa… | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| UT-03 | Dado o `PipaAudio` sem `unlock()`, quando `prepare`, `takeoff` e `setMultiplier(3)` são chamados, então nenhum `AudioContext` é criado nem r… | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| UT-04 | Dado `setMuted(true)` e depois `setVolume(0,3)`, quando o ganho mestre é inspecionado num `OfflineAudioContext`, então vai a 0 por rampa de … | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| UT-05 | Dado o pior caso (100x seguido de crash) renderizado num `OfflineAudioContext`, quando o sinal é analisado, então o ganho mestre nunca passa… | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| UT-06 | Dado `crash(3.21)`, quando o agendamento é inspecionado, então a ordem é snap (≤ 150 ms) → fall (até 1500 ms) → silêncio, vento e tensão che… | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| UT-07 | Dado `visibilitychange` para hidden durante o voo e visible 10 s depois já em outra rodada, então o `AudioContext` é suspenso e, ao voltar, … | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| IT-01 | Dado o backend real (Aspire) e o Chromium com dispositivo de áudio falso (`--use-fake-device-for-media-stream`, `--autoplay-policy=no-user-g… | PASS | G5 local ddafe83 (`tools/ci/run-e2e.sh`, onda 7); job ci / e2e do PR #23 (Linux) |
+| CT-01 | Dada a sequência de estados do contrato da SPEC-0010@1 (a mesma da suíte de contrato do `GameAnimator`), quando executada contra o `PipaAudi… | PASS | G5 local ddafe83 (onda 7, resultado integrado); CI do PR #23 |
+| E2E-01 | Dado o jogo aberto, quando o jogador toca no botão "Som" para desligar e recarrega a página, então o botão continua desligado (`aria-pressed… | PASS | G5 local ddafe83 (`tools/ci/run-e2e.sh`, onda 7); job ci / e2e do PR #23 (Linux) |
+| E2E-02 | Dado o jogo aberto sem nenhum gesto do jogador, quando uma rodada inteira passa, então `audio.state()` é "locked" e o `cueLog` está vazio; a… | PASS | G5 local ddafe83 (`tools/ci/run-e2e.sh`, onda 7); job ci / e2e do PR #23 (Linux) |
+| E2E-03 | Dado o cabeçalho do jogo, quando o botão de som é operado só por teclado (Tab, Enter, Espaço) e a página é analisada com axe, então alterna … | PASS | G5 local ddafe83 (`tools/ci/run-e2e.sh`, onda 7); job ci / e2e do PR #23 (Linux) |
+| E2E-04 | Dada uma rodada completa no Chromium com som ligado, quando os tempos de quadro são coletados, então p95 ≤ 16,7 ms. | PASS | G5 local ddafe83 (`tools/ci/run-e2e.sh`, onda 7); job ci / e2e do PR #23 (Linux); Category=Performance |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — UT-05 (sem clipping no pior caso) e E2E-04 (p95 de quadro com som ligado)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #23
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — sem telemetria de cliente até haver hospedagem (Plano de Rollout); rollback = revert do merge (o jogo volta a ser mudo)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (ddafe83)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; build com 0 avisos no G5
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pela onda 7 (PR #23).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0017 — regra de lint proibindo `new AudioContext` fora do motor de áudio (achado do review).
+- SPEC-0014 — o token JWT aparece na mensagem de erro do console do cliente em falha de conexão (achado do review).
+- Minors do review (nomes, comentários e um limiar de teste) ficam para o acabamento da cena na SPEC-0033.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0018`. -->
