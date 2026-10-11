@@ -4,7 +4,7 @@ title: "Cash-out manual e automático"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0022]
