@@ -17,6 +17,9 @@ public sealed class CashOutArbiterTests
 {
     private const string SalaId = "demo";
 
+    /// <summary>A lowercase hex of 32 bytes (commitment and seed of the persisted rounds; never verified here).</summary>
+    private static readonly string Commitment = new('a', 64);
+
     private static readonly GrowthCurve Curve = new(GrowthCurve.DefaultK);
 
     [Fact(DisplayName = "Dados k = 0,00006, crash 2,00 e FakeTimeProvider, quando o cash-out é recebido em 5.000 ms, um tick antes de t_c e exatamente em t_c, então Accepted 1,34x, Accepted 1,99x e TooLate")]
@@ -78,6 +81,53 @@ public sealed class CashOutArbiterTests
         Assert.True(
             (executed.ClockAt - target).Duration() < TimeSpan.FromMilliseconds(1),
             $"The leader executes at t_alvo ({target:O}); its clock was at {executed.ClockAt:O}. {describe}");
+    }
+
+
+    [Fact(DisplayName = "Dado o árbitro do líder sem o voo em memória, quando a rodada não está encerrada (ou é desconhecida), então Undecided; quando está encerrada, então decide pelos dados persistidos (startedAt e ponto do crash) com a mesma regra")]
+    [Trait("Spec", "SPEC-0023:UT-06")]
+    public async Task GivenLeaderWithoutFlightInMemoryWhenRoundIsNotEndedThenUndecidedAndWhenEndedThenDecidedFromPersistedData()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var harness = new ConductorHarness(clock => new ScriptedFairness(clock, 2.00m));
+        var arbiter = new LeaderCashOutArbiter(harness.Conductor, new RecordingAutoCashOutSink(harness.Clock));
+        var startedAt = harness.Clock.GetUtcNow().AddSeconds(-30);
+        var crashAt = startedAt + Curve.TimeToCrash(2.00m);
+        var parameters = new RoundParameters(0.97m, 10_000.00m, GrowthCurve.DefaultK);
+
+        // A round another leader flies (persisted, Flying) and one it crashed at 2,00x: neither is in this conductor's memory.
+        var flying = Round.OpenBetting(new RoundId(Guid.CreateVersion7()), SalaId, 2, Guid.NewGuid(), 2, Commitment, startedAt, parameters);
+        flying.StartFlight(startedAt.AddSeconds(20));
+        await harness.Store.SaveAsync(flying, ct);
+        var crashed = Round.Restore(
+            new RoundId(Guid.CreateVersion7()), SalaId, 1, Guid.NewGuid(), 1, Commitment, RoundState.Crashed, startedAt,
+            startedAt, crashAt, 2.00m, Commitment, annulReason: null, annulledAt: null, parameters);
+        await harness.Store.SaveAsync(crashed, ct);
+        var unknown = new RoundId(Guid.CreateVersion7());
+
+        // Not ended (or unknown): the leader cannot tell, so it does not decide — never TooLate (review G4, M2).
+        Assert.IsType<CashOutUndecided>(arbiter.Decide(flying.Id, startedAt.AddSeconds(21)));
+        Assert.IsType<CashOutUndecided>(await DecideAsync(arbiter, flying.Id, startedAt.AddSeconds(21), ct));
+        Assert.IsType<CashOutUndecided>(await DecideAsync(arbiter, unknown, startedAt.AddSeconds(21), ct));
+
+        // Ended: the same rule from the public data persisted with the round.
+        Assert.Equal(new Multiplier(1.34m), Assert.IsType<CashOutAccepted>(await DecideAsync(arbiter, crashed.Id, startedAt.AddMilliseconds(5_000), ct)).Multiplier);
+        Assert.Equal(new Multiplier(1.99m), Assert.IsType<CashOutAccepted>(await DecideAsync(arbiter, crashed.Id, crashAt - TimeSpan.FromTicks(1), ct)).Multiplier);
+        Assert.IsType<CashOutTooLate>(await DecideAsync(arbiter, crashed.Id, crashAt, ct));
+    }
+
+    /// <summary>
+    /// Seam of review G4 (M2): <c>Task&lt;CashOutDecision&gt; LeaderCashOutArbiter.DecideAsync(RoundId, DateTimeOffset,
+    /// CancellationToken)</c> — the flight in memory first, then the round as persisted (bound by reflection so the suite
+    /// compiles before it exists).
+    /// </summary>
+    private static async Task<CashOutDecision> DecideAsync(LeaderCashOutArbiter arbiter, RoundId roundId, DateTimeOffset receivedAt, CancellationToken ct)
+    {
+        var method = typeof(LeaderCashOutArbiter).GetMethod("DecideAsync", [typeof(RoundId), typeof(DateTimeOffset), typeof(CancellationToken)]);
+        Assert.True(
+            method is not null && method.ReturnType == typeof(Task<CashOutDecision>),
+            "LeaderCashOutArbiter has no Task<CashOutDecision> DecideAsync(RoundId, DateTimeOffset, CancellationToken): the leader cannot decide a round out of its memory from the persisted data.");
+        return await ((Task<CashOutDecision>)method.Invoke(arbiter, [roundId, receivedAt, ct])!).ConfigureAwait(false);
     }
 
     private static async Task<RoundFlyingMessage> FlyingAsync(ConductorHarness harness)
