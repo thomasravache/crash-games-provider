@@ -105,8 +105,9 @@ Regras
   reconciliação no crash: ao processar RoundCrashed (ponto já público), toda aposta active ainda não retirada com alvo
     < ponto do crash é retirada no alvo exato (auto:true) antes de qualquer liquidação — o agendamento em memória do
     líder é só o caminho rápido; falha de publicação não descarta o automático
-  crédito: na fila sequencial de eventos da rodada só se grava o cash-out e o CreditCashOut (sem atraso) e se notifica;
-    a chamada à carteira acontece no handler do crédito, fora dessa fila
+  crédito: na fila sequencial de eventos da rodada só se grava o cash-out e o CreditCashOut (sem atraso); a chamada à
+    carteira acontece no handler do crédito, fora dessa fila, e é ele quem envia o CashedOut do automático (credited com
+    saldo, ou pending seguido de BalanceUpdated)
 ```
 
 **Design:** N/A — sem interface.
