@@ -1,5 +1,6 @@
 using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.Rounds.Features.Conductor;
+using Apogeu.TestKit.Logging;
 using Apogeu.Wallet.Contracts;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using StackExchange.Redis;
 using Xunit;
@@ -37,7 +39,8 @@ internal sealed class BettingHost : IAsyncDisposable
         string signingKey,
         IOperatorWallet wallet,
         BettingSala sala,
-        Action<IServiceCollection>? services)
+        Action<IServiceCollection>? services,
+        IReadOnlyDictionary<string, string>? settings = null)
     {
         DatabaseConnectionString = database;
         _keys = keys;
@@ -58,8 +61,14 @@ internal sealed class BettingHost : IAsyncDisposable
             host.UseSetting(section + "BettingDuration", sala.BettingDuration);
             host.UseSetting(section + "CooldownDuration", sala.CooldownDuration);
             host.UseSetting(section + "ChainLength", sala.ChainLength.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            foreach (var (key, value) in settings ?? new Dictionary<string, string>(StringComparer.Ordinal))
+            {
+                host.UseSetting(key, value);
+            }
+
             host.ConfigureTestServices(test =>
             {
+                test.AddLogging(logging => logging.AddProvider(Logs));
                 test.AddDataProtection().SetApplicationName("Apogeu.Betting.Tests").PersistKeysToFileSystem(keys.Directory);
 
                 // A host that is "killed" (IT-08) stops promptly even with an invocation stuck in the wallet.
@@ -72,6 +81,9 @@ internal sealed class BettingHost : IAsyncDisposable
     }
 
     public string DatabaseConnectionString { get; }
+
+    /// <summary>Every log entry of the instance (ADR-0017), for the reconciliation alerts.</summary>
+    public LogCapture Logs { get; } = new();
 
     /// <summary>The wallet double Betting debits and refunds.</summary>
     public IOperatorWallet Wallet { get; }
@@ -87,7 +99,8 @@ internal sealed class BettingHost : IAsyncDisposable
         CancellationToken ct,
         IOperatorWallet? wallet = null,
         Action<IServiceCollection>? services = null,
-        BettingSala? sala = null)
+        BettingSala? sala = null,
+        IReadOnlyDictionary<string, string>? settings = null)
     {
         ArgumentNullException.ThrowIfNull(containers);
         await FlushRedisAsync(containers.Redis.ConnectionString).ConfigureAwait(false);
@@ -99,7 +112,8 @@ internal sealed class BettingHost : IAsyncDisposable
             BettingSessions.NewSigningKey(),
             wallet ?? new FakeOperatorWallet(),
             sala ?? new BettingSala(),
-            services);
+            services,
+            settings);
         return await StartedAsync(host).ConfigureAwait(false);
     }
 
@@ -283,6 +297,7 @@ internal sealed class BettingHost : IAsyncDisposable
         finally
         {
             _keys.Release();
+            Logs.Dispose();
         }
     }
 }

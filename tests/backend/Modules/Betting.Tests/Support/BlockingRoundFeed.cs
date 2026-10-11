@@ -43,4 +43,7 @@ internal sealed class BlockingRoundFeed(IRoundFeed inner) : IRoundFeed
     public void Apply(RoundAnnulled annulled) => inner.Apply(annulled);
 
     public RoundWindow? Current(string salaId) => inner.Current(salaId);
+
+    /// <summary>Forwarded, so the tests run on the production phase source (the default body would read <see cref="Current"/>).</summary>
+    public Task<RoundWindow?> CurrentAsync(string salaId, CancellationToken ct) => inner.CurrentAsync(salaId, ct);
 }

@@ -52,6 +52,9 @@ internal sealed class RecordingRoundFeed(IRoundFeed inner) : IRoundFeed
 
     public RoundWindow? Current(string salaId) => inner.Current(salaId);
 
+    /// <summary>Forwarded, so the tests run on the production phase source (the default body would read <see cref="Current"/>).</summary>
+    public Task<RoundWindow?> CurrentAsync(string salaId, CancellationToken ct) => inner.CurrentAsync(salaId, ct);
+
     private void Record(object received)
     {
         lock (_gate)

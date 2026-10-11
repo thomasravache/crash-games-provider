@@ -20,6 +20,12 @@ internal sealed class ProgrammableWallet(FakeOperatorWallet inner) : IOperatorWa
 
     public FakeOperatorWallet Inner { get; } = inner;
 
+    /// <summary>
+    /// Holds the debit before the wallet applies it (a slow operator, IT-12 and UT-06). The wallet applies it when the hold
+    /// ends even if the caller gave up meanwhile (its timeout or cancellation only stops the caller's wait): a late debit.
+    /// </summary>
+    public Func<WalletOperation, Task>? BeforeDebit { get; set; }
+
     /// <summary>Runs after the debit was applied by <see cref="Inner"/> and before its result is returned.</summary>
     public Func<WalletOperation, Task>? AfterDebit { get; set; }
 
@@ -31,7 +37,21 @@ internal sealed class ProgrammableWallet(FakeOperatorWallet inner) : IOperatorWa
 
     public async Task<WalletResult> DebitAsync(WalletOperation op, CancellationToken ct)
     {
-        var result = await Inner.DebitAsync(op, ct).ConfigureAwait(false);
+        WalletResult result;
+        if (BeforeDebit is { } before)
+        {
+            var applying = Task.Run(async () =>
+            {
+                await before(op).ConfigureAwait(false);
+                return await Inner.DebitAsync(op, CancellationToken.None).ConfigureAwait(false);
+            });
+            result = await applying.WaitAsync(ct).ConfigureAwait(false);
+        }
+        else
+        {
+            result = await Inner.DebitAsync(op, ct).ConfigureAwait(false);
+        }
+
         if (AfterDebit is { } after)
         {
             await after(op).ConfigureAwait(false);
