@@ -10,8 +10,8 @@ parent: SPEC-0019
 depends_on: [SPEC-0022]
 consumes_contract: [SPEC-0020@2, SPEC-0021@4]
 contract_version: 1
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**"]
-adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019]
+touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "src/backend/Host/Internal/Generated/**", "src/backend/Host/Program.cs", "tests/backend/Architecture.Tests/**"]
+adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019, ADR-0028]
 external: []
 size: M
 approved_by: thomas
@@ -242,3 +242,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0023`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-11 | Escopo: código gerado do Wolverine no Host (`src/backend/Host/Internal/Generated/**`), registro no `Program.cs` e regras de arquitetura; ADR-0028 (operação do Wolverine) passa a valer para os handlers do cash-out e do crédito | A SPEC-0022 entregou o Wolverine com código pré-gerado no Host (ADR-0028): todo handler novo regenera esse código | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
