@@ -19,18 +19,29 @@ import {
 
 // The Chromium launch flags of src/frontend/playwright.config.ts (WebGL on SwiftShader) plus the audio flags of IT-01:
 // `use.launchOptions` replaces the project's, so the scene keeps the same renderer as every other Chromium test.
-const chromiumWebGl = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"];
+const chromiumWebGl = [
+  "--use-angle=swiftshader",
+  "--enable-unsafe-swiftshader",
+  "--ignore-gpu-blocklist",
+];
+// Skipped before any browser starts: the Chromium flags below make the other engines refuse to launch.
+test.skip(
+  ({ browserName }) => browserName !== "chromium",
+  "SPEC-0018 IT-01 runs in Chromium only (fake audio device flags)",
+);
 test.use({
   launchOptions: {
-    args: [...chromiumWebGl, "--use-fake-device-for-media-stream", "--autoplay-policy=no-user-gesture-required"],
+    args: [
+      ...chromiumWebGl,
+      "--use-fake-device-for-media-stream",
+      "--autoplay-policy=no-user-gesture-required",
+    ],
   },
 });
 
 test("SPEC-0018:IT-01 rodada real após unlock(): cueLog com vento, decolagem, marcos, crash e recomeço, em ordem e sem erros de console", async ({
   page,
-  browserName,
 }) => {
-  test.skip(browserName !== "chromium", "SPEC-0018 IT-01 runs in Chromium only (fake audio device flags)");
   test.setTimeout(3 * roundTimeoutMs);
   const errors = collectErrors(page);
   await openGame(page);
@@ -47,12 +58,18 @@ test("SPEC-0018:IT-01 rodada real após unlock(): cueLog com vento, decolagem, m
   const from = (await cueLog(page)).length;
   const betting = await waitForState(
     page,
-    (state) => state.phase === "betting" && state.roundId !== null && state.roundId !== previous.roundId,
+    (state) =>
+      state.phase === "betting" &&
+      state.roundId !== null &&
+      state.roundId !== previous.roundId,
     "a new round in betting",
   );
   const crashed = await waitForState(
     page,
-    (state) => state.roundId === betting.roundId && state.phase === "crashed" && state.crashPoint !== null,
+    (state) =>
+      state.roundId === betting.roundId &&
+      state.phase === "crashed" &&
+      state.crashPoint !== null,
     `the crash of round ${String(betting.roundNumber)}`,
   );
   const crashPoint = Number(crashed.crashPoint);
@@ -78,25 +95,42 @@ test("SPEC-0018:IT-01 rodada real após unlock(): cueLog com vento, decolagem, m
   const fall = indexOf(log, "fall", snap);
   const restart = indexOf(log, "restart", fall);
   expect(takeoff, `takeoff in ${summary}`).toBeGreaterThan(0);
-  expect(indexOf(log, "wind"), `wind before the takeoff in ${summary}`).toBeGreaterThanOrEqual(0);
-  expect(indexOf(log, "wind"), `wind before the takeoff in ${summary}`).toBeLessThan(takeoff);
+  expect(
+    indexOf(log, "wind"),
+    `wind before the takeoff in ${summary}`,
+  ).toBeGreaterThanOrEqual(0);
+  expect(
+    indexOf(log, "wind"),
+    `wind before the takeoff in ${summary}`,
+  ).toBeLessThan(takeoff);
   expect(snap, `snap after the takeoff in ${summary}`).toBeGreaterThan(takeoff);
   expect(fall, `fall after the snap in ${summary}`).toBeGreaterThan(snap);
   expect(restart, `restart after the fall in ${summary}`).toBeGreaterThan(fall);
-  expect(indexOf(log, "takeoff", takeoff + 1), "a single takeoff in the round").toBe(-1);
+  expect(
+    indexOf(log, "takeoff", takeoff + 1),
+    "a single takeoff in the round",
+  ).toBe(-1);
 
   // The milestones reached, once each, between the takeoff and the snap.
   const played = log
     .slice(takeoff, snap)
     .filter((entry) => entry.name === "milestone")
     .map((entry) => entry.milestone);
-  const surelyReached = milestones.filter((milestone) => milestone * 1.01 < crashPoint);
-  const possiblyReached = milestones.filter((milestone) => milestone <= crashPoint);
-  expect(played, `milestones of a round crashed at ${String(crashPoint)}x`).toEqual(
-    possiblyReached.slice(0, played.length),
+  const surelyReached = milestones.filter(
+    (milestone) => milestone * 1.01 < crashPoint,
   );
+  const possiblyReached = milestones.filter(
+    (milestone) => milestone <= crashPoint,
+  );
+  expect(
+    played,
+    `milestones of a round crashed at ${String(crashPoint)}x`,
+  ).toEqual(possiblyReached.slice(0, played.length));
   expect(played.length).toBeGreaterThanOrEqual(surelyReached.length);
-  expect(log.filter((entry) => entry.name === "milestone").length, "no milestone outside the flight").toBe(played.length);
+  expect(
+    log.filter((entry) => entry.name === "milestone").length,
+    "no milestone outside the flight",
+  ).toBe(played.length);
 
   expect(errors, "console errors and uncaught page errors").toEqual([]);
 });

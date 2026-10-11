@@ -10,7 +10,7 @@ parent: SPEC-0019
 depends_on: [SPEC-0010, SPEC-0024]
 consumes_contract: [SPEC-0020@2, SPEC-0021@4, SPEC-0022@3, SPEC-0023@2, SPEC-0024@1, SPEC-0025@1]
 contract_version: 3
-touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**"]
+touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "src/frontend/apps/game-pipa/src/main.tsx", "src/frontend/apps/game-pipa/src/test-hook.ts", "src/frontend/apps/game-pipa/src/styles.css", "src/frontend/apps/game-pipa/src/bets/**", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021]
 external: []
 size: M
@@ -69,13 +69,18 @@ Liga o painel de aposta da Pipa ao backend: dois painéis (aposta dupla) com val
 ```text
 Painel (por painel 1 e 2)
   Estados: idle (APOSTAR R$ x) → placed (CANCELAR) → active (RETIRAR R$ valor×m) → cashed_out (ganhou R$ y) | lost (perdeu)
+           active → cashing_out ("Retirando…", após CashOutPending) → cashed_out | lost (CashOutRejected)
+           placed|active em rodada anulada → refunded (estornado, BetRefunded)
+           crédito pendente (creditStatus "pending"): ganho exibido; saldo atualiza com BalanceUpdated
            durante o voo: idle → queued (PRÓXIMA · CANCELAR) → placed na rodada seguinte
   Controles: valor com − / + (passo R$ 1,00), fichas 1, 5, 10, 50; cash-out automático (interruptor + alvo ≥ 1,01x)
   Validação local: fora dos limites → botão desabilitado com motivo; o servidor tem a palavra final
   Erros do servidor (código → mensagem pt-BR): BET_BELOW_MIN, BET_ABOVE_MAX, INSUFFICIENT_FUNDS, PANEL_BUSY,
-    CANCEL_NOT_ALLOWED, CASHOUT_TOO_LATE ("Cash-out tardio: a pipa já tinha sido cortada"), WALLET_UNAVAILABLE
+    CANCEL_NOT_ALLOWED, CASHOUT_TOO_LATE ("Cash-out tardio: a pipa já tinha sido cortada"), WALLET_UNAVAILABLE,
+    INVALID_PANEL, ROUND_CLOSED, BET_NOT_ACTIVE, REAL_MONEY_DISABLED
 Saldo: "R$ 2.990,00 · DEMO"; botão "Recarregar demo" visível só quando saldo < aposta mínima
-Reconexão: saldo relido da carteira (SPEC-0021@4) e apostas abertas relidas de GET /api/v1/me/bets (SPEC-0025@1)
+Reconexão: saldo relido da carteira (SPEC-0021@4); apostas abertas relidas de GET /api/v1/me/bets (SPEC-0025@1) quando
+  o endpoint existir — enquanto responder 404, os painéis locais são mantidos e só o saldo é relido
 Store (game-sdk/state): BetsState { panels:[PanelState, PanelState], balance:Money, limits }
 Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 ```
@@ -107,9 +112,9 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 - N/A — o HUD da SPEC-0010 é coberto pelos testes dela; o painel desabilitado é substituído.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dada a sequência de eventos (BetAccepted placed, RoundFlying, CashedOut; e BetAccepted queued, BetActivated, RoundCrashed com BetSettled), quando aplicada ao store, então os painéis passam pelos estados do contrato.
+- **UT-01** — Dada a sequência de eventos (BetAccepted placed, RoundFlying, CashedOut; BetAccepted queued, BetActivated, RoundCrashed com BetSettled; CashOutPending seguido de CashedOut e de CashOutRejected; CashedOut com creditStatus "pending" seguido de BalanceUpdated; BetRefunded de rodada anulada), quando aplicada ao store, então os painéis passam pelos estados do contrato e o saldo só muda com valores do servidor.
 - **UT-02** — Dados limites 1,00/1.000,00 e alvo mínimo 1,01x, quando o valor é 0,50, 1.000,01 ou o alvo 1,00x, então o botão fica desabilitado com o motivo.
-- **UT-03** — Dado o store com dados antigos, quando a conexão volta, então saldo e apostas são substituídos pelos lidos do servidor.
+- **UT-03** — Dado o store com dados antigos, quando a conexão volta, então o saldo é substituído pelo lido do servidor e as apostas pelas de GET /api/v1/me/bets; com o endpoint respondendo 404, os painéis locais são mantidos sem erro.
 - **UT-04** — Dados "2990.5" e "24.70", quando formatados e enviados, então aparecem como "R$ 2.990,50" e "R$ 24,70" e trafegam como string, sem `Number`.
 - **UT-05** — Dado cada código de erro do contrato, quando recebido, então a mensagem pt-BR correspondente aparece no painel.
 - **UT-06** — Dado saldo 0,50 com mínimo 1,00 e depois saldo 10,00, quando o painel renderiza, então "Recarregar demo" aparece e some; a recarga atualiza o saldo.
@@ -239,5 +244,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0026`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 3 (inalterado) | 2026-10-11 | Repin em SPEC-0023@2: estados cashing_out (CashOutPending), lost por CashOutRejected, refunded (BetRefunded) e crédito pendente com BalanceUpdated (UT-01); novos códigos de erro INVALID_PANEL, ROUND_CLOSED, BET_NOT_ACTIVE, REAL_MONEY_DISABLED (UT-05); reconexão tolera GET /api/v1/me/bets ausente (404) até a SPEC-0025 (UT-03); escopo inclui `main.tsx`, `test-hook.ts`, `styles.css` e `src/bets/**` do app | Contratos v3 da SPEC-0022 e v2 da SPEC-0023; a SPEC-0025 (histórico) não é dependência desta | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | v3 | 2026-10-09 | Tremor do texto "PIPA CORTADA!" no HUD no crash (≤ 300 ms, sem tremor com movimento reduzido), com UT-07 | Saiu do escopo da SPEC-0011 (texto pertence ao HUD) | Nenhuma | thomas, 2026-10-09 (chat: "ok nas 3") |
 | v2 | 2026-10-09 | As abas "Todas as apostas" e "Minhas apostas" saem do escopo (vão para a SPEC-0031); IT-01, CT-01, E2E-01 e E2E-02 deixam de verificar o histórico; `depends_on` passa a incluir a SPEC-0024, cujos cash-out e liquidação reais os E2E exigem | Jogar com apostas uma onda antes: sem o histórico da SPEC-0025, o painel roda na mesma onda que ela | SPEC-0031 (nova); nenhuma outra (consome SPEC-0025@1 só para a releitura na reconexão, com dublês) | thomas (2026-10-09) |

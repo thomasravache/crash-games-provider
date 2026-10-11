@@ -10,8 +10,8 @@ parent: SPEC-0019
 depends_on: [SPEC-0023]
 consumes_contract: [SPEC-0021@4]
 contract_version: 1
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**"]
-adrs: [ADR-0002, ADR-0007, ADR-0010, ADR-0017, ADR-0018]
+touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Host/Internal/Generated/**", "src/backend/Host/Program.cs"]
+adrs: [ADR-0002, ADR-0007, ADR-0010, ADR-0017, ADR-0018, ADR-0028]
 external: []
 size: M
 approved_by: thomas
@@ -72,7 +72,7 @@ Betting.Contracts
   IRoundSettlementQuery.GetAsync(roundId) → [RoundSettlement]
   RoundSettlement { roundId, operatorId, currency, betsCount, totalWagered:Money, totalPaid:Money, ggr:Money, settledAt }
 Regras
-  crash: active sem cash-out → lost ; anulada: placed|active não retiradas → refunded (estorno integral)
+  crash: active sem cash-out → lost (aposta com pedido de cash-out pendente só é liquidada depois da decisão do líder: TooLate → lost, aceito → cashed_out) ; anulada: placed|active não retiradas → refunded (estorno integral)
   ggr = totalWagered − totalPaid − totalRefunded ; resumo imutável e único por (roundId, operatorId, currency)
 ```
 
@@ -89,6 +89,7 @@ Regras
 | Evento repetido | RoundCrashed/RoundAnnulled processado de novo | nada muda | IT-02 |
 | Reinício e pendências | estorno falhou e o processo reiniciou | estorno reenviado até confirmar, uma vez só | IT-03 |
 | Volume | 5.000 apostas | liquidadas em ≤ 2 s | IT-04 |
+| Cash-out pendente no crash | pedido de cash-out gravado (CashOutPending) quando a rodada crasha | aposta não vira lost antes da decisão; decidida pelo horário gravado (cashed_out ou lost) e o resumo só fecha depois | IT-05 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
 ### 7.1 Testes de Caracterização
@@ -104,6 +105,7 @@ Regras
 - **IT-02** — Dado um evento de crash entregue duas vezes, quando processado, então resumo e estados não mudam na segunda vez.
 - **IT-03** — Dada uma carteira que falha no estorno e um reinício do processo, quando a varredura roda, então o estorno é confirmado uma única vez e BetRefunded chega ao jogador.
 - **IT-04** — Dadas 5.000 apostas active numa rodada, quando o crash é liquidado, então termina em ≤ 2 s (`Category=Performance`).
+- **IT-05** — Dada uma aposta active com pedido de cash-out pendente (líder impedido de responder) recebido antes do crash, quando a rodada crasha e o líder volta, então a aposta vira cashed_out com o multiplicador do horário gravado (não lost), o crédito é feito uma vez e o resumo da rodada inclui o pagamento; e um pedido gravado depois do crash termina lost.
 
 ### 7.4 Testes de Contrato
 - N/A — eventos ao jogador seguem o contrato do hub gerado e são validados no CT-01 da SPEC-0026; `IRoundSettlementQuery` não tem consumidor neste épico.
@@ -147,7 +149,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -218,3 +220,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0024`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-11 | Interação com o cash-out pendente da SPEC-0023@2: aposta com pedido gravado só é liquidada depois da decisão do líder (IT-05); escopo inclui o código gerado do Wolverine no Host e o `Program.cs` (ADR-0028); scaffold em commit `chore` antes dos testes | A SPEC-0023 v2 introduziu CashOutPending e o Wolverine com código pré-gerado | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
