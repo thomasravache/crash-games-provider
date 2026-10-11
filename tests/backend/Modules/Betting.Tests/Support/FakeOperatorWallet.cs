@@ -35,6 +35,9 @@ internal sealed class FakeOperatorWallet : IOperatorWallet
     /// <summary>Applied debits (first <see cref="WalletOk"/> of a debit transaction id).</summary>
     public IReadOnlyList<WalletCall> AppliedDebits => [.. Calls.Where(c => string.Equals(c.Kind, "debit", StringComparison.Ordinal) && c.Applied)];
 
+    /// <summary>Applied credits (first <see cref="WalletOk"/> of a credit transaction id).</summary>
+    public IReadOnlyList<WalletCall> AppliedCredits => [.. Calls.Where(c => string.Equals(c.Kind, "credit", StringComparison.Ordinal) && c.Applied)];
+
     /// <summary>Applied rollbacks (first <see cref="WalletOk"/> of a rollback transaction id).</summary>
     public IReadOnlyList<WalletCall> AppliedRollbacks => [.. Calls.Where(c => string.Equals(c.Kind, "rollback", StringComparison.Ordinal) && c.Applied)];
 

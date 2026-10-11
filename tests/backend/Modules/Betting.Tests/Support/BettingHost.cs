@@ -237,6 +237,44 @@ internal sealed class BettingHost : IAsyncDisposable
         }
     }
 
+    /// <summary>How many bets of <c>betting.bets</c> are in <paramref name="status"/> among <paramref name="betIds"/>.</summary>
+    public async Task<int> CountStatusAsync(IReadOnlyCollection<Guid> betIds, string status, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(betIds);
+        var connection = new NpgsqlConnection(DatabaseConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
+            var command = new NpgsqlCommand("SELECT count(*) FROM betting.bets WHERE id = ANY(@ids) AND status = @status", connection);
+            await using (command.ConfigureAwait(false))
+            {
+                command.Parameters.AddWithValue("ids", betIds.ToArray());
+                command.Parameters.AddWithValue("status", status);
+                return (int)(long)(await command.ExecuteScalarAsync(ct).ConfigureAwait(false))!;
+            }
+        }
+    }
+
+    /// <summary>Waits until every bet of <paramref name="betIds"/> is <c>active</c> (the flight of its round reached Betting).</summary>
+    public async Task WaitActiveAsync(IReadOnlyCollection<Guid> betIds, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(betIds);
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var active = 0;
+        while (watch.Elapsed < TimeSpan.FromSeconds(10))
+        {
+            active = await CountStatusAsync(betIds, "active", ct).ConfigureAwait(false);
+            if (active == betIds.Count)
+            {
+                return;
+            }
+
+            await Task.Delay(20, ct).ConfigureAwait(false);
+        }
+
+        Assert.Fail($"Only {active} of {betIds.Count} bets became active within 10 s.");
+    }
+
     private HubConnection Connection(string path, string? session)
     {
         var server = _factory.Server;
@@ -293,6 +331,10 @@ internal sealed class BettingHost : IAsyncDisposable
         try
         {
             await _factory.DisposeAsync().ConfigureAwait(false);
+
+            // The in-process Host opened its pools by connection string: their idle connections to this test's database would
+            // otherwise stay open for minutes and add up across tests until the shared server refuses clients (53300).
+            NpgsqlConnection.ClearAllPools();
         }
         finally
         {
