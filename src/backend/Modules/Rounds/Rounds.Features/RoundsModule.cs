@@ -1,4 +1,5 @@
 using Apogeu.BuildingBlocks.Security;
+using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Features.Conductor;
 using Apogeu.Rounds.Features.History;
 using Apogeu.Rounds.Features.Live;
@@ -28,7 +29,8 @@ public static class RoundsModule
     /// <summary>
     /// Registers the rooms (<c>Rounds:Salas:{id}</c>, validated at startup), the persistence of the schema <c>rounds</c>
     /// (migrated at startup in Development only, ADR-0010), the hub with the Redis backplane and the leader election that
-    /// runs the conductor of each room (ADR-0005).
+    /// runs the conductor of each room (ADR-0005). The conductor publishes the round events through Wolverine's transactional
+    /// outbox (SPEC-0022), configured and started by the Host (ADR-0028).
     /// </summary>
     public static IServiceCollection AddRoundsModule(this IServiceCollection services)
     {
@@ -37,6 +39,7 @@ public static class RoundsModule
         services.AddOptions<RoundsOptions>().BindConfiguration(RoundsOptions.SectionName).ValidateOnStart();
         services.AddSingleton<IValidateOptions<RoundsOptions>, RoundsOptionsValidator>();
         services.AddSingleton<SalaCatalog>();
+        services.AddSingleton<ISalaCaps, SalaCaps>();
         services.AddMetrics();
         services.AddSingleton<RoundsMetrics>();
 
@@ -61,6 +64,7 @@ public static class RoundsModule
         });
         services.AddSingleton<IRoundBroadcaster, SignalRRoundBroadcaster>();
         services.AddSingleton<SalaLiveViews>();
+        services.AddSingleton<ISalaPhase, SalaPhase>();
         services.AddSingleton(provider => new SalaSnapshotQuery(
             provider.GetRequiredService<SalaCatalog>(),
             provider.GetRequiredService<SalaLiveViews>(),

@@ -4,14 +4,14 @@ title: "Apostar, aposta dupla e cancelamento"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0008, SPEC-0009]
-consumes_contract: [SPEC-0020@1, SPEC-0021@2]
-contract_version: 1
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/Rounds.Contracts/**", "src/backend/Modules/Rounds/Rounds.Features/Conductor/**", "src/backend/Host/Program.cs"]
-adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0007, ADR-0008, ADR-0010, ADR-0015, ADR-0019]
+consumes_contract: [SPEC-0020@2, SPEC-0021@4]
+contract_version: 3
+touches: ["src/backend/Modules/Betting/**", "src/backend/BuildingBlocks/Messaging/**", "src/backend/BuildingBlocks/BuildingBlocks.csproj", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/Rounds.Contracts/**", "src/backend/Modules/Rounds/Rounds.Features/Conductor/**", "src/backend/Host/Program.cs", "src/backend/Host/Host.csproj", "src/backend/Modules/Rounds/Rounds.Features/Rounds.Features.csproj", "src/backend/Modules/Rounds/Rounds.Features/RoundsModule.cs", "src/backend/Modules/Rounds/Rounds.Features/Salas/**", "src/backend/Modules/Rounds/Rounds.Infrastructure/**", "src/backend/Modules/Rounds/Rounds.Features/Live/**", "src/backend/Host/Internal/Generated/**", "src/backend/ServiceDefaults/Messaging/**", "tests/backend/Architecture.Tests/**", ".github/workflows/ci.yml"]
+adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0007, ADR-0008, ADR-0010, ADR-0015, ADR-0019, ADR-0028]
 external: []
 size: M
 approved_by: thomas
@@ -38,7 +38,7 @@ Implementa o módulo Betting para aceitar apostas: até duas apostas por jogador
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0008 (motor e salas) e SPEC-0009 (sessão do jogador, hub autenticado).
-- **Contratos consumidos:** SPEC-0020@1 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@2 (`IOperatorWallet`: débito e estorno idempotentes).
+- **Contratos consumidos:** SPEC-0020@2 (`IOperatorLimits`: mínimo, máximo, ganho máximo por moeda); SPEC-0021@4 (`IOperatorWallet`: débito e estorno idempotentes).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -78,8 +78,9 @@ Hub /hubs/bets (access_token = sessionToken da SPEC-0009)
     erros (HubException com o código): INVALID_AMOUNT (≤ 0 ou > 2 casas) | BET_BELOW_MIN | BET_ABOVE_MAX
       | INSUFFICIENT_FUNDS | PANEL_BUSY (já existe aposta não final nesse painel para a mesma rodada/próxima)
       | AUTO_CASHOUT_INVALID (< 1.01 ou > limite da sala) | WALLET_UNAVAILABLE | REAL_MONEY_DISABLED
+      | INVALID_PANEL (painel diferente de 1 e 2) | ROUND_CLOSED (a rodada encerrou antes da confirmação; débito estornado)
     repetição do mesmo clientBetId → mesmo BetAccepted
-  CancelBet({ betId }) → BetCancelled { betId, refunded:Money, balance:Money }
+  CancelBet({ betId }) → BetCancelled { betId, refunded:Money, refundStatus:"refunded"|"pending", balance:Money? }   // idempotente: novo CancelBet da mesma aposta devolve o mesmo resultado
     erros: CANCEL_NOT_ALLOWED (voo da rodada da aposta já começou) | BET_NOT_FOUND
   GetBetLimits() → { currency, minBet:Money, maxBet:Money, maxWin:Money }
 Servidor → jogador (só a própria conexão)
@@ -115,6 +116,18 @@ Estados: placed → active (RoundFlying) ; queued → placed (RoundBettingOpened
 | Eventos do motor | rodada real conduzida | Betting recebe aberto/voo/crash/anulada na ordem | IT-05 |
 | Desempenho | 300 apostas | p99 ≤ 100 ms | IT-06 |
 | Contrato | mensagens reais do hub | conferem com os tipos gerados | CT-01 |
+| Painel com aposta queued | nova aposta no mesmo painel enquanto há uma queued (placed ou queued) | PANEL_BUSY; a ativação da rodada seguinte nunca é bloqueada | UT-06, IT-07 |
+| Ativação resiliente | uma aposta da sala falha ao ativar | as demais apostas da sala são ativadas e recebem BetActivated | IT-07 |
+| Painel inválido | panel 3 | INVALID_PANEL | UT-04 |
+| Queda entre débito e confirmação | processo cai depois do débito e antes do commit | a reserva pendente é estornada pela varredura em ≤ 30 s, uma vez só | IT-08 |
+| Commit ambíguo | o cliente desconecta durante o commit | se a aposta ficou gravada, não é estornada; se não, é estornada | IT-08 |
+| Cancelamento com carteira fora | estorno não confirma | BetCancelled com refundStatus "pending"; estorno durável confirmado depois, uma vez; novo CancelBet devolve o mesmo BetCancelled | UT-07, IT-09 |
+| Estorno sem débito original | carteira responde TransactionNotFound | refunded 0,00 e alerta de conciliação | UT-07 |
+| Rodada encerrada antes da confirmação | crash entre o débito e o commit da aposta placed | ROUND_CLOSED e débito estornado | IT-10 |
+| Várias instâncias | aposta recebida numa instância que não é líder da sala | placed na rodada aberta (fase lida de fonte independente da instância) | IT-11 |
+| Débito tardio | o débito é aplicado depois que a varredura já estornou a reserva | novo estorno durável do débito tardio + alerta de conciliação; nenhum débito fica sem aposta nem estorno | IT-12 |
+| Débito tardio com clientBetId reutilizado | a reserva anulada é refeita com o mesmo clientBetId (nova aposta) antes de o débito tardio chegar | o débito tardio da aposta original é estornado uma vez e gera alerta; a nova aposta não é afetada | IT-13 |
+| Reserva pendente ocupa o painel | aposta pendente (ainda sem confirmação) no painel 1 e nova aposta no painel 1 | PANEL_BUSY | UT-06 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
 ### 7.1 Testes de Caracterização
@@ -124,8 +137,10 @@ Estados: placed → active (RoundFlying) ; queued → placed (RoundBettingOpened
 - **UT-01** — Dada uma rodada em apostas e limites BRL padrão, quando uma aposta de 10,00 chega antes de `bettingEndsAt`, então fica placed na rodada atual.
 - **UT-02** — Dado o relógio do servidor em `bettingEndsAt` e depois durante o voo, quando apostas chegam, então ficam queued; quando abre a próxima rodada, então viram placed nela.
 - **UT-03** — Dado um jogador com aposta no painel 1, quando aposta no painel 2 e de novo no painel 1, então a do painel 2 é aceita e a outra recebe PANEL_BUSY.
-- **UT-04** — Dados os valores 0,50; 1.000,01; 1,005; 0 e autoCashOut 1,00x e 10.000,01x, quando validados, então BET_BELOW_MIN, BET_ABOVE_MAX, INVALID_AMOUNT, INVALID_AMOUNT, AUTO_CASHOUT_INVALID e AUTO_CASHOUT_INVALID.
+- **UT-04** — Dados os valores 0,50; 1.000,01; 1,005; 0 e autoCashOut 1,00x e 10.000,01x, quando validados, então BET_BELOW_MIN, BET_ABOVE_MAX, INVALID_AMOUNT, INVALID_AMOUNT, AUTO_CASHOUT_INVALID e AUTO_CASHOUT_INVALID; painel 3 → INVALID_PANEL.
 - **UT-05** — Dadas apostas placed, queued e active, quando canceladas, então as duas primeiras são cancelled com estorno integral e a active recebe CANCEL_NOT_ALLOWED.
+- **UT-06** — Dada uma aposta queued no painel 1, quando chega outra aposta no painel 1 (para a rodada atual ou a próxima), então PANEL_BUSY. Uma reserva pendente (débito em andamento) também ocupa o painel: nova aposta no mesmo painel → PANEL_BUSY.
+- **UT-07** — Dada uma aposta placed cancelada, quando o estorno não confirma, então BetCancelled com refundStatus "pending" e um segundo CancelBet devolve o mesmo resultado; quando a carteira responde TransactionNotFound, então refunded 0,00 e alerta de conciliação.
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dado o Host real (Postgres, Redis, carteira demo), quando um jogador aposta 10,00 e depois aposta acima do saldo, então saldo 2.990,00 com aposta placed e INSUFFICIENT_FUNDS sem aposta persistida.
@@ -134,9 +149,16 @@ Estados: placed → active (RoundFlying) ; queued → placed (RoundBettingOpened
 - **IT-04** — Dadas sessões de dois jogadores, quando um cancela a aposta do outro e uma conexão sem token tenta apostar, então BET_NOT_FOUND e 401.
 - **IT-05** — Dado o condutor real de uma sala, quando uma rodada passa por apostas, voo e crash (e outra é anulada), então o Betting recebe `RoundBettingOpened`, `RoundFlying`, `RoundCrashed` e `RoundAnnulled` na ordem.
 - **IT-06** — Dadas 300 apostas sequenciais, quando medidas do recebimento à resposta, então p99 ≤ 100 ms (`Category=Performance`).
+- **IT-07** — Dada uma aposta queued no painel 1 e uma corrida com nova aposta no mesmo painel e a abertura da rodada seguinte, quando a rodada abre, então a nova recebe PANEL_BUSY, a queued vira placed com BetActivated e as apostas queued dos outros jogadores da sala também são ativadas.
+- **IT-08** — Dado um débito confirmado pela carteira e o processo interrompido antes do commit da aposta (falha injetada), quando a varredura de reservas pendentes roda, então o débito é estornado uma única vez em ≤ 30 s; e dada uma aposta efetivamente gravada com o cliente desconectado durante o commit, então ela não é estornada.
+- **IT-09** — Dada uma aposta placed e a carteira que falha no estorno, quando o jogador cancela, então BetCancelled com refundStatus "pending", o estorno é confirmado depois de a carteira voltar, uma vez só, e um segundo CancelBet devolve o mesmo BetCancelled.
+- **IT-10** — Dado o crash da rodada entre o débito e a confirmação de uma aposta placed (falha injetada), quando a aposta é confirmada, então ROUND_CLOSED e o débito é estornado.
+- **IT-11** — Dadas duas instâncias do Host com o mesmo Redis e PostgreSQL, quando uma aposta chega na instância que não conduz a sala, durante a fase de apostas, então fica placed na rodada aberta.
+- **IT-12** — Dado um débito da carteira que demora mais que o tempo da varredura (falha injetada: o débito só é aplicado depois do estorno da reserva), quando o débito finalmente confirma, então a aposta não é aceita, um novo estorno do débito é gravado de forma durável e aplicado uma única vez (saldo final igual ao inicial) e um alerta de conciliação é registrado; cada tentativa de débito tem tempo-limite, e o tempo da varredura é validado na inicialização como maior que o total das tentativas.
+- **IT-13** — Dada uma aposta X cujo débito fica retido até depois da varredura (reserva anulada, estorno com TransactionNotFound), quando o cliente refaz a aposta com o mesmo clientBetId (nova aposta B2 aceita) e só então o débito de X é aplicado, então o débito de X é estornado uma única vez, um alerta de conciliação cita X, e B2 continua aceita com o próprio débito intacto.
 
 ### 7.4 Testes de Contrato
-- **CT-01** — Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados do hub (SPEC-0006), então conferem (contrato v1 consumido pelas SPEC-0023, 0025 e 0026).
+- **CT-01** — Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados do hub (SPEC-0006), então conferem (contrato v3 consumido pelas SPEC-0023, 0025 e 0026).
 
 ### 7.5 Testes E2E
 - N/A — a jornada do jogador (apostar, retirar, perder) é provada pelos E2E da SPEC-0026, que consome este contrato (user_facing: false).
@@ -173,13 +195,13 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0005, ADR-0007, ADR-0008, ADR-0010, ADR-0015, ADR-0019 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05 com a tag `SPEC-0022:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07 com a tag `SPEC-0022:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar, seguindo os ADRs
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, CT-01 com a tag `SPEC-0022:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, IT-08, IT-09, IT-10, IT-11, IT-12, IT-13, CT-01 com a tag `SPEC-0022:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -195,11 +217,11 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:03:40.01]     Dada uma aposta X cujo débito fica retido até depois da varred) — 7dda0cb | 2026-10-10 |
+| G2 Green | PASS | build exit 0 (✓ built in 163ms); test exit 0 (Duration  1.33s (tests 68%, transform 21%, import 10%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T23:37:22: Report generation took 0,5 seconds) — d0c69d7 | 2026-10-10 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  757ms (tests 97%, transform 2%, import 1%)) — d0c69d7 | 2026-10-10 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (4ª revisão, d0c69d7; minors: débito tardio se a instância cair no acerto → SPEC-0024; leitura precoce no commit ambíguo; BetActivated perdido em erro no meio da ativação; corrida estreita queued×placed; ramo PanelTaken morto) — d0c69d7 | 2026-10-10 |
+| G5 Integração & CI | PASS | build exit 0 (✓ built in 144ms); test exit 0 (Duration  1.31s (tests 67%, transform 19%, import 13%, worker 2%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 4 m 48 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  775ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 433 files: 0 findings.) — cc260bb | 2026-10-11 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
@@ -208,45 +230,80 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-10 | G2 | spec | Contrato e escopo incompletos para a integração: (1) WalletRollback.RoundId obrigatório, mas o estorno de aposta queued não tem rodada; (2) o cap da sala não é exposto em Rounds.Contracts; (3) ligar o Wolverine (outbox do ADR-0002) exige Rounds.Features.csproj, Rounds.Infrastructure e Host.csproj, fora do touches | Implementer concluiu o domínio (ad5b1e7, 17 unitários verdes); leu SPEC-0021 v3, conductor, módulo e infraestrutura do Rounds e Directory.Packages.props | Architect: emenda da SPEC-0021 (v4) e da SPEC-0022 | Emenda 2 da SPEC-0022 (ISalaCaps em Rounds.Contracts, outbox EF transacional do Wolverine com fila sequencial, touches ampliado) e SPEC-0021 v4 (RoundId opcional no estorno de aposta queued) | 2026-10-10 |
+| IMP-02 | 2026-10-10 | G4 | spec | Review independente: (1) reversão de débito incerto não é durável (queda entre débito e commit, banco fora, commit ambíguo); (2) cancelamento grava status e estorna em passos separados; (3) CancelBet devolve WALLET_UNAVAILABLE fora do contrato; (4) PANEL_BUSY quebra na corrida entre aposta queued e nova aposta, travando a ativação da sala; (5) fase da rodada só existe no nó líder (outras instâncias enfileiram tudo); (6) padrões novos do Wolverine (código pré-gerado, AlwaysAllowed, ciclo de vida no Rounds, schema só em Development) sem ADR | Implementer entregou 0312d25 com 28/28 testes; Reviewer leu o diff e rodou Betting.Tests | Architect: emenda v3 da SPEC-0022 e ADR do Wolverine | Emenda 3 (contrato v3) + ADR-0028: reserva durável antes do débito, cancelamento com outbox, refundStatus/INVALID_PANEL/ROUND_CLOSED, painel ocupado pela queued, ISalaPhase, operação do Wolverine | 2026-10-10 |
+| IMP-03 | 2026-10-10 | G2 | trabalho | TEST_DEFECT no IT-12 (débito tardio): afirma o débito aplicado antes de a retenção do dublê terminar; e FixedRoundFeed sem CurrentAsync impede tornar IRoundFeed.CurrentAsync abstrato (M2) | Implementer confirmou localmente que uma espera eventual antes da linha 52 deixa os 3 IT-12 verdes | Test-writer | Resolvido dentro da própria SPEC-0022: Test-writer 12ff638 (IT-12 espera o débito tardio antes de afirmar; FixedRoundFeed implementa CurrentAsync) | 2026-10-10 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O jogador aposta pelo hub SignalR `/hubs/bets`: até duas apostas por rodada (painéis 1 e 2), com saída automática opcional; aposta durante o voo vale para a próxima rodada (queued); cancelamento só na fase de apostas, com estorno integral (ou "pending" quando a carteira não confirma, idempotente). Erros do contrato v3: limites, saldo insuficiente, painel ocupado, painel inválido, rodada encerrada, carteira indisponível e dinheiro real desabilitado. Nenhum caminho deixa um débito sem aposta ou sem estorno.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Módulo Betting (ADR-0001) com Wolverine e outbox transacional do EF Core (ADR-0028: código gerado no Host, ciclo de vida no Host com `IMessagingReadiness` em BuildingBlocks, regra de arquitetura MessagingOwnedByHost). Reserva da aposta gravada antes do débito e confirmada depois, sem transação aberta durante a chamada à carteira; tempo-limite por tentativa de débito com reenvio do mesmo id; varredura de reservas pendentes (qualquer instância) estorna pelo outbox; débito tardio depois da varredura gera novo estorno durável e alerta de conciliação, decidido pelo id da aposta. Cancelamento grava o status e a mensagem de estorno na mesma transação. Fase da rodada lida de `ISalaPhase` (independente da instância); ativação das apostas queued por aposta. Quatro rodadas de review (G4). Desvio: a CI confere o código gerado com `codegen write` + diff (ADR-0028 ajustado).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dada uma rodada em apostas e limites BRL padrão, quando uma aposta de 10,00 chega antes de `bettingEndsAt`, então fica placed na rodada atua… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-02 | Dado o relógio do servidor em `bettingEndsAt` e depois durante o voo, quando apostas chegam, então ficam queued; quando abre a próxima rodad… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-03 | Dado um jogador com aposta no painel 1, quando aposta no painel 2 e de novo no painel 1, então a do painel 2 é aceita e a outra recebe PANEL… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-04 | Dados os valores 0,50; 1.000,01; 1,005; 0 e autoCashOut 1,00x e 10.000,01x, quando validados, então BET_BELOW_MIN, BET_ABOVE_MAX, INVALID_AM… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-05 | Dadas apostas placed, queued e active, quando canceladas, então as duas primeiras são cancelled com estorno integral e a active recebe CANCE… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-06 | Dada uma aposta queued no painel 1, quando chega outra aposta no painel 1 (para a rodada atual ou a próxima), então PANEL_BUSY. Uma reserva … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| UT-07 | Dada uma aposta placed cancelada, quando o estorno não confirma, então BetCancelled com refundStatus "pending" e um segundo CancelBet devolv… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-01 | Dado o Host real (Postgres, Redis, carteira demo), quando um jogador aposta 10,00 e depois aposta acima do saldo, então saldo 2.990,00 com a… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-02 | Dada uma rodada voando, quando o jogador aposta, recebe BetActivated na rodada seguinte, aposta de novo e cancela na fase de apostas, então … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-03 | Dadas duas chamadas paralelas com o mesmo clientBetId e uma carteira de teste que expira depois de debitar, então existe um único débito par… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-04 | Dadas sessões de dois jogadores, quando um cancela a aposta do outro e uma conexão sem token tenta apostar, então BET_NOT_FOUND e 401. | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-05 | Dado o condutor real de uma sala, quando uma rodada passa por apostas, voo e crash (e outra é anulada), então o Betting recebe `RoundBetting… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-06 | Dadas 300 apostas sequenciais, quando medidas do recebimento à resposta, então p99 ≤ 100 ms (`Category=Performance`). | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23; Category=Performance |
+| IT-07 | Dada uma aposta queued no painel 1 e uma corrida com nova aposta no mesmo painel e a abertura da rodada seguinte, quando a rodada abre, entã… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-08 | Dado um débito confirmado pela carteira e o processo interrompido antes do commit da aposta (falha injetada), quando a varredura de reservas… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-09 | Dada uma aposta placed e a carteira que falha no estorno, quando o jogador cancela, então BetCancelled com refundStatus "pending", o estorno… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-10 | Dado o crash da rodada entre o débito e a confirmação de uma aposta placed (falha injetada), quando a aposta é confirmada, então ROUND_CLOSE… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-11 | Dadas duas instâncias do Host com o mesmo Redis e PostgreSQL, quando uma aposta chega na instância que não conduz a sala, durante a fase de … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-12 | Dado um débito da carteira que demora mais que o tempo da varredura (falha injetada: o débito só é aplicado depois do estorno da reserva), q… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| IT-13 | Dada uma aposta X cujo débito fica retido até depois da varredura (reserva anulada, estorno com TransactionNotFound), quando o cliente refaz… | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
+| CT-01 | Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados do hub (SPEC-0006), então conferem (contrato v3 consumido … | PASS | G5 local cc260bb (onda 7, resultado integrado); CI do PR #23 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — IT-06 (p99 do aceite ≤ 100 ms com 300 apostas); IT-11 (duas instâncias do Host)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #23
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas `betting.bets{status}`, `betting.rejected{code}`, latência de aceite, logs de conciliação com o betId; rollback = revert do merge e das migrações (sem dados de produção)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (cc260bb)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; build com 0 avisos no G5
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pela onda 7 (PR #23).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0024 — tornar durável o acerto do débito tardio se a instância cair entre a resposta tardia da carteira e o novo estorno (hoje fica o estorno da varredura e o alerta de conciliação); conciliação periódica com a carteira.
+- Minors aceitos do review: leitura precoce no commit ambíguo pode responder WALLET_UNAVAILABLE para aposta aceita (sem perda de dinheiro; repetir o clientBetId devolve BetAccepted); BetActivated não enviado às apostas já ativadas quando um erro de banco interrompe a ativação; corrida estreita entre queued e placed no mesmo painel (a perdedora não é ativada, com log); ramo `PanelTaken` morto.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0022`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 3 (inalterado) | 2026-10-10 | Re-review: o acerto do débito tardio só considera a própria aposta (não outra com o mesmo clientBetId) — IT-13 | Review G4 (e6d909c): M1-bis — débito tardio sem estorno quando o clientBetId é reutilizado | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
+| 3 (inalterado) | 2026-10-10 | 2º review da emenda 3: débito tardio após o estorno da varredura gera novo estorno durável + alerta (IT-12), com tempo-limite por tentativa de débito e tempo da varredura validado; reserva pendente ocupa o painel (UT-06); `IRoundFeed.CurrentAsync` sem corpo padrão (os dublês repassam); a porta `IMessagingReadiness` vai para BuildingBlocks (módulos não referenciam ServiceDefaults); teste negativo da regra MessagingOwnedByHost | Review G4 (a3fdf33): M1 dinheiro debitado sem aposta nem estorno; M2 corpo padrão mudava a fonte da fase nos dublês | Nenhuma (contrato inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
+| 3 | 2026-10-10 | Correções do review (G4): (1) reserva de aposta gravada **antes** do débito e confirmada depois (sem transação aberta durante a chamada à carteira); varredura estorna reservas pendentes; o estorno não acontece se a aposta foi gravada; (2) cancelamento grava o status e a mensagem de estorno na mesma transação (outbox do Wolverine no BettingDbContext); (3) contrato: `BetCancelled.refundStatus` "refunded" | "pending" com CancelBet idempotente, erros novos `INVALID_PANEL` e `ROUND_CLOSED`; estorno sem débito original informa refunded 0,00; (4) aposta queued ocupa o painel até ser ativada ou cancelada, e a ativação da sala é resiliente; (5) fase da rodada lida de fonte independente da instância: porta `ISalaPhase` em Rounds.Contracts sobre o snapshot da SPEC-0008 (líder em memória, seguidores pela leitura coalescida); (6) operação do Wolverine conforme o ADR-0028 (código gerado no Host, ciclo de vida no Host, checagem do código gerado na CI). Errata: a porta do cap é `ISalaCaps.CapOf(string salaId)` (o id da sala é texto em Rounds); sala desconhecida não tem cap e recusa cash-out automático. Novos UT-06, UT-07, IT-07..IT-11 | IMP-02: review independente com 6 achados major (segurança do dinheiro e arquitetura) | SPEC-0023, SPEC-0025, SPEC-0026 (pin @2 → @3) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
+| 2 | 2026-10-10 | (1) Estorno de aposta queued com RoundId nulo (SPEC-0021@4). (2) Nova porta de leitura em `Rounds.Contracts`: `ISalaCaps { Multiplier? CapOf(SalaId) }`, implementada no Rounds.Features sobre o catálogo de salas (o mesmo valor que `RoundParameters` dá a cada rodada), usada pelo Betting para o AUTO_CASHOUT_INVALID. (3) Primeira ligação do Wolverine (ADR-0002): **outbox transacional via EF Core** no `RoundsDbContext` — os 4 eventos de rodada são gravados na mesma transação do salvamento da rodada — e entregues em uma fila local **sequencial** que preserva a ordem (IT-05); `touches` passa a incluir `Rounds.Features.csproj`, `RoundsModule.cs`, `Rounds.Features/Salas/**`, `Rounds.Infrastructure/**` e `Host.csproj`. Pacotes já aprovados em Directory.Packages.props (WolverineFx, .Postgresql, .EntityFrameworkCore) | IMP-01: SPEC_DEFECT do Implementer | SPEC-0023..SPEC-0025 (consomem os eventos; contrato do hub inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
+| 1 (inalterado) | 2026-10-10 | Esclarecimentos: o "limite da sala" do AUTO_CASHOUT_INVALID é o cap da sala no Rounds (o mesmo valor que o motor usa e persiste por rodada), não o padrão do catálogo; o débito de aposta queued vai com RoundId nulo (SPEC-0021@4); TransactionIds montados como `bet:{betId}:debit|rollback`; o IT-01 de saldo insuficiente usa um segundo jogador com saldo baixo no dublê da carteira (com a carteira real, o caso fica coberto pela SPEC-0021) | G1 do Test-writer: origem do limite da sala e RoundId do débito queued não definidos | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |

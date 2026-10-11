@@ -4,12 +4,12 @@ title: "Catálogo de jogos e limites por operador e moeda"
 tier: full
 type: feature
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0009]
 consumes_contract: []
-contract_version: 1
+contract_version: 2
 touches: ["src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**", "src/backend/BuildingBlocks/Contracts/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020]
 external: []
@@ -150,25 +150,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0015, ADR-0020 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03 com a tag `SPEC-0020:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03 com a tag `SPEC-0020:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0020:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0020:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -180,9 +180,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  3.63s (tests 99%, transform 1%)) — 17d1bc9 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em 17d1bc9 — 0 blocker/major; minors: GET /games sem anti-replay e rate limit, contador operators.launch_rejected sem teste e em dobro, isolamento entre operadores sem IT, versão do cache por processo, numeric(18,2), Load síncrono — 38acd95 | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 153ms); test exit 0 (Duration  1.33s (tests 67%, transform 20%, import 11%, worker 1%)); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 3 m 36 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  817ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 294 files: 0 findings.) — 38a1eb3 | 2026-10-10 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-10 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #22, merge 2a8c297) | 2026-10-10 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 1cdd792 | 2026-10-10 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -194,40 +194,54 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Catálogo de jogos e limites por operador e moeda: a Pipa é um jogo do catálogo (definição com RTP, cap, crescimento e tempos padrão da sala), habilitado por operador; cada operador tem limites de aposta mínima, máxima e ganho máximo por moeda. O operador lista os jogos habilitados em `GET /api/v1/games` (assinatura HMAC), e o lançamento recusa jogo inexistente/desabilitado (400 GAME_NOT_AVAILABLE) e moeda sem limites (400 CURRENCY_NOT_ENABLED). Carteira e Apostas leem os limites por `IOperatorLimits`, com cache em memória invalidado por versão.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+No módulo Operators (ADR-0001: limites e moedas são dele), seguindo a SPEC-0009: tabelas `games`, `operator_games` e `operator_limits` no schema `operators` (migração só de expansão, com chaves estrangeiras e checks), `CatalogStore` singleton com escopo de DbContext por operação, `GameCatalog`/`OperatorLimits` sobre um `CatalogCache` recarregado só quando a versão muda, seed idempotente no ambiente de desenvolvimento, endpoint `ListGames` e checagem no lançamento depois da autenticação do operador. Tipos compartilhados `OperatorId`, `PlayerId` e `Currency` em `BuildingBlocks.Contracts` (emenda de escopo, IMP-01 da SPEC-0021). OpenAPI e contratos TypeScript regenerados. Contador `operators.launch_rejected{reason}`.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Find("pipa") devolve a definição completa; Find("aviao") é nulo | PASS | G5 local 6d7a6e2 (onda 6, resultado integrado); G2 17d1bc9 |
+| UT-02 | limites BRL 1,00/1.000,00/100.000,00; USD → CURRENCY_NOT_ENABLED | PASS | G5 local 6d7a6e2 (onda 6, resultado integrado); G2 17d1bc9 |
+| UT-03 | 10.000 leituras com média ≤ 1 ms; mudança de versão refletida | PASS | G5 local 6d7a6e2 (onda 6, resultado integrado); G2 17d1bc9 |
+| IT-01 | seed duas vezes no PostgreSQL real: um único pipa habilitado com limites BRL | PASS | G5 local 6d7a6e2 (onda 6, resultado integrado); G2 17d1bc9 |
+| IT-02 | lançamento com aviao, jogo desabilitado e USD → 400 com o código certo | PASS | G5 local 6d7a6e2 (onda 6, resultado integrado); G2 17d1bc9 |
+| IT-03 | GET /api/v1/games: 200 assinado com [pipa], 401 sem assinatura | PASS | G5 local 6d7a6e2 (onda 6, resultado integrado); G2 17d1bc9 |
+| CT-01 | respostas reais conferem com o OpenAPI gerado | PASS | G5 local 6d7a6e2 (onda 6, resultado integrado); G2 17d1bc9 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — leitura de limites ≤ 1 ms (UT-03); GET /games exige HMAC (IT-03)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A)
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — contador operators.launch_rejected{reason} (teste na SPEC-0028); rollback = revert do merge e da migração de expansão
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (6d7a6e2)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; uma supressão CA1716 com justificativa na linha (nome Get fixado pelo contrato)
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pela onda 6 (PR #22).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0028 — anti-replay e limite de taxa em todo endpoint com assinatura de operador (inclusive `GET /api/v1/games`), teste do contador `operators.launch_rejected` e isolamento entre operadores com um segundo operador (achados do review).
+- Dívidas aceitas (decisão do Architect, registradas no review): versão do cache por processo (só o seed escreve hoje; precisa ser persistida ou difundida antes de um backoffice que edite o catálogo); valores `numeric(18,2)` (suficiente para BRL; moedas com 3 casas exigem mudança de escala antes de habilitá-las); `GameDefinition.Currencies` informativo — CURRENCY_NOT_ENABLED depende só dos limites do operador, como diz o contrato; `Load` síncrono só em falta de cache.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0020`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v2 | 2026-10-10 | `GET /api/v1/games` ganha `thumbnailUrl` e `bannerUrl` (kit visual do jogo), campos opcionais para clientes existentes — implementado pela SPEC-0044 | Lobby do cassino demo (SPEC-0035) e lobbies de operadores reais precisam das artes do jogo | SPEC-0044 (introduz); consumidores existentes não quebram | thomas, 2026-10-10 (H1 do épico SPEC-0035) |
 | 1 (inalterado) | 2026-10-09 | Escopo: `src/backend/BuildingBlocks/Contracts/**` — `OperatorId`, `PlayerId` e `Currency` ficam junto de `Money`, e não em `Operators.Contracts` | IMP-01 da SPEC-0021: tipos compartilhados por Carteira e Apostas não existiam | SPEC-0021 | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-09) |

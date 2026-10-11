@@ -9,11 +9,15 @@
     <!-- Schema `rounds` in PostgreSQL with its own DbContext and migrations (ADR-0010). -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- Transactional outbox of the round integration events (ADR-0002, SPEC-0022 emenda 2). -->
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../Rounds.Contracts/Rounds.Contracts.csproj" />
     <ProjectReference Include="../Rounds.Domain/Rounds.Domain.csproj" />
+    <!-- IMessagingReadiness, the port of the Host's messaging lifecycle (ADR-0028). -->
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of the Wallet module (SPEC-0021, ADR-0007): the demo adapter of IOperatorWallet over an in-memory ledger double
+    (unit), the insert-only double-entry ledger on real PostgreSQL (Testcontainers) and, on the real Host
+    (WebApplicationFactory) with real PostgreSQL and Redis, the player REST API of the wallet and its OpenAPI contract.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../TestKit/TestKit.csproj" />
+    <ProjectReference Include="../../../../src/backend/BuildingBlocks/BuildingBlocks.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Operators/Operators.Contracts/Operators.Contracts.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Wallet/Wallet.Contracts/Wallet.Contracts.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Wallet/Wallet.Domain/Wallet.Domain.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Wallet/Wallet.Infrastructure/Wallet.Infrastructure.csproj" />
+    <ProjectReference Include="../../../../src/backend/Modules/Wallet/Wallet.Features/Wallet.Features.csproj" />
+    <ProjectReference Include="../../../../src/backend/Host/Host.csproj" />
+  </ItemGroup>
+
+  <!-- OpenAPI navigation and schema validation (SPEC-0006) and the shared database and error-body helpers, compiled in rather than duplicated. -->
+  <ItemGroup>
+    <Compile Include="../../Contracts.Tests/Support/OpenApiDocument.cs" Link="Support/Shared/OpenApiDocument.cs" />
+    <Compile Include="../../Contracts.Tests/Support/OpenApiSchemaValidator.cs" Link="Support/Shared/OpenApiSchemaValidator.cs" />
+    <Compile Include="../../Security.Tests/Support/TestApiKey.cs" Link="Support/Shared/TestApiKey.cs" />
+    <Compile Include="../../Security.Tests/Support/ErrorBodies.cs" Link="Support/Shared/ErrorBodies.cs" />
+    <Compile Include="../../Security.Tests/Support/TestDatabase.cs" Link="Support/Shared/TestDatabase.cs" />
+  </ItemGroup>
+
+</Project>

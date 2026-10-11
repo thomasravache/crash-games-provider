@@ -329,10 +329,111 @@
           }
         }
       }
+    },
+    "/api/v1/wallet/balance": {
+      "get": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "The balance of the session player in the session currency.",
+        "operationId": "GetWalletBalance",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalanceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/wallet/demo/recharge": {
+      "post": {
+        "tags": [
+          "Wallet"
+        ],
+        "summary": "Recharges the demo balance of the session player back to the opening amount when it is below the minimum bet.",
+        "operationId": "RechargeDemoWallet",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RechargeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "BalanceResponse": {
+        "required": [
+          "balance",
+          "currency",
+          "mode"
+        ],
+        "type": "object",
+        "properties": {
+          "balance": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          }
+        }
+      },
       "CreateSessionRequest": {
         "required": [
           "launchToken"
@@ -508,6 +609,11 @@
           }
         }
       },
+      "Money": {
+        "pattern": "^-?\\d+\\.\\d{2,}$",
+        "type": "string",
+        "format": "money"
+      },
       "Multiplier": {
         "pattern": "^-?\\d+\\.\\d{2,}$",
         "type": "string",
@@ -546,6 +652,21 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RechargeResponse": {
+        "required": [
+          "balance",
+          "currency"
+        ],
+        "type": "object",
+        "properties": {
+          "balance": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "currency": {
+            "type": "string"
           }
         }
       },
@@ -673,6 +794,9 @@
     },
     {
       "name": "Rounds"
+    },
+    {
+      "name": "Wallet"
     }
   ]
 }

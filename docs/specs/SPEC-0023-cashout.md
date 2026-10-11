@@ -4,14 +4,14 @@ title: "Cash-out manual e automático"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0022]
-consumes_contract: [SPEC-0020@1, SPEC-0021@2]
-contract_version: 1
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**"]
-adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019]
+consumes_contract: [SPEC-0020@2, SPEC-0021@4]
+contract_version: 2
+touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "src/backend/Host/Internal/Generated/**", "src/backend/Host/Program.cs", "tests/backend/Architecture.Tests/**"]
+adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019, ADR-0028]
 external: []
 size: M
 approved_by: thomas
@@ -39,7 +39,7 @@ Implementa o cash-out manual e o automático. A decisão é tomada pelo **líder
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0022 (apostas e eventos do motor).
-- **Contratos consumidos:** SPEC-0020@1 (ganho máximo por moeda); SPEC-0021@2 (crédito idempotente).
+- **Contratos consumidos:** SPEC-0020@2 (ganho máximo por moeda); SPEC-0021@4 (crédito idempotente).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -72,20 +72,31 @@ Implementa o cash-out manual e o automático. A decisão é tomada pelo **líder
 
 ```text
 Hub /hubs/bets
-  CashOut({ betId }) → CashedOut { betId, multiplier:Multiplier, payout:Money, balance:Money, auto:false }
-    erros: CASHOUT_TOO_LATE (recebido em ou depois do crash) | BET_NOT_ACTIVE (placed/queued/cancelled/já retirada)
+  CashOut({ betId }) → CashOutResult { cashedOut: CashedOut?, pending: CashOutPending? }   // exatamente um preenchido
+    CashedOut { betId, multiplier:Multiplier, payout:Money, creditStatus:"credited"|"pending", balance:Money?, auto:false }
+      // balance nulo quando creditStatus = "pending" (crédito ainda não confirmado; BalanceUpdated chega depois)
+    CashOutPending { betId }   // o líder não decidiu em 200 ms: pedido gravado com o horário de recebimento
+    erros: CASHOUT_TOO_LATE (recebido em ou depois do crash) | BET_NOT_ACTIVE (placed/queued/cancelled)
       | BET_NOT_FOUND
     repetição para aposta já retirada → mesmo CashedOut
 Servidor → jogador
-  CashedOut { betId, multiplier, payout, balance, auto:true }     // cash-out automático executado
-  BalanceUpdated { balance, currency }                            // crédito confirmado depois (reenvio)
+  CashedOut { betId, multiplier, payout, creditStatus, balance?, auto:true }  // automático executado
+  CashedOut { ..., auto:false }                       // decisão de um CashOutPending
+  CashOutRejected { betId, code:"CASHOUT_TOO_LATE" }  // decisão tardia de um CashOutPending
+  BalanceUpdated { balance, currency }                // crédito confirmado depois (reenvio)
 Rounds.Contracts
-  ICashOutArbiter.DecideAsync(salaId, roundId, receivedAt) → Accepted(multiplier) | TooLate
-  ICashOutArbiter.ScheduleAuto(salaId, roundId, betId, target) // executa em t_alvo se t_alvo < t_c
+  ICashOutArbiter.DecideAsync(salaId:string, roundId, receivedAt, ct) → CashOutAccepted(multiplier) | CashOutTooLate
+  ICashOutArbiter.ScheduleAutoAsync(salaId:string, roundId, betId, target:Multiplier, ct)
+    // chamado pela Betting quando a aposta fica active com autoCashOut; instância que não é o líder encaminha ao
+    // líder pelo Redis (como DecideAsync); o líder executa em t_alvo se t_alvo < t_c
+  AutoCashOutExecuted { salaId, roundId, betId, multiplier, executedAt }   // evento de integração publicado pelo
+    // líder (Wolverine); a Betting persiste o cash-out, credita e envia CashedOut{auto:true}
 Regras
+  t_c = ln(crash)/k sem arredondamento; TooLate ⇔ recebidoEm ≥ startedAt + t_c
   multiplicador manual = floor(e^(k·(recebidoEm − startedAt)) · 100)/100, aceito se recebidoEm < startedAt + t_c
   pagamento = min(floor(valor × multiplicador × 100)/100, ganhoMáximo da moeda)
   tolerância de latência = 0 ms (versionada neste contrato)
+  pedido pendente: decidido pelo líder com o horário de recebimento gravado, no máximo até o fim da rodada
 ```
 
 **Design:** N/A — sem interface.
@@ -107,6 +118,8 @@ Regras
 | Instância não líder | pedido chega em outra instância | encaminhado ao líder; mesma regra | IT-04 |
 | Desempenho | 300 cash-outs em 1 s | todos decididos; p99 ≤ 50 ms | IT-05 |
 | Sigilo do crash | respostas antes do crash | nenhuma contém crash ou t_c | IT-06 |
+| Líder sem resposta em 200 ms | pedido não decidido no prazo | CashOutPending; decidido depois pelo horário gravado (CashedOut ou CashOutRejected) | IT-07 |
+| Crédito pendente | carteira falha no crédito | CashedOut com creditStatus "pending" e balance nulo; BalanceUpdated depois | IT-03 |
 | Contrato | mensagens reais | conferem com os tipos gerados | CT-01 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
@@ -114,7 +127,7 @@ Regras
 - N/A — o motor da SPEC-0008 é coberto pelos testes dela.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dados k = 0,00006, crash 2,00 (t_c ≈ 11.552 ms) e FakeTimeProvider, quando o cash-out é recebido em 5.000 ms e em 11.552 ms, então Accepted com 1,34x e TooLate.
+- **UT-01** — Dados k = 0,00006, crash 2,00 (t_c ≈ 11.552 ms) e FakeTimeProvider, quando o cash-out é recebido em 5.000 ms, um tick antes de t_c (t_c = ln 2/k ≈ 11.552,45 ms, sem arredondamento) e exatamente em t_c, então Accepted com 1,34x, Accepted com 1,99x e TooLate.
 - **UT-02** — Dados valor e multiplicador, quando o pagamento é calculado, então 10,00 × 2,47 = 24,70; 3,33 × 1,07 = 3,56; e 1.000,00 × 150,00 = 100.000,00 pelo ganho máximo.
 - **UT-03** — Dados alvo 1,50x com crash 2,00x e alvo 3,00x com crash 2,00x, quando o agendamento roda, então o primeiro executa em t_alvo com 1,50x exatos e o segundo não executa.
 - **UT-04** — Dadas apostas placed, queued, cancelled e já retirada, quando CashOut é pedido, então BET_NOT_ACTIVE (e a já retirada devolve o CashedOut original).
@@ -122,10 +135,11 @@ Regras
 ### 7.3 Testes de Integração
 - **IT-01** — Dado o Host real com uma rodada conduzida, quando o jogador retira no meio do voo e outro pedido chega depois do crash, então o primeiro recebe CashedOut com saldo creditado e o segundo CASHOUT_TOO_LATE.
 - **IT-02** — Dadas duas apostas com cash-out automático (abaixo e acima do crash), quando a rodada termina, então só a primeira recebe CashedOut auto no alvo exato.
-- **IT-03** — Dada uma carteira de teste que falha no primeiro crédito, quando o jogador retira, o processo reinicia e o CashOut é repetido, então existe um único crédito confirmado e BalanceUpdated chega ao jogador.
+- **IT-03** — Dada uma carteira de teste que falha no primeiro crédito, quando o jogador retira, o processo reinicia e o CashOut é repetido, então a primeira resposta é CashedOut com creditStatus "pending" e balance nulo, existe um único crédito confirmado e BalanceUpdated chega ao jogador.
 - **IT-04** — Dadas duas instâncias do Host com Redis real e o líder na instância A, quando o cash-out chega na instância B, então é decidido pelo líder com a mesma regra.
 - **IT-05** — Dados 300 cash-outs na mesma rodada em 1 s, quando medidos, então todos decididos e p99 ≤ 50 ms (`Category=Performance`).
 - **IT-06** — Dadas todas as respostas e eventos enviados antes do crash, quando inspecionados, então nenhum contém o ponto nem o instante do crash.
+- **IT-07** — Dado o líder da sala impedido de responder por 300 ms (falha injetada no encaminhamento), quando o cash-out chega numa instância que não é o líder, então a resposta é CashOutPending e, ao liberar o líder, o jogador recebe CashedOut com o multiplicador do horário de recebimento gravado (ou CashOutRejected se recebido depois do crash).
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dadas as mensagens reais de IT-01/IT-02, quando validadas contra os tipos gerados, então conferem (contrato consumido pelas SPEC-0025 e 0026).
@@ -171,7 +185,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, CT-01 com a tag `SPEC-0023:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, CT-01 com a tag `SPEC-0023:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -200,6 +214,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-11 | G1 | spec | G1: falta scaffold dos tipos do contrato; D1 limite do UT-01 contradiz t_c não arredondado; D2 balance do CashedOut com crédito falho; D3 saída do cash-out automático; D4 resposta do hub quando o líder não decide em 200 ms | — | Architect | Emenda v2 — contrato v2 (creditStatus, CashOutPending, ScheduleAutoAsync encaminhado, AutoCashOutExecuted, TooLate em t_c exato) + scaffold antes dos testes | 2026-10-11 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -242,3 +257,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0023`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (forma) | 2026-10-11 | `CashOut` devolve o envelope `CashOutResult { cashedOut?, pending? }` (exatamente um preenchido) em vez de união polimórfica; `creditStatus` como enum "credited"/"pending" | Scaffold 0174675: o gerador de contratos da SPEC-0006 transforma `anyOf` de objetos em `unknown`; o envelope gera TypeScript tipado | SPEC-0026 (mesmo pin @2) | Architect (thomas autorizou seguir pelo recomendado, 2026-10-11) |
+| 2 | 2026-10-11 | Contrato v2: `CashedOut` ganha `creditStatus` ("credited"/"pending") e `balance` opcional; `CashOut` pode responder `CashOutPending` (líder sem decisão em 200 ms) com a decisão depois por `CashedOut` ou `CashOutRejected`; `ICashOutArbiter.ScheduleAutoAsync` encaminhado ao líder e evento `AutoCashOutExecuted`; `salaId` é string; TooLate ⇔ recebidoEm ≥ startedAt + t_c sem arredondamento (UT-01 corrigido); novo IT-07; scaffold dos tipos em commit `chore` antes dos testes | IMP-01: G1 do Test-writer (D1 limite do UT-01 contradiz o motor, D2 balance sem crédito confirmado, D3 saída do automático, D4 resposta sem decisão do líder) | SPEC-0026 (pin @1 → @2) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10/11) |
+| 1 (inalterado) | 2026-10-11 | Escopo: código gerado do Wolverine no Host (`src/backend/Host/Internal/Generated/**`), registro no `Program.cs` e regras de arquitetura; ADR-0028 (operação do Wolverine) passa a valer para os handlers do cash-out e do crédito | A SPEC-0022 entregou o Wolverine com código pré-gerado no Host (ADR-0028): todo handler novo regenera esse código | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |

@@ -4,6 +4,7 @@ using Apogeu.Fairness.Contracts;
 using Apogeu.Rounds.Domain;
 using Apogeu.Rounds.Features.Live;
 using Apogeu.Rounds.Features.Salas;
+using Apogeu.Rounds.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -224,7 +225,8 @@ internal sealed class RoundsLeadershipService(
                     loggers.CreateLogger<SalaConductor>(),
                     services.GetRequiredService<IRoundChainStore>(),
                     lastSeen,
-                    snapshots);
+                    snapshots,
+                    services.GetRequiredService<IRoundOutbox>());
                 try
                 {
                     while (true)

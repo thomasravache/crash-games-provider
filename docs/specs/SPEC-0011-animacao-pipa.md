@@ -4,7 +4,7 @@ title: "Animação da cena da Pipa"
 tier: full
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0001
 depends_on: [SPEC-0010]
@@ -164,29 +164,29 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0019, ADR-0020, ADR-0021 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0019, ADR-0020, ADR-0021 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07, UT-08 com a tag `SPEC-0011:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07, UT-08 com a tag `SPEC-0011:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, CT-01 com a tag `SPEC-0011:<ID>`, backend real e Chromium com WebGL no IT, suíte de contrato do `GameAnimator` no CT, e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, CT-01 com a tag `SPEC-0011:<ID>`, backend real e Chromium com WebGL no IT, suíte de contrato do `GameAnimator` no CT, e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase 4: Jornada E2E**
-- [ ] Red: E2E-01, E2E-02, E2E-03 falhando pelo motivo certo
-- [ ] Green: jornada completa passando localmente
+- [x] Red: E2E-01, E2E-02, E2E-03 falhando pelo motivo certo
+- [x] Green: jornada completa passando localmente
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a spec SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -198,9 +198,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  802ms (tests 97%, transform 2%, import 1%)) — 6cd9827 | 2026-10-09 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer (agente independente): APPROVED em c815b4f — 0 blocker/major; minors: freeze/effectsLog no chunk de produção (inacessíveis), constante de crescimento duplicada, buffers de teste sem teto, gatilho do visual-baselines além da Emenda e browsers extras, suíte de contrato do GameAnimator criada aqui, comentário longo — c815b4f | 2026-10-09 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 147ms); test exit 0 (Duration  1.36s (tests 67%, transform 21%, import 11%, worker 1%)); test_integration exit 0 (No test matches the given testcase filter `Category=Integration` in /Users/thomas/dev/repo); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  802ms (tests 96%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 294 files: 0 findings.) — 6d7a6e2 | 2026-10-10 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-10 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #22, merge 2a8c297) | 2026-10-10 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — c11b8de | 2026-10-10 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -214,37 +214,58 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+A cena da Pipa ganhou animação de verdade, desenhada em código: a pipa de 4 cores balança sobre a orla do Rio com morros e prédios, decola com puxão e a rabiola chicoteando, sobe com a câmera enquanto três camadas de nuvens passam em paralaxe; o céu vai do dia ao pôr do sol (≥ 5x) e à noite (≥ 25x), com estrelas e lua; há rastro brilhante, pulso nos marcos 2x–100x e brilho dourado a partir de 10x; no crash a linha arrebenta com clarão curto, tremor de tela e a pipa caindo em rodopio com detritos, e a cena volta ao início. Com movimento reduzido não há tremor, clarão nem paralaxe. As 6 imagens-chave foram aprovadas por thomas e viraram referência na CI.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+`PipaAnimator` implementa o `GameAnimator` da SPEC-0010 (contrato inalterado) com subsistemas puros e testáveis em `scene-kit/src/kite` (céu, câmera, nuvens, corda e rabiola por Verlet com passo fixo, rastro, efeitos, linhas do tempo GSAP pausadas e conduzidas pelo relógio da cena, perfil de movimento, pausa com a aba oculta) e o renderizador PixiJS em `scene-kit/src/pixi`, carregado sob demanda. GSAP 3.15.0 e pixi-filters 6.1.5 (ADR-0021). Para o GL por software da CI: céu como sprite com textura de gradiente, canvas opaco sem MSAA, lote de shader com 4 texturas e cena congelada que para de redesenhar. Emendas: escopo (testes do front, `playwright.config.ts`, workflow `visual-baselines`, `check-licenses`), escopo reduzido aprovado por thomas (sem bloom, sem anel de contagem na cena, tremor do texto movido para a SPEC-0026), E2E-01 só no Linux (IMP-02) e GSAP Standard License no ADR-0022 (IMP-01). A suíte de contrato do `GameAnimator` foi criada aqui (a SPEC-0010 só tinha o UT-06 com animador falso).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | corda Verlet mantém o comprimento em 10.000 passos | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| UT-02 | mesma posição final com quadros de 1/30 s e 1/120 s | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| UT-03 | céu, estrelas, lua, câmera e vento nas faixas do contrato | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| UT-04 | cada marco dispara uma vez por rodada, inclusive com ressincronização | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| UT-05 | movimento reduzido sem tremor, clarão e paralaxe | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| UT-06 | linha do tempo do crash na ordem e nos limites do contrato | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| UT-07 | tetos de partículas, filtros e densidade de pixels | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| UT-08 | pausa com a aba oculta e salto direto ao estado atual | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| IT-01 | rodada completa em WebGL com backend real, sem erros | PASS | CI Linux visual-baselines run 37994294212 (6cd9827): 11/11 pipa-visual; G5 local e8893a8 |
+| IT-02 | contexto WebGL perdido e recriado em ≤ 1 s | PASS | CI Linux visual-baselines run 37994294212 (6cd9827): 11/11 pipa-visual; G5 local e8893a8; 10/10 isolado no Mac (uma falha sob carga paralela → SPEC-0033) |
+| CT-01 | suíte de contrato do GameAnimator nos dois perfis de movimento | PASS | G5 local e8893a8 (Vitest, resultado integrado); G2 6cd9827 |
+| E2E-01 | 6 quadros-chave iguais às imagens aprovadas por thomas | PASS | CI Linux visual-baselines run 37994294212 (6cd9827): 11/11 pipa-visual; G5 local e8893a8 (comparação só no Linux, Emenda IMP-02) |
+| E2E-02 | movimento reduzido com estados anunciados no aria-live | PASS | CI Linux visual-baselines run 37994294212 (6cd9827): 11/11 pipa-visual; G5 local e8893a8 |
+| E2E-03 | p95 do tempo de quadro ≤ 16,7 ms (CPU 1x) e ≤ 33 ms (CPU 4x) | PASS | CI Linux visual-baselines run 37994294212 (6cd9827): 11/11 pipa-visual; G5 local e8893a8 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — bundle inicial 91,1 KiB gzip; cena +37,7 KB gzip (≤ 150 KB); p95 ≤ 16,7/33 ms e tetos medidos (E2E-03, UT-07); WCAG 2.3.1 e movimento reduzido (UT-05/06, E2E-02)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A)
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — conforme o Plano de Rollout: tempo de quadro no relatório do E2E-03 até haver telemetria; rollback = revert do merge
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5 (e8893a8)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — lint, typecheck e format sem avisos; nenhuma supressão
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pela onda 6 (PR #22).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0033 — acabamento técnico: API de teste fora do chunk de produção, constante de crescimento de fonte única, buffers de teste com teto, gatilho e browsers do workflow `visual-baselines`, IT-02 estável sob carga paralela (achados do review e do G5).
+- Bloom: fora desta spec por decisão de thomas (2026-10-09); volta na arte final antes do lançamento (ADR-0023).
+- SPEC-0026 — tremor do texto PIPA CORTADA! no HUD (UT-07, Emenda v3).
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0011`. -->
