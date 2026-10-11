@@ -1,4 +1,5 @@
 using Apogeu.Betting.Features.CancelBet;
+using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Features.Hubs;
 using Apogeu.Betting.Features.PlaceBet;
 using Apogeu.Betting.Features.Reservations;
@@ -57,6 +58,8 @@ public static class BettingModule
         services.AddSingleton<BetsNotifier>();
         services.AddScoped<PlaceBetUseCase>();
         services.AddScoped<CancelBetUseCase>();
+        services.AddScoped<CashOutUseCase>();
+        services.AddScoped<CashOutSettlement>();
 
         return services;
     }

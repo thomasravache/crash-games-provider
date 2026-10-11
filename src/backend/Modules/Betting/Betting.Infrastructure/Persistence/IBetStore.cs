@@ -65,4 +65,29 @@ public interface IBetStore
     /// bets this call moved.
     /// </summary>
     Task<IReadOnlyList<Bet>> ActivateQueuedAsync(string salaId, RoundWindow opened, Guid? betId, CancellationToken ct);
+
+    /// <summary>The accepted bet <paramref name="betId"/> of any player (the handlers of SPEC-0023); none for a pending reservation.</summary>
+    Task<AcceptedBet?> FindByIdAsync(Guid betId, CancellationToken ct);
+
+    /// <summary>The active bets of <paramref name="roundId"/> with an automatic cash-out (scheduled with the leader at the flight).</summary>
+    Task<IReadOnlyList<Bet>> ListAutoCashOutsAsync(RoundId roundId, CancellationToken ct);
+
+    /// <summary>
+    /// Moves the active <paramref name="bet"/>, now cashed out, to <c>cashed_out</c> with its multiplier and payout and its credit
+    /// pending, storing in the same transaction the durable credit of the payout scheduled after <paramref name="creditRetry"/>
+    /// (Wolverine outbox, ADR-0007). Returns whether this call cashed it out (it was still active).
+    /// </summary>
+    Task<bool> CashOutAsync(Bet bet, bool automatic, DateTimeOffset at, TimeSpan creditRetry, CancellationToken ct);
+
+    /// <summary>
+    /// Records the reception instant of a manual cash-out the leader did not decide in time, with the durable command that has
+    /// it decided later (same transaction). Returns whether it was recorded (the bet is active without another request).
+    /// </summary>
+    Task<bool> RequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, CancellationToken ct);
+
+    /// <summary>Forgets the pending request of <paramref name="betId"/>, refused by the leader (received after the crash).</summary>
+    Task ClearCashOutRequestAsync(Guid betId, CancellationToken ct);
+
+    /// <summary>The wallet confirmed the credit of the cash-out of <paramref name="betId"/>; whether this call recorded it (it was pending).</summary>
+    Task<bool> ConfirmCreditAsync(Guid betId, decimal balance, CancellationToken ct);
 }

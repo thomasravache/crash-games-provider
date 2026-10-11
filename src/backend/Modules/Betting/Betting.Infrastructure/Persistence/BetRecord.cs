@@ -47,4 +47,28 @@ internal sealed class BetRecord
 
     /// <summary>Balance after the refund, when the cancellation confirmed it.</summary>
     public decimal? RefundBalance { get; set; }
+
+    /// <summary>Multiplier of the cash-out (SPEC-0023); <see langword="null"/> until cashed out.</summary>
+    public decimal? CashOutMultiplier { get; set; }
+
+    /// <summary>Payout of the cash-out: <c>min(floor(amount × multiplier × 100)/100, maxWin)</c>.</summary>
+    public decimal? Payout { get; set; }
+
+    /// <summary>Whether the cash-out was the automatic one executed by the leader.</summary>
+    public bool? CashOutAuto { get; set; }
+
+    /// <summary>When the bet was cashed out (server clock).</summary>
+    public DateTimeOffset? CashedOutAt { get; set; }
+
+    /// <summary><c>credited</c> or <c>pending</c>: the credit of the payout (<c>bet:{betId}:credit</c>).</summary>
+    public string? CreditStatus { get; set; }
+
+    /// <summary>Balance after the credit, once the wallet confirmed it.</summary>
+    public decimal? CreditBalance { get; set; }
+
+    /// <summary>
+    /// Reception instant of a manual cash-out the leader did not decide within its deadline (<c>CashOutPending</c>): it is
+    /// decided later with this instant; the bet stays active meanwhile.
+    /// </summary>
+    public DateTimeOffset? CashOutRequestedAt { get; set; }
 }

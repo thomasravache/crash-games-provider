@@ -12,6 +12,8 @@ namespace Apogeu.Betting.Infrastructure.Persistence;
 /// <param name="BalanceAfter">Balance right after the debit.</param>
 /// <param name="IsPending">A reservation whose debit is not confirmed yet: the bet is not accepted.</param>
 /// <param name="Refund">The refund its cancellation answered, once cancelled.</param>
+/// <param name="CashOut">Its cash-out, once cashed out (SPEC-0023).</param>
+/// <param name="CashOutRequestedAt">Reception instant of a manual cash-out waiting for the leader's decision.</param>
 public sealed record AcceptedBet(
     Bet Bet,
     string SalaId,
@@ -20,4 +22,6 @@ public sealed record AcceptedBet(
     long? AcceptedRoundNumber,
     decimal BalanceAfter,
     bool IsPending = false,
-    BetRefund? Refund = null);
+    BetRefund? Refund = null,
+    CashOutRecord? CashOut = null,
+    DateTimeOffset? CashOutRequestedAt = null);

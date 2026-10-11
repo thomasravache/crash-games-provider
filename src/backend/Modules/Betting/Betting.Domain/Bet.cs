@@ -61,9 +61,7 @@ public sealed class Bet
     /// The payout of a cash-out (SPEC-0023 §6): <c>min(floor(amount × multiplier × 100)/100, maxWin)</c>, truncated in cents.
     /// </summary>
     public static decimal PayoutOf(decimal amount, decimal multiplier, decimal maxWin) =>
-#pragma warning disable MA0025 // Scaffold of SPEC-0023 (no logic yet): implemented in the green phase.
-        throw new NotImplementedException();
-#pragma warning restore MA0025
+        Math.Min(Math.Floor(amount * multiplier * 100m) / 100m, maxWin);
 
     /// <summary>
     /// Validates a new bet of <paramref name="owner"/> against <paramref name="rules"/> and the player's non-final bets
@@ -128,9 +126,11 @@ public sealed class Bet
         long? roundNumber,
         decimal? cashOutMultiplier,
         decimal? payout) =>
-#pragma warning disable MA0025 // Scaffold of SPEC-0023 (no logic yet): implemented in the green phase.
-        throw new NotImplementedException();
-#pragma warning restore MA0025
+        new(id, owner ?? throw new ArgumentNullException(nameof(owner)), request ?? throw new ArgumentNullException(nameof(request)), status, roundId, roundNumber)
+        {
+            CashOutMultiplier = cashOutMultiplier,
+            Payout = payout,
+        };
 
     /// <summary>
     /// The room opened the bets of <paramref name="opened"/>: a queued bet becomes placed in it (the player gets
@@ -164,10 +164,22 @@ public sealed class Bet
     /// <see cref="BetStatus.CashedOut"/> with <see cref="PayoutOf"/> limited by <paramref name="maxWin"/>. A bet already cashed
     /// out answers its original <see cref="BetCashOutAccepted"/>; a placed, queued or cancelled one <c>BET_NOT_ACTIVE</c>.
     /// </summary>
-    public BetCashOut CashOut(decimal multiplier, decimal maxWin) =>
-#pragma warning disable MA0025 // Scaffold of SPEC-0023 (no logic yet): implemented in the green phase.
-        throw new NotImplementedException();
-#pragma warning restore MA0025
+    public BetCashOut CashOut(decimal multiplier, decimal maxWin)
+    {
+        switch (Status)
+        {
+            case BetStatus.CashedOut:
+                // Idempotent: the cash-out the bet already has.
+                return new BetCashOutAccepted(CashOutMultiplier!.Value, Payout!.Value);
+            case not BetStatus.Active:
+                return new BetCashOutRejected(BettingErrorCodes.BetNotActive);
+        }
+
+        Status = BetStatus.CashedOut;
+        CashOutMultiplier = multiplier;
+        Payout = PayoutOf(Amount, multiplier, maxWin);
+        return new BetCashOutAccepted(multiplier, Payout.Value);
+    }
 
     /// <summary>
     /// Cancels the bet with its full amount refunded while it is queued, or placed in a round whose flight has not started;

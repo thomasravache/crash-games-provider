@@ -3,6 +3,7 @@
 using Apogeu.Betting.Features;
 using Apogeu.Betting.Features.RoundEvents;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Internal.Generated.WolverineHandlers
 {
@@ -13,18 +14,22 @@ namespace Internal.Generated.WolverineHandlers
         private readonly Apogeu.Betting.Features.BettingMetrics _bettingMetrics;
         private readonly Apogeu.Betting.Features.RoundEvents.IRoundFeed _roundFeed;
         private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
+        private readonly Microsoft.Extensions.Logging.ILogger<Apogeu.Rounds.Contracts.RoundFlying> _loggerForMessage;
 
-        public RoundFlyingHandler738185602(Apogeu.Betting.Features.BettingMetrics bettingMetrics, Apogeu.Betting.Features.RoundEvents.IRoundFeed roundFeed, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory)
+        public RoundFlyingHandler738185602(Apogeu.Betting.Features.BettingMetrics bettingMetrics, Apogeu.Betting.Features.RoundEvents.IRoundFeed roundFeed, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, Microsoft.Extensions.Logging.ILogger<Apogeu.Rounds.Contracts.RoundFlying> loggerForMessage)
         {
             _bettingMetrics = bettingMetrics;
             _roundFeed = roundFeed;
             _serviceScopeFactory = serviceScopeFactory;
+            _loggerForMessage = loggerForMessage;
         }
 
         public override async System.Threading.Tasks.Task HandleAsync(Wolverine.Runtime.MessageContext context, System.Threading.CancellationToken cancellation)
         {
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wolverine.Runtime.ScopedMessageContextHolder>(serviceScope.ServiceProvider).Context = context;
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
+            var cashOutArbiter = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Apogeu.Rounds.Contracts.ICashOutArbiter>(serviceScope.ServiceProvider);
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var betStore = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Apogeu.Betting.Infrastructure.Persistence.IBetStore>(serviceScope.ServiceProvider);
             // The actual message body
@@ -34,7 +39,7 @@ namespace Internal.Generated.WolverineHandlers
             System.Diagnostics.Activity.Current?.SetTag("handler.type", "Apogeu.Betting.Features.RoundEvents.RoundEventsHandler");
             
             // The actual message execution
-            await Apogeu.Betting.Features.RoundEvents.RoundEventsHandler.HandleAsync(roundFlying, _roundFeed, betStore, _bettingMetrics, cancellation).ConfigureAwait(false);
+            await Apogeu.Betting.Features.RoundEvents.RoundEventsHandler.HandleAsync(roundFlying, _roundFeed, betStore, cashOutArbiter, _bettingMetrics, _loggerForMessage, cancellation).ConfigureAwait(false);
         }
     }
 
