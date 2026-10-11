@@ -178,8 +178,8 @@ public sealed class PlaceBetUseCase(
 
     /// <summary>
     /// A debit the wallet applied after the bet was answered as refused (IT-12): the reservation is voided with the reversal of
-    /// the debit when still pending; once swept (its reversal may have found no debit), a new durable reversal is stored with
-    /// the same deterministic rollback id and a reconciliation alert is logged.
+    /// the debit when still pending; once swept (its reversal may have found no debit), a new durable reversal of this bet's
+    /// debit is stored with the same deterministic rollback id and a reconciliation alert is logged.
     /// </summary>
     private async Task SettleLateDebitAsync(Bet bet)
     {
@@ -193,12 +193,8 @@ public sealed class PlaceBetUseCase(
                 return;
             }
 
-            if (await lateStore.FindByClientBetIdAsync(bet.Owner, bet.ClientBetId, CancellationToken.None).ConfigureAwait(false) is { IsPending: false })
-            {
-                // Accepted after all (another attempt settled it): the debit is the bet's.
-                return;
-            }
-
+            // No longer pending: the reservation was swept (only this call could have confirmed it, and it refused the bet).
+            // The clientBetId may already belong to another bet of the player, so nothing is decided by it (M1-bis).
             await ReverseLateDebitAsync(lateStore, bet).ConfigureAwait(false);
         }
     }
@@ -319,6 +315,7 @@ public sealed class PlaceBetUseCase(
     /// <summary>The answer for a bet whose reservation was settled (or is being settled by another call).</summary>
     private async Task<BettingOutcome<BetAccepted>> SettledAsync(Bet bet) =>
         await store.FindByClientBetIdAsync(bet.Owner, bet.ClientBetId, CancellationToken.None).ConfigureAwait(false) is { IsPending: false } accepted
+            && accepted.Bet.Id == bet.Id
             ? Accepted(accepted)
             : Refuse(BettingErrorCodes.WalletUnavailable);
 
