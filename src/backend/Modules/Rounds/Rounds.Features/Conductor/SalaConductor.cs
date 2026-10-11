@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using Apogeu.Fairness.Contracts;
 using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Domain;
+using Apogeu.Rounds.Features.CashOut;
 using Apogeu.Rounds.Features.Live;
 using Apogeu.Rounds.Features.Salas;
 using Apogeu.Rounds.Infrastructure.Persistence;
@@ -39,6 +41,9 @@ public sealed class SalaConductor
     /// <summary>Upper bound of actions run by one step, so a step always returns even if the clock jumps far ahead.</summary>
     private const int MaxActionsPerStep = 64;
 
+    /// <summary>How many of the latest flights the leader still decides cash-outs for (a pending request is decided late).</summary>
+    private const int RememberedFlights = 8;
+
     private static readonly ActivitySource Activities = new(RoundsMetrics.MeterName);
 
     private readonly SalaConfig _sala;
@@ -69,6 +74,16 @@ public sealed class SalaConductor
 
     // The growth curve of the round in flight: the one of the parameters it was opened with.
     private GrowthCurve _curve;
+
+    // SPEC-0023: the flights this leader conducted (the latest ones), read by the cash-out decisions of any thread; their crash
+    // instant never leaves this instance, only the decision does (ADR-0014).
+    private readonly ConcurrentDictionary<RoundId, CashOutFlight> _flights = new();
+
+    // The automatic cash-outs scheduled for the round in flight, executed at their target instant (SPEC-0023 §6).
+    private readonly Lock _autoGate = new();
+    private readonly List<ScheduledAutoCashOut> _autos = [];
+    private IAutoCashOutSink? _autoSink;
+    private TaskCompletionSource _wake = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public SalaConductor(
         SalaConfig sala,
@@ -253,12 +268,21 @@ public sealed class SalaConductor
             return now;
         }
 
+        // The automatic cash-outs due run before anything else of the instant, the crash included (t_alvo < t_c).
+        await RunDueAutosAsync(now, ct).ConfigureAwait(false);
         if (now >= _crashAt)
         {
             await CrashAsync(round, crashPoint, ct).ConfigureAwait(false);
             return now;
         }
 
+        var next = await SyncAsync(round, crashPoint, now).ConfigureAwait(false);
+        return NextAutoAt() is { } auto && auto < next ? auto : next;
+    }
+
+    /// <summary>Sends the sync due at <paramref name="now"/>, if any, and returns when the next sync or the crash is due.</summary>
+    private async Task<DateTimeOffset> SyncAsync(Round round, decimal crashPoint, DateTimeOffset now)
+    {
         var startedAt = round.StartedAt!.Value;
         var syncAt = startedAt + (SyncInterval * _nextSync);
         if (syncAt >= _crashAt)
@@ -320,8 +344,10 @@ public sealed class SalaConductor
             .ConfigureAwait(false);
         var startedAt = _time.GetUtcNow();
         round.StartFlight(startedAt);
-        await SaveAsync(round, new RoundFlying(_sala.Id, round.Id, ContractInstant(startedAt), (decimal)parameters.GrowthK), ct).ConfigureAwait(false);
+
+        // Known to the cash-out decisions before RoundFlying makes any bet active (SPEC-0023).
         Schedule(round, crashPoint.Value);
+        await SaveAsync(round, new RoundFlying(_sala.Id, round.Id, ContractInstant(startedAt), (decimal)parameters.GrowthK), ct).ConfigureAwait(false);
         PublishSnapshot();
 
         _metrics.RoundStarted(_sala.Id);
@@ -352,6 +378,7 @@ public sealed class SalaConductor
         round.Crash(crashPoint, revealed.Seed.ToHex(), crashedAt);
         await SaveAsync(round, new RoundCrashed(_sala.Id, round.Id, crashPoint, ContractInstant(crashedAt)), ct).ConfigureAwait(false);
         _crashPoint = null;
+        DropAutos();
         _nextRoundAt = crashedAt + _sala.CooldownDuration;
         if (_snapshots is not null)
         {
@@ -371,9 +398,11 @@ public sealed class SalaConductor
     {
         using var activity = StartRoundActivity("rounds.annul", round);
         var now = _time.GetUtcNow();
+        EndFlight(round.Id, now);
         round.Annul(reason, now);
         await SaveAsync(round, new RoundAnnulled(_sala.Id, round.Id, reason), ct).ConfigureAwait(false);
         _crashPoint = null;
+        DropAutos();
         _nextRoundAt = now + _sala.CooldownDuration;
         PublishSnapshot();
 
@@ -464,6 +493,135 @@ public sealed class SalaConductor
         _crashPoint = crashPoint;
         _crashAt = round.StartedAt!.Value + _curve.TimeToCrash(crashPoint);
         _nextSync = 1;
+        RememberFlight(new CashOutFlight(round.Id, round.StartedAt.Value, _crashAt, crashPoint, _curve));
+    }
+
+    /// <summary>Completes when an automatic cash-out is scheduled: the leader loop waits on it with the next instant.</summary>
+    internal Task Woken => Volatile.Read(ref _wake).Task;
+
+    /// <summary>The sink of the automatic cash-outs this conductor executes (SPEC-0023), set by its <see cref="LeaderCashOutArbiter"/>.</summary>
+    internal void Attach(IAutoCashOutSink sink)
+    {
+        ArgumentNullException.ThrowIfNull(sink);
+        _autoSink = sink;
+    }
+
+    /// <summary>
+    /// Decides a manual cash-out of <paramref name="roundId"/> received at <paramref name="receivedAt"/> (SPEC-0023 §6,
+    /// latency tolerance 0): accepted with the displayed multiplier when received before the crash instant (not rounded),
+    /// too late otherwise — also for a round this leader does not know (it ended before its term).
+    /// </summary>
+    internal CashOutDecision Decide(RoundId roundId, DateTimeOffset receivedAt)
+    {
+        if (!_flights.TryGetValue(roundId, out var flight) || receivedAt >= flight.CrashAt)
+        {
+            return new CashOutTooLate();
+        }
+
+        var multiplier = flight.Curve.MultiplierAt(receivedAt - flight.StartedAt, flight.CrashPoint);
+        return new CashOutAccepted(new ContractMultiplier(multiplier));
+    }
+
+    /// <summary>
+    /// Schedules the automatic cash-out of <paramref name="betId"/> at <paramref name="target"/>: executed at
+    /// <c>startedAt + ln(target)/k</c> only if that is before the crash instant (otherwise never) and wakes the leader loop.
+    /// </summary>
+    internal void ScheduleAuto(RoundId roundId, Guid betId, ContractMultiplier target)
+    {
+        if (!_flights.TryGetValue(roundId, out var flight) || target.Value < 1.00m)
+        {
+            return;
+        }
+
+        var at = flight.StartedAt + TimeSpan.FromMilliseconds(Math.Log((double)target.Value) / flight.Curve.K);
+        if (at >= flight.CrashAt)
+        {
+            // Above the crash: it never executes (the bet loses), and nothing about the crash is told.
+            return;
+        }
+
+        lock (_autoGate)
+        {
+            if (_autos.Exists(auto => auto.BetId == betId))
+            {
+                return;
+            }
+
+            _autos.Add(new ScheduledAutoCashOut(roundId, betId, target, at));
+        }
+
+        Interlocked.Exchange(ref _wake, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult();
+    }
+
+    /// <summary>Executes, in the order of their instants, the automatic cash-outs due at <paramref name="now"/> before the crash.</summary>
+    private async Task RunDueAutosAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        List<ScheduledAutoCashOut> due;
+        lock (_autoGate)
+        {
+            due = [.. _autos.Where(auto => auto.At <= now && auto.At < _crashAt).OrderBy(auto => auto.At)];
+            _autos.RemoveAll(auto => auto.At <= now);
+        }
+
+        if (due.Count == 0 || _autoSink is not { } sink)
+        {
+            return;
+        }
+
+        foreach (var auto in due)
+        {
+            try
+            {
+                await sink.PublishAsync(new AutoCashOutExecuted(_sala.Id, auto.RoundId, auto.BetId, auto.Target, auto.At), ct).ConfigureAwait(false);
+                RoundsLog.AutoCashOutExecuted(_logger, _sala.Id, auto.RoundId.Value, auto.BetId);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+#pragma warning disable CA1031 // One automatic cash-out that cannot be published does not stop the room's flight.
+            catch (Exception exception)
+#pragma warning restore CA1031
+            {
+                RoundsLog.AutoCashOutFailed(_logger, _sala.Id, auto.RoundId.Value, auto.BetId, exception);
+            }
+        }
+    }
+
+    /// <summary>The instant of the next automatic cash-out scheduled before the crash, if any.</summary>
+    private DateTimeOffset? NextAutoAt()
+    {
+        lock (_autoGate)
+        {
+            return _autos.Count == 0 ? null : _autos.Min(auto => auto.At);
+        }
+    }
+
+    /// <summary>The flight ended: its automatic cash-outs not executed never will be.</summary>
+    private void DropAutos()
+    {
+        lock (_autoGate)
+        {
+            _autos.Clear();
+        }
+    }
+
+    private void RememberFlight(CashOutFlight flight)
+    {
+        _flights[flight.RoundId] = flight;
+        foreach (var old in _flights.Values.OrderByDescending(f => f.StartedAt).Skip(RememberedFlights))
+        {
+            _flights.TryRemove(old.RoundId, out _);
+        }
+    }
+
+    /// <summary>An annulled flight ends at <paramref name="at"/> for the decisions too.</summary>
+    private void EndFlight(RoundId roundId, DateTimeOffset at)
+    {
+        if (_flights.TryGetValue(roundId, out var flight) && at < flight.CrashAt)
+        {
+            _flights[roundId] = flight with { CrashAt = at };
+        }
     }
 
     /// <summary>The next round of the room's chain; creates a chain when the room has none left (or one Rounds did not record).</summary>

@@ -44,4 +44,13 @@ internal static partial class RoundsLog
 
     [LoggerMessage(EventId = 23, Level = LogLevel.Error, Message = "The conductor of room {SalaId} failed; it resumes from the store")]
     public static partial void ConductorFailed(ILogger logger, string salaId, Exception exception);
+
+    [LoggerMessage(EventId = 30, Level = LogLevel.Information, Message = "Automatic cash-out of bet {BetId} executed in round {RoundId} of room {SalaId}")]
+    public static partial void AutoCashOutExecuted(ILogger logger, string salaId, Guid roundId, Guid betId);
+
+    [LoggerMessage(EventId = 31, Level = LogLevel.Error, Message = "Automatic cash-out of bet {BetId} in round {RoundId} of room {SalaId} could not be published")]
+    public static partial void AutoCashOutFailed(ILogger logger, string salaId, Guid roundId, Guid betId, Exception exception);
+
+    [LoggerMessage(EventId = 32, Level = LogLevel.Warning, Message = "A cash-out request forwarded to the leader of room {SalaId} could not be answered")]
+    public static partial void CashOutRelayFailed(ILogger logger, string salaId, Exception exception);
 }

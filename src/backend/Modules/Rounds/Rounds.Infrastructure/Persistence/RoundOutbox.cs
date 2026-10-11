@@ -25,4 +25,18 @@ internal sealed class RoundOutbox(IServiceScopeFactory scopes, IMessagingReadine
             await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
         }
     }
+
+    public async Task PublishAsync(object integrationEvent, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(integrationEvent);
+        await messaging.WhenReadyAsync(ct).ConfigureAwait(false);
+
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<RoundsDbContext>>();
+            await outbox.PublishAsync(integrationEvent).ConfigureAwait(false);
+            await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+        }
+    }
 }
