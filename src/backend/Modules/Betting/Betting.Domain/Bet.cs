@@ -182,6 +182,24 @@ public sealed class Bet
     }
 
     /// <summary>
+    /// The round of the bet crashed (SPEC-0024): an active bet becomes <see cref="BetStatus.Lost"/> (<see cref="BetClosedLost"/>);
+    /// any other bet is unchanged (<see cref="BetClosureSkipped"/>).
+    /// </summary>
+    public BetClosure Settle() =>
+#pragma warning disable MA0025 // Scaffold of SPEC-0024 (no logic yet): implemented in the green phase.
+        throw new NotImplementedException();
+#pragma warning restore MA0025
+
+    /// <summary>
+    /// The round of the bet was annulled (SPEC-0024): a placed or active bet becomes <see cref="BetStatus.Refunded"/> with its full
+    /// amount (<see cref="BetClosedRefunded"/>); any other bet — a cashed-out one included — is unchanged (<see cref="BetClosureSkipped"/>).
+    /// </summary>
+    public BetClosure Refund() =>
+#pragma warning disable MA0025 // Scaffold of SPEC-0024 (no logic yet): implemented in the green phase.
+        throw new NotImplementedException();
+#pragma warning restore MA0025
+
+    /// <summary>
     /// Cancels the bet with its full amount refunded while it is queued, or placed in a round whose flight has not started;
     /// otherwise <c>CANCEL_NOT_ALLOWED</c>.
     /// </summary>

@@ -1213,7 +1213,11 @@
         }
       },
       "Apogeu.Betting.Contracts": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
+          "Apogeu.Rounds.Contracts": "[1.0.0, )"
+        }
       },
       "Apogeu.Betting.Domain": {
         "type": "Project",
