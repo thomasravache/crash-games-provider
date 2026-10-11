@@ -218,7 +218,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:03:40.01]     Dada uma aposta X cujo débito fica retido até depois da varred) — 7dda0cb | 2026-10-10 |
-| G2 Green | PASS | build exit 0 (✓ built in 172ms); test exit 0 (Duration  1.25s (tests 67%, transform 21%, import 10%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T22:50:24: Report generation took 0,5 seconds) — e6d909c | 2026-10-10 |
+| G2 Green | PASS | build exit 0 (✓ built in 163ms); test exit 0 (Duration  1.33s (tests 68%, transform 21%, import 10%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T23:37:22: Report generation took 0,5 seconds) — d0c69d7 | 2026-10-10 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  765ms (tests 97%, transform 2%, import 1%)) — e6d909c | 2026-10-10 |
 | G4 Review | FAIL | CHANGES_REQUESTED (e6d909c): M1-bis SettleLateDebitAsync casa a aposta errada quando o clientBetId é reutilizado e deixa o débito tardio sem estorno; verify: fixtures de arquitetura fora do touches da cópia do worktree | 2026-10-10 |
 | G5 Integração & CI | PENDING | | |
