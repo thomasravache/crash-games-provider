@@ -37,7 +37,8 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
     public async Task<IReadOnlyList<Bet>> ListOpenAsync(BetOwner owner, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(owner);
-        var records = await Of(owner).Where(b => b.Status == Placed || b.Status == Queued).ToListAsync(ct).ConfigureAwait(false);
+        // A pending reservation holds its panel like the bet it would become (UT-06, second review of emenda 3).
+        var records = await Of(owner).Where(b => b.Status == Placed || b.Status == Queued || b.Status == Pending).ToListAsync(ct).ConfigureAwait(false);
         return [.. records.Select(ToDomain)];
     }
 
@@ -69,9 +70,11 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         {
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
-        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: UniqueViolation })
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: UniqueViolation } unique)
         {
-            throw new BetConflictException(BetConflict.ClientBetId, exception);
+            throw new BetConflictException(
+                string.Equals(unique.ConstraintName, BettingDbContext.ClientBetIdIndex, StringComparison.Ordinal) ? BetConflict.ClientBetId : BetConflict.Panel,
+                exception);
         }
         finally
         {
@@ -124,6 +127,23 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
             {
                 return false;
             }
+        }
+    }
+
+    public async Task ReverseLateDebitAsync(Bet bet, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(bet);
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            await outbox.PublishAsync(new ReverseBetDebit(
+                bet.Id,
+                bet.Owner.OperatorId.Value,
+                bet.Owner.PlayerId.Value,
+                bet.Owner.Currency.Code,
+                bet.RoundId?.Value)).ConfigureAwait(false);
+            await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
         }
     }
 
@@ -206,9 +226,10 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
                     activated.Add(bet);
                 }
             }
-            catch (Exception exception) when (exception is DbUpdateException or NpgsqlException or InvalidOperationException)
+            catch (Exception exception) when (IsUniqueViolation(exception) || exception is InvalidOperationException)
             {
-                // One bet that cannot be activated does not stop the room's other bets (emenda 3).
+                // One bet that cannot be activated (its panel is taken in the round) does not stop the room's other bets
+                // (emenda 3). Any other database error fails the message, so the activation is retried.
                 ActivationFailed(logger, bet.Id, salaId, exception);
             }
         }

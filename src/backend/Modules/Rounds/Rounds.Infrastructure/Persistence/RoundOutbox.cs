@@ -1,5 +1,5 @@
+using Apogeu.BuildingBlocks.Messaging;
 using Apogeu.Rounds.Domain;
-using Apogeu.ServiceDefaults.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Wolverine.EntityFrameworkCore;
 

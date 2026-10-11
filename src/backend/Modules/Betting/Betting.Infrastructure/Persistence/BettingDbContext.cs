@@ -10,10 +10,10 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
     /// <summary>One bet per <c>clientBetId</c> of a player (idempotency of <c>PlaceBet</c>, SPEC-0022 §4).</summary>
     public const string ClientBetIdIndex = "ux_bets_operator_player_client_bet_id";
 
-    /// <summary>At most one placed bet per panel of a player in a round.</summary>
+    /// <summary>At most one placed bet (or reservation of one) per panel of a player in a round.</summary>
     public const string PlacedPanelIndex = "ux_bets_placed_panel";
 
-    /// <summary>At most one queued bet per panel of a player (both for the next round).</summary>
+    /// <summary>At most one queued bet (or reservation of one) per panel of a player (both for the next round).</summary>
     public const string QueuedPanelIndex = "ux_bets_queued_panel";
 
     public DbSet<BetRecord> Bets => Set<BetRecord>();
@@ -60,11 +60,11 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
             bet.HasIndex(b => new { b.OperatorId, b.PlayerId, b.ClientBetId }).IsUnique().HasDatabaseName(ClientBetIdIndex);
             bet.HasIndex(b => new { b.OperatorId, b.PlayerId, b.Panel, b.RoundId })
                 .IsUnique()
-                .HasFilter("status = 'placed'")
+                .HasFilter("status = 'placed' OR (status = 'pending' AND accepted_status = 'placed')")
                 .HasDatabaseName(PlacedPanelIndex);
             bet.HasIndex(b => new { b.OperatorId, b.PlayerId, b.Panel })
                 .IsUnique()
-                .HasFilter("status = 'queued'")
+                .HasFilter("status = 'queued' OR (status = 'pending' AND accepted_status = 'queued')")
                 .HasDatabaseName(QueuedPanelIndex);
 
             // The bets a round event moves: the queued bets of a room and the placed bets of a round.

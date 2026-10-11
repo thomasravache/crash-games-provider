@@ -9,7 +9,9 @@ using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.Operators.Contracts;
 using Apogeu.Rounds.Contracts;
 using Apogeu.Wallet.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Apogeu.Betting.Features.PlaceBet;
 
@@ -29,6 +31,8 @@ public sealed class PlaceBetUseCase(
     IOperatorWallet wallet,
     BetsNotifier notifier,
     BettingMetrics metrics,
+    IOptions<BettingOptions> options,
+    IServiceScopeFactory scopes,
     TimeProvider time,
     ILogger<PlaceBetUseCase> logger)
 {
@@ -36,9 +40,6 @@ public sealed class PlaceBetUseCase(
     private static readonly TimeSpan RepeatWait = TimeSpan.FromSeconds(15);
 
     private static readonly TimeSpan RepeatPoll = TimeSpan.FromMilliseconds(25);
-
-    /// <summary>The first debit and the resends of the same debit while its outcome is unknown (well within the sweeper's timeout).</summary>
-    private static readonly TimeSpan[] DebitResends = [TimeSpan.Zero, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(1)];
 
     public async Task<BettingOutcome<BetAccepted>> PlaceAsync(BettingSession session, PlaceBetRequest request, CancellationToken ct)
     {
@@ -77,22 +78,16 @@ public sealed class PlaceBetUseCase(
 
         var bet = ((BetPlacementAccepted)placement).Bet;
         activity?.SetTag("betting.bet_id", bet.Id);
-        try
+        if (await ReserveAsync(bet, session.SalaId, now, ct).ConfigureAwait(false) is { } refused)
         {
-            await store.ReserveAsync(bet, session.SalaId, now, ct).ConfigureAwait(false);
-        }
-        catch (BetConflictException conflict)
-        {
-            // A concurrent PlaceBet with the same clientBetId reserved first: answer what it settles on.
-            var original = await store.FindByClientBetIdAsync(bet.Owner, bet.ClientBetId, ct).ConfigureAwait(false)
-                ?? throw new InvalidOperationException($"The bet with clientBetId {bet.ClientBetId} was not found after a conflict.", conflict);
-            return await RepeatAsync(bet.Owner, original, ct).ConfigureAwait(false);
+            return refused;
         }
 
         var outcome = await DebitAndConfirmAsync(bet, session.SalaId, ct).ConfigureAwait(false);
         if (outcome.Value is not null)
         {
-            await CatchUpAsync(bet, session.SalaId, current, ct).ConfigureAwait(false);
+            // Not tied to the caller: the accepted bet catches up with the round even if the connection is gone.
+            await CatchUpAsync(bet, session.SalaId, current, CancellationToken.None).ConfigureAwait(false);
             metrics.BetReached(outcome.Value.Status == BetAcceptedStatus.Placed ? "placed" : "queued");
             metrics.Accepted(time.GetElapsedTime(started));
         }
@@ -107,10 +102,33 @@ public sealed class PlaceBetUseCase(
             ? await RepeatAsync(owner, concurrent, ct).ConfigureAwait(false)
             : Refuse(code);
 
+    /// <summary>Writes the pending reservation of the bet; the answer instead when it collides with another one.</summary>
+    private async Task<BettingOutcome<BetAccepted>?> ReserveAsync(Bet bet, string salaId, DateTimeOffset now, CancellationToken ct)
+    {
+        try
+        {
+            await store.ReserveAsync(bet, salaId, now, ct).ConfigureAwait(false);
+        }
+        catch (BetConflictException conflict) when (conflict.Conflict == BetConflict.Panel)
+        {
+            // Another reservation of the player took the panel since the check (it holds it while pending).
+            return await RejectAsync(bet.Owner, bet.ClientBetId, BettingErrorCodes.PanelBusy, ct).ConfigureAwait(false);
+        }
+        catch (BetConflictException conflict)
+        {
+            // A concurrent PlaceBet with the same clientBetId reserved first: answer what it settles on.
+            var original = await store.FindByClientBetIdAsync(bet.Owner, bet.ClientBetId, ct).ConfigureAwait(false)
+                ?? throw new InvalidOperationException($"The bet with clientBetId {bet.ClientBetId} was not found after a conflict.", conflict);
+            return await RepeatAsync(bet.Owner, original, ct).ConfigureAwait(false);
+        }
+
+        return null;
+    }
+
     /// <summary>Debits the reserved bet and confirms it; refuses it (voiding the reservation) when it cannot be accepted.</summary>
     private async Task<BettingOutcome<BetAccepted>> DebitAndConfirmAsync(Bet bet, string salaId, CancellationToken ct)
     {
-        var result = await DebitAsync(bet).ConfigureAwait(false);
+        var (result, abandoned) = await DebitAsync(bet).ConfigureAwait(false);
         switch (result)
         {
             case WalletInsufficientFunds:
@@ -119,8 +137,9 @@ public sealed class PlaceBetUseCase(
             case not WalletOk:
                 // Outcome unknown even after resending the same debit (SPEC-0021 caller rule): no rollback now — a rollback
                 // racing a debit still in flight could be answered TransactionNotFound and miss it. The reservation stays
-                // pending and the sweeper reverses it after its timeout.
+                // pending and the sweeper reverses it after its timeout; an attempt answered later is watched (IT-12).
                 BettingLog.DebitUncertain(logger, bet.Id, result?.GetType().Name ?? "no answer");
+                WatchLateDebits(bet, abandoned);
                 return Refuse(BettingErrorCodes.WalletUnavailable);
         }
 
@@ -144,12 +163,91 @@ public sealed class PlaceBetUseCase(
             return await SettledAsync(bet).ConfigureAwait(false);
         }
 
-        return confirmation switch
+        switch (confirmation)
         {
-            BetConfirmation.Confirmed => await SettledAsync(bet).ConfigureAwait(false),
-            BetConfirmation.PanelTaken => await VoidAsync(bet, BettingErrorCodes.PanelBusy, "panel taken").ConfigureAwait(false),
-            _ => Refuse(BettingErrorCodes.WalletUnavailable),
-        };
+            case BetConfirmation.Confirmed:
+                return await SettledAsync(bet).ConfigureAwait(false);
+            case BetConfirmation.PanelTaken:
+                return await VoidAsync(bet, BettingErrorCodes.PanelBusy, "panel taken").ConfigureAwait(false);
+            default:
+                // The sweeper voided the reservation before this debit was applied: its reversal may have found no debit.
+                await ReverseLateDebitAsync(store, bet).ConfigureAwait(false);
+                return Refuse(BettingErrorCodes.WalletUnavailable);
+        }
+    }
+
+    /// <summary>
+    /// A debit the wallet applied after the bet was answered as refused (IT-12): the reservation is voided with the reversal of
+    /// the debit when still pending; once swept (its reversal may have found no debit), a new durable reversal is stored with
+    /// the same deterministic rollback id and a reconciliation alert is logged.
+    /// </summary>
+    private async Task SettleLateDebitAsync(Bet bet)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var lateStore = scope.ServiceProvider.GetRequiredService<IBetStore>();
+            if (await lateStore.VoidAsync(bet.Id, CancellationToken.None).ConfigureAwait(false))
+            {
+                BettingLog.LateDebitVoided(logger, bet.Id);
+                return;
+            }
+
+            if (await lateStore.FindByClientBetIdAsync(bet.Owner, bet.ClientBetId, CancellationToken.None).ConfigureAwait(false) is { IsPending: false })
+            {
+                // Accepted after all (another attempt settled it): the debit is the bet's.
+                return;
+            }
+
+            await ReverseLateDebitAsync(lateStore, bet).ConfigureAwait(false);
+        }
+    }
+
+    private async Task ReverseLateDebitAsync(IBetStore target, Bet bet)
+    {
+        BettingLog.ReconciliationLateDebit(logger, bet.Id);
+        await target.ReverseLateDebitAsync(bet, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    /// <summary>Settles the debit attempts given up on (timed out) if one of them is answered as applied later.</summary>
+    private void WatchLateDebits(Bet bet, IReadOnlyList<Task<WalletResult>> abandoned)
+    {
+        if (abandoned.Count == 0)
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var answers = await Task.WhenAll(abandoned.Select(SafeResultAsync)).ConfigureAwait(false);
+                if (answers.Any(answer => answer is WalletOk))
+                {
+                    await SettleLateDebitAsync(bet).ConfigureAwait(false);
+                }
+            }
+#pragma warning disable CA1031 // Background settlement: a failure is logged; the sweeper and the reconciliation stay the safety net.
+            catch (Exception exception)
+#pragma warning restore CA1031
+            {
+                BettingLog.LateDebitFailed(logger, bet.Id, exception);
+            }
+        });
+    }
+
+    private static async Task<WalletResult?> SafeResultAsync(Task<WalletResult> attempt)
+    {
+        try
+        {
+            return BetTransactions.Original(await attempt.ConfigureAwait(false));
+        }
+#pragma warning disable CA1031 // An attempt that failed has no answer to settle.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return null;
+        }
     }
 
     private async Task<bool> RoundEndedAsync(Bet bet, string salaId) =>
@@ -158,12 +256,13 @@ public sealed class PlaceBetUseCase(
         || round.Phase == RoundPhase.Ended;
 
     /// <summary>
-    /// The debit of the bet, unwrapped from a duplicate. When its outcome is unknown (<see cref="WalletUnavailable"/> or no
-    /// answer), the same debit (same transaction id) is sent again until the wallet answers it for sure (SPEC-0021 caller
-    /// rule): <see cref="WalletDuplicate"/> means it was applied, <see cref="WalletOk"/> and
-    /// <see cref="WalletInsufficientFunds"/> are final. Returns <see langword="null"/> or the unavailability when it stays unknown.
+    /// The debit of the bet, unwrapped from a duplicate. Each attempt waits at most <see cref="BettingOptions.DebitAttemptTimeout"/>.
+    /// When its outcome is unknown (<see cref="WalletUnavailable"/>, no answer in time or a failure), the same debit (same
+    /// transaction id) is sent again (SPEC-0021 caller rule): <see cref="WalletDuplicate"/> means it was applied,
+    /// <see cref="WalletOk"/> and <see cref="WalletInsufficientFunds"/> are final. Returns the last answer (or none) and the
+    /// attempts given up on, still running.
     /// </summary>
-    private async Task<WalletResult?> DebitAsync(Bet bet)
+    private async Task<(WalletResult? Result, IReadOnlyList<Task<WalletResult>> Abandoned)> DebitAsync(Bet bet)
     {
         var debit = new WalletOperation(
             BetTransactions.Debit(bet.Id),
@@ -172,34 +271,39 @@ public sealed class PlaceBetUseCase(
             new Money(bet.Amount),
             bet.RoundId,
             bet.Id);
+        var timeout = options.Value.DebitAttemptTimeout;
+        var abandoned = new List<Task<WalletResult>>();
         WalletResult? result = null;
-        foreach (var delay in DebitResends)
+        foreach (var delay in BettingOptions.DebitResendDelays)
         {
             if (delay > TimeSpan.Zero)
             {
                 await Task.Delay(delay, time, CancellationToken.None).ConfigureAwait(false);
             }
 
+            // Not tied to the caller nor cancelled at the timeout: the outcome of a debit already sent must be learned, even
+            // late (an answer after the timeout is settled by WatchLateDebits); only the wait for it is bounded.
+            var attempt = wallet.DebitAsync(debit, CancellationToken.None);
             try
             {
-                // Not tied to the caller: the outcome of a debit already sent must be learned even if the connection is gone.
-                result = BetTransactions.Original(await wallet.DebitAsync(debit, CancellationToken.None).ConfigureAwait(false));
+                result = BetTransactions.Original(await attempt.WaitAsync(timeout, time, CancellationToken.None).ConfigureAwait(false));
             }
 #pragma warning disable CA1031 // ADR-0007: any failure of the call leaves the debit's outcome unknown, so it is sent again.
             catch (Exception exception) when (exception is not OutOfMemoryException)
 #pragma warning restore CA1031
             {
                 BettingLog.DebitUncertain(logger, bet.Id, exception.GetType().Name);
+                abandoned.Add(attempt);
                 result = null;
             }
 
             if (result is WalletOk or WalletInsufficientFunds or WalletUnavailable { Retryable: false })
             {
-                return result;
+                return (result, abandoned);
             }
         }
 
-        return result;
+        return (result, abandoned);
     }
 
     /// <summary>Voids the reservation with the durable reversal of its debit and refuses the bet with <paramref name="code"/>.</summary>

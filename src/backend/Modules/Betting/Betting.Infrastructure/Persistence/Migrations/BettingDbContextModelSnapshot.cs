@@ -144,12 +144,12 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                     b.HasIndex("OperatorId", "PlayerId", "Panel")
                         .IsUnique()
                         .HasDatabaseName("ux_bets_queued_panel")
-                        .HasFilter("status = 'queued'");
+                        .HasFilter("status = 'queued' OR (status = 'pending' AND accepted_status = 'queued')");
 
                     b.HasIndex("OperatorId", "PlayerId", "Panel", "RoundId")
                         .IsUnique()
                         .HasDatabaseName("ux_bets_placed_panel")
-                        .HasFilter("status = 'placed'");
+                        .HasFilter("status = 'placed' OR (status = 'pending' AND accepted_status = 'placed')");
 
                     b.ToTable("bets", "betting", t =>
                         {

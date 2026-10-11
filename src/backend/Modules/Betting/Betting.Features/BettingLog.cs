@@ -29,6 +29,18 @@ internal static partial class BettingLog
     [LoggerMessage(EventId = 2209, Level = LogLevel.Warning, Message = "BetActivated of bet {BetId} could not be sent")]
     public static partial void ActivationNotSent(ILogger logger, Guid betId, Exception exception);
 
+    [LoggerMessage(EventId = 2211, Level = LogLevel.Warning, Message = "Reconciliation: the debit of bet {BetId} was applied after its reservation was voided; a new reversal is stored")]
+    public static partial void ReconciliationLateDebit(ILogger logger, Guid betId);
+
+    [LoggerMessage(EventId = 2212, Level = LogLevel.Warning, Message = "The debit of bet {BetId} was applied after the bet was refused; its reservation is voided and the debit reversed")]
+    public static partial void LateDebitVoided(ILogger logger, Guid betId);
+
+    [LoggerMessage(EventId = 2213, Level = LogLevel.Error, Message = "The late debit of bet {BetId} could not be settled; the sweeper and the reconciliation remain")]
+    public static partial void LateDebitFailed(ILogger logger, Guid betId, Exception exception);
+
+    [LoggerMessage(EventId = 2214, Level = LogLevel.Error, Message = "The refund answer of cancelled bet {BetId} could not be recorded; it is answered as pending")]
+    public static partial void RefundNotRecorded(ILogger logger, Guid betId, Exception exception);
+
     [LoggerMessage(EventId = 2204, Level = LogLevel.Information, Message = "{Count} queued bets of room {SalaId} entered round {RoundId}.")]
     public static partial void QueuedActivated(ILogger logger, int count, string salaId, Guid roundId);
 }

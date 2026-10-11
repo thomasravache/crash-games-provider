@@ -25,4 +25,17 @@ public sealed class BettingOptions
 
     /// <summary>How often each instance sweeps the reservations older than <see cref="PendingTimeout"/>.</summary>
     public TimeSpan SweepInterval { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Longest wait for the wallet's answer to one debit attempt (IT-12): past it the outcome is unknown and the same debit is
+    /// sent again (<see cref="DebitResendDelays"/>), so <c>PlaceBet</c> answers before <see cref="PendingTimeout"/>.
+    /// </summary>
+    public TimeSpan DebitAttemptTimeout { get; set; } = TimeSpan.FromSeconds(1.5);
+
+    /// <summary>The delay before each debit attempt: the first one at once, then the resends while the outcome is unknown.</summary>
+    public static IReadOnlyList<TimeSpan> DebitResendDelays { get; } =
+        [TimeSpan.Zero, TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(1)];
+
+    /// <summary>The longest time the debit attempts of one bet take: every attempt timed out, plus the delays between them.</summary>
+    public TimeSpan DebitBudget => (DebitAttemptTimeout * DebitResendDelays.Count) + DebitResendDelays.Aggregate(TimeSpan.Zero, (sum, delay) => sum + delay);
 }

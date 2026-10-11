@@ -102,13 +102,16 @@ public static class ArchitectureRules
 
     /// <summary>
     /// ADR-0028: only the Host configures Wolverine (no module depends on <c>WolverineOptions</c> nor on <c>UseWolverine</c>)
-    /// and no module manipulates service registrations (<c>ServiceDescriptor</c>), such as another assembly's hosted services.
+    /// and no module manipulates service registrations (<c>ServiceDescriptor</c>) nor the host's hosted services
+    /// (<c>RemoveAll&lt;IHostedService&gt;()</c>, resolving <c>IHostedService</c> or <c>IEnumerable&lt;IHostedService&gt;</c>);
+    /// a module's own <c>AddHostedService</c> and <c>BackgroundService</c> are allowed.
     /// </summary>
     public static IArchRule MessagingOwnedByHost() =>
         Types().That().ResideInNamespaceMatching(ModuleTypes)
             .Should().FollowCustomCondition(TypeConditions.NotDependOnType("Wolverine.WolverineOptions"))
             .AndShould().FollowCustomCondition(TypeConditions.NotDependOnType("Wolverine.HostBuilderExtensions"))
             .AndShould().FollowCustomCondition(TypeConditions.NotDependOnType("Microsoft.Extensions.DependencyInjection.ServiceDescriptor"))
+            .AndShould().FollowCustomCondition(TypeConditions.NotHandleHostedServicesOfOthers())
             .Because("ADR-0028: the Host owns the configuration and the lifecycle of the messaging")
             .WithoutRequiringPositiveResults();
 

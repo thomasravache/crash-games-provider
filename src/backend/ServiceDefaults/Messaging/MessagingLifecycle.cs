@@ -10,9 +10,9 @@ namespace Apogeu.ServiceDefaults.Messaging;
 /// The Host's ownership of the messaging lifecycle (ADR-0028): <see cref="AddMessagingLifecycle"/> moves the hosted services
 /// Wolverine registered under this one, which starts them in the background once the PostgreSQL of the message store answers
 /// (a Host must start even with its database still unavailable — tests, the build-time OpenAPI document) and then signals
-/// <see cref="IMessagingReadiness"/>. Stopping the Host stops them in reverse order.
+/// <see cref="WhenReadyAsync"/>, which the Host exposes to the modules as their readiness port. Stopping the Host stops them in reverse order.
 /// </summary>
-public sealed partial class MessagingLifecycle : IHostedService, IMessagingReadiness, IDisposable
+public sealed partial class MessagingLifecycle : IHostedService, IDisposable
 {
     private static readonly TimeSpan RetryInterval = TimeSpan.FromSeconds(1);
 
@@ -37,8 +37,8 @@ public sealed partial class MessagingLifecycle : IHostedService, IMessagingReadi
 
     /// <summary>
     /// Takes over the hosted services Wolverine registered (call right after <c>UseWolverine</c>, before the modules) and
-    /// registers <see cref="IMessagingReadiness"/>; <paramref name="connectionName"/> names the connection string of the
-    /// message store.
+    /// registers the lifecycle (the Host exposes its readiness to the modules); <paramref name="connectionName"/> names the
+    /// connection string of the message store.
     /// </summary>
     public static IServiceCollection AddMessagingLifecycle(IServiceCollection services, string connectionName)
     {
@@ -56,11 +56,11 @@ public sealed partial class MessagingLifecycle : IHostedService, IMessagingReadi
             new Registrations(wolverine, connectionName),
             provider.GetRequiredService<IConfiguration>(),
             provider.GetRequiredService<ILogger<MessagingLifecycle>>()));
-        services.AddSingleton<IMessagingReadiness>(provider => provider.GetRequiredService<MessagingLifecycle>());
         services.AddHostedService<HostedMessaging>();
         return services;
     }
 
+    /// <summary>Completes once the messaging started.</summary>
     public Task WhenReadyAsync(CancellationToken ct) => _ready.Task.WaitAsync(ct);
 
     public Task StartAsync(CancellationToken cancellationToken)

@@ -39,6 +39,7 @@ public static class BettingModule
         ArgumentNullException.ThrowIfNull(services);
 
         services.AddOptions<BettingOptions>().BindConfiguration(BettingOptions.SectionName).ValidateDataAnnotations().ValidateOnStart();
+        services.AddSingleton<IValidateOptions<BettingOptions>, BettingOptionsValidator>();
         services.AddMetrics();
         services.AddSingleton<BettingMetrics>();
         services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddMeter(BettingMetrics.MeterName));

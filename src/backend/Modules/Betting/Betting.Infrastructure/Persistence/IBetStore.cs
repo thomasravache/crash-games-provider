@@ -16,12 +16,13 @@ public interface IBetStore
     /// <summary>The accepted bet <paramref name="betId"/> of <paramref name="owner"/>; <see langword="null"/> for a bet of anyone else.</summary>
     Task<AcceptedBet?> FindAsync(BetOwner owner, Guid betId, CancellationToken ct);
 
-    /// <summary>The placed and queued bets of <paramref name="owner"/> (the ones that hold a panel).</summary>
+    /// <summary>The placed and queued bets and the pending reservations of <paramref name="owner"/> (the ones that hold a panel).</summary>
     Task<IReadOnlyList<Bet>> ListOpenAsync(BetOwner owner, CancellationToken ct);
 
     /// <summary>
-    /// Writes <paramref name="bet"/> as a pending reservation (committed at once). Throws <see cref="BetConflictException"/>
-    /// when the player already has a bet or reservation with its <c>clientBetId</c>.
+    /// Writes <paramref name="bet"/> as a pending reservation (committed at once), which holds its panel. Throws
+    /// <see cref="BetConflictException"/> when the player already has a bet or reservation with its <c>clientBetId</c>, or
+    /// in its panel.
     /// </summary>
     Task ReserveAsync(Bet bet, string salaId, DateTimeOffset now, CancellationToken ct);
 
@@ -36,6 +37,12 @@ public interface IBetStore
     /// (Wolverine outbox). Returns whether this call voided it (it was still pending).
     /// </summary>
     Task<bool> VoidAsync(Guid betId, CancellationToken ct);
+
+    /// <summary>
+    /// Stores, through the Wolverine outbox, a new reversal of the debit of <paramref name="bet"/> (same deterministic
+    /// <c>bet:{betId}:rollback</c>): a debit the wallet applied after its reservation was voided (IT-12).
+    /// </summary>
+    Task ReverseLateDebitAsync(Bet bet, CancellationToken ct);
 
     /// <summary>The pending reservations created before <paramref name="createdBefore"/> (at most <paramref name="limit"/>).</summary>
     Task<IReadOnlyList<Guid>> ListStalePendingAsync(DateTimeOffset createdBefore, int limit, CancellationToken ct);

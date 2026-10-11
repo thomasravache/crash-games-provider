@@ -1,6 +1,7 @@
 using Apogeu.Backoffice.Features;
 using Apogeu.Betting.Features;
 using Apogeu.Betting.Infrastructure.Persistence;
+using Apogeu.BuildingBlocks.Messaging;
 using Apogeu.Fairness.Features;
 using Apogeu.Host.OpenApi;
 using Apogeu.Host.Security;
@@ -68,7 +69,8 @@ builder.UseWolverine(options =>
         .RetryWithCooldown(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5));
 
     // ADR-0028: the handlers' code is generated ahead of time into this assembly (Internal/Generated, `dotnet run --project
-    // src/backend/Host -- codegen write`; the CI runs `codegen test`) and loaded at startup; nothing is compiled at runtime.
+    // src/backend/Host -- codegen write`) and loaded at startup; nothing is compiled at runtime. The CI regenerates it and
+    // fails when it differs from the commit (`codegen test` would compile it and needs the runtime compiler).
     options.ApplicationAssembly = typeof(Program).Assembly;
     options.CodeGeneration.TypeLoadMode = TypeLoadMode.Static;
     options.CodeGeneration.GeneratedCodeOutputPath = Path.Combine(builder.Environment.ContentRootPath, "Internal", "Generated");
@@ -78,6 +80,11 @@ builder.UseWolverine(options =>
     options.CodeGeneration.AlwaysUseServiceLocationFor<IBetStore>();
 });
 MessagingLifecycle.AddMessagingLifecycle(builder.Services, RoundsModule.ConnectionName);
+builder.Services.AddSingleton<IMessagingReadiness>(provider =>
+{
+    var lifecycle = provider.GetRequiredService<MessagingLifecycle>();
+    return new MessagingReadiness(() => lifecycle.IsReady, lifecycle.WhenReadyAsync);
+});
 
 builder.Services.AddBackofficeModule();
 builder.Services.AddBettingModule();

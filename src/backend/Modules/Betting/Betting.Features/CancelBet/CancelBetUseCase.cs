@@ -63,8 +63,7 @@ public sealed class CancelBetUseCase(
             {
                 metrics.BetReached("cancelled");
                 var refund = await RefundAsync(bet, ct).ConfigureAwait(false);
-                await store.TransitionAsync(bet, BetStatus.Cancelled, refund, ct).ConfigureAwait(false);
-                return Answer(bet, refund);
+                return Answer(bet, await RecordAsync(bet, refund).ConfigureAwait(false));
             }
         }
 
@@ -111,6 +110,29 @@ public sealed class CancelBetUseCase(
                 BettingLog.RefundPending(logger, bet.Id, result?.GetType().Name ?? "no answer");
                 return new BetRefund(bet.Amount, Confirmed: false, Balance: null);
         }
+    }
+
+    /// <summary>
+    /// Records the refund answer, so a new <c>CancelBet</c> repeats it. If it cannot be recorded, the answer is
+    /// <c>pending</c> (what a new <c>CancelBet</c> answers without a record); the durable reversal goes on either way.
+    /// </summary>
+    private async Task<BetRefund> RecordAsync(Bet bet, BetRefund refund)
+    {
+        try
+        {
+            if (await store.TransitionAsync(bet, BetStatus.Cancelled, refund, CancellationToken.None).ConfigureAwait(false))
+            {
+                return refund;
+            }
+        }
+#pragma warning disable CA1031 // The bet is cancelled and its reversal stored: only the answer's record failed.
+        catch (Exception exception)
+#pragma warning restore CA1031
+        {
+            BettingLog.RefundNotRecorded(logger, bet.Id, exception);
+        }
+
+        return new BetRefund(bet.Amount, Confirmed: false, Balance: null);
     }
 
     private static BettingOutcome<BetCancelled> Answer(Bet bet, BetRefund refund) =>

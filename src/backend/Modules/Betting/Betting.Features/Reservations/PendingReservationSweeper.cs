@@ -1,5 +1,5 @@
 using Apogeu.Betting.Infrastructure.Persistence;
-using Apogeu.ServiceDefaults.Messaging;
+using Apogeu.BuildingBlocks.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
