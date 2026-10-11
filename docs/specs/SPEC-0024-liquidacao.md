@@ -10,7 +10,7 @@ parent: SPEC-0019
 depends_on: [SPEC-0023]
 consumes_contract: [SPEC-0021@4]
 contract_version: 2
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Host/Internal/Generated/**", "src/backend/Host/Program.cs"]
+touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Host/Internal/Generated/**", "src/backend/Host/Program.cs", "src/backend/Modules/Rounds/Rounds.Features/Conductor/**", "src/backend/Modules/Rounds/Rounds.Features/CashOut/**"]
 adrs: [ADR-0002, ADR-0007, ADR-0010, ADR-0017, ADR-0018, ADR-0028]
 external: []
 size: M
@@ -229,5 +229,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0024`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (inalterado) | 2026-10-11 | Escopo inclui o condutor e o árbitro do cash-out (Rounds) para a regra única de rodada anulada (TooLate nos dois caminhos — minor m-a do review da SPEC-0023); cash-out em aposta já perdida responde CASHOUT_TOO_LATE; tabela `betting.round_closures` marca que a Betting processou o fim da rodada | Implementação 28fb63b | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 2 | 2026-10-11 | Contrato v2: `BetRefunded` com `refundStatus` e `balance` opcional (BalanceUpdated depois), `RoundSettlement.totalRefunded`; ordem da liquidação no RoundCrashed com cash-out pendente; fechamento do resumo pela última aposta fechada, único por índice; o resumo conta lost, cashed_out e refunded; reserva pendente em rodada anulada fica com a varredura da SPEC-0022; IT-03 ajustado | Scaffold 8a07dad: estorno pendente sem saldo confirmado, unicidade e fechamento do resumo indefinidos | SPEC-0026 (pin @1 → @2) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 1 (inalterado) | 2026-10-11 | Interação com o cash-out pendente da SPEC-0023@2: aposta com pedido gravado só é liquidada depois da decisão do líder (IT-05); escopo inclui o código gerado do Wolverine no Host e o `Program.cs` (ADR-0028); scaffold em commit `chore` antes dos testes | A SPEC-0023 v2 introduziu CashOutPending e o Wolverine com código pré-gerado | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
