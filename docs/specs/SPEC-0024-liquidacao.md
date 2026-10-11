@@ -175,7 +175,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:09:42.54]     Dada uma carteira que falha no estorno e um reinício do proces) — 03821c2 | 2026-10-11 |
-| G2 Green | FAIL | build exit 0 (✓ built in 380ms); test exit 0 (Duration  1.32s (tests 66%, transform 19%, import 14%, worker 2%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:01:14.48]     Dados 300 automáticos em 1,50x com a carteira indisponível, qu) — d300099 | 2026-10-11 |
+| G2 Green | PASS | build exit 0 (✓ built in 152ms); test exit 0 (at least ~278ms faster with isolate: false — reuses workers across files instead of one pe); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T09:43:09: Report generation took 0,8 seconds) — dc9f499 | 2026-10-11 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
