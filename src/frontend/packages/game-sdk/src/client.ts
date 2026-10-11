@@ -160,6 +160,8 @@ export function createGameClient(options: GameClientOptions): GameClient {
       listen(hub);
       await hub.start();
       await synchronize(hub);
+      // The bets hub (SPEC-0026) uses the same session token, handed over in memory only.
+      await options.bets?.start(token);
       return {
         nickname: session.player.nickname ?? anonymousNickname,
         salaId: session.salaId,
@@ -178,6 +180,7 @@ export function createGameClient(options: GameClientOptions): GameClient {
       const hub = connection;
       connection = undefined;
       if (hub !== undefined) await hub.stop();
+      await options.bets?.stop();
       store.setConnection("disconnected");
     },
   };

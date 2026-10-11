@@ -1,8 +1,6 @@
 // Server error codes of the bet panel and their pt-BR messages (SPEC-0026 §6, UT-05). The codes come from the hub
 // /hubs/bets (SPEC-0022@3, SPEC-0023@2) and the demo wallet (SPEC-0021@4); anything else is UNKNOWN.
 
-import { notImplemented } from "../not-implemented";
-
 /** The codes listed in the SPEC-0026 §6 contract. */
 export const contractBetErrorCodes = [
   "BET_BELOW_MIN",
@@ -59,15 +57,15 @@ export const betErrorMessages: Readonly<Record<BetErrorCode, string>> = {
 };
 
 export function isBetErrorCode(value: unknown): value is BetErrorCode {
-  return notImplemented(value);
+  return typeof value === "string" && (betErrorCodes as readonly string[]).includes(value);
 }
 
 /** Known code as is; anything else (or nothing) as UNKNOWN. */
 export function toBetErrorCode(value: unknown): BetErrorCode {
-  return notImplemented(value);
+  return isBetErrorCode(value) ? value : "UNKNOWN";
 }
 
 /** pt-BR message of a code; an unknown code gets the UNKNOWN message. */
 export function betErrorMessage(code: string): string {
-  return notImplemented(code);
+  return betErrorMessages[toBetErrorCode(code)];
 }

@@ -3,8 +3,16 @@
 
 import type { Money, Multiplier } from "@apogeu/contracts";
 
-import { notImplemented } from "../not-implemented";
 import type { BetLimits } from "./bets-state";
+import {
+  addMoney,
+  compareMoney,
+  compareMultiplier,
+  formatMoney,
+  parseMoneyInput,
+  parseMultiplierInput,
+  subtractMoney,
+} from "./money";
 
 /** Smallest automatic cash-out target (SPEC-0022@3 AUTO_CASHOUT_INVALID below it). */
 export const minAutoCashOut = "1.01" as Multiplier;
@@ -45,20 +53,56 @@ export function betValidationMessage(
   reason: BetValidationReason,
   limits: BetLimits | null,
 ): string {
-  return notImplemented(reason, limits);
+  switch (reason) {
+    case "LIMITS_UNKNOWN":
+      return "Carregando os limites de aposta…";
+    case "INVALID_AMOUNT":
+      return "Informe um valor de aposta válido.";
+    case "BELOW_MIN":
+      return limits === null
+        ? "Valor abaixo da aposta mínima."
+        : `Aposta mínima: ${formatMoney(limits.minBet)}`;
+    case "ABOVE_MAX":
+      return limits === null
+        ? "Valor acima da aposta máxima."
+        : `Aposta máxima: ${formatMoney(limits.maxBet)}`;
+    case "AUTO_TARGET_INVALID":
+      return "Informe um alvo válido para o cash-out automático.";
+    case "AUTO_TARGET_TOO_LOW":
+      return "O alvo do cash-out automático deve ser de pelo menos 1,01x.";
+  }
+}
+
+function invalid(reason: BetValidationReason, limits: BetLimits | null): BetValidation {
+  return { ok: false, reason, message: betValidationMessage(reason, limits) };
 }
 
 /** Validates a draft against the limits and the 1.01x minimum target. */
 export function validateBet(draft: BetDraft, limits: BetLimits | null): BetValidation {
-  return notImplemented(draft, limits);
+  const amount = parseMoneyInput(draft.amount);
+  if (amount === null) return invalid("INVALID_AMOUNT", limits);
+  if (limits === null) return invalid("LIMITS_UNKNOWN", limits);
+  if (compareMoney(amount, limits.minBet) < 0) return invalid("BELOW_MIN", limits);
+  if (compareMoney(amount, limits.maxBet) > 0) return invalid("ABOVE_MAX", limits);
+  if (draft.autoCashOutEnabled) {
+    const target = parseMultiplierInput(draft.autoCashOutTarget);
+    if (target === null) return invalid("AUTO_TARGET_INVALID", limits);
+    if (compareMultiplier(target, minAutoCashOut) < 0)
+      return invalid("AUTO_TARGET_TOO_LOW", limits);
+  }
+  return { ok: true };
 }
 
 /** The amount after a − (step −1) or + (step +1), kept inside [minBet, maxBet] when the limits are known. */
 export function stepAmount(amount: Money, direction: -1 | 1, limits: BetLimits | null): Money {
-  return notImplemented(amount, direction, limits);
+  const next = direction === 1 ? addMoney(amount, amountStep) : subtractMoney(amount, amountStep);
+  if (limits === null) return next;
+  if (compareMoney(next, limits.minBet) < 0) return limits.minBet;
+  if (compareMoney(next, limits.maxBet) > 0) return limits.maxBet;
+  return next;
 }
 
 /** "Recarregar demo" is offered only when the balance is below the minimum bet (SPEC-0021@4). */
 export function shouldOfferRecharge(balance: Money | null, limits: BetLimits | null): boolean {
-  return notImplemented(balance, limits);
+  return balance !== null && limits !== null && compareMoney(balance, limits.minBet) < 0;
 }

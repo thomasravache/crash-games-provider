@@ -2,8 +2,7 @@
 // and never with `prefers-reduced-motion: reduce`.
 
 import type { RoundPhase } from "@apogeu/game-sdk/state";
-
-import { notImplemented } from "./not-implemented";
+import { useEffect, useState } from "react";
 
 /** Longest shake of the crash text. */
 export const crashShakeDurationMs = 300;
@@ -20,17 +19,35 @@ export interface MotionMedia {
 
 /** Whether the player asked for less motion; false without matchMedia. */
 export function prefersReducedMotion(media?: MotionMedia): boolean {
-  return notImplemented(media);
+  if (media === undefined || typeof media.matchMedia !== "function") return false;
+  return media.matchMedia(reducedMotionQuery).matches;
+}
+
+/** The browser window as a MotionMedia, or undefined outside the browser. */
+export function browserMotionMedia(): MotionMedia | undefined {
+  return typeof window === "undefined" ? undefined : window;
 }
 
 /**
  * True from the moment the round `roundId` enters "crashed" for crashShakeDurationMs, once per round; always false
- * with reduced motion.
+ * with reduced motion. True already on the first render of the crash (no effect delay).
  */
 export function useCrashShake(
   phase: RoundPhase,
   roundId: string | null,
   reducedMotion: boolean,
 ): boolean {
-  return notImplemented(phase, roundId, reducedMotion);
+  // The round whose shake already ended; { roundId } so a null round id is distinct from "none yet".
+  const [ended, setEnded] = useState<{ readonly roundId: string | null } | null>(null);
+  const shaking = phase === "crashed" && !reducedMotion && ended?.roundId !== roundId;
+  useEffect(() => {
+    if (!shaking) return undefined;
+    const timer = setTimeout(() => {
+      setEnded({ roundId });
+    }, crashShakeDurationMs);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [shaking, roundId]);
+  return shaking;
 }

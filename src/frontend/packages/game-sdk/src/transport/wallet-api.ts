@@ -4,8 +4,7 @@
 //   POST /api/v1/wallet/demo/recharge  → 200 { balance, currency } | 409 RECHARGE_NOT_ALLOWED | 403 NOT_DEMO
 //   GET  /api/v1/me/bets?limit=n       → 200 { items, nextCursor } | 404 while SPEC-0025 is not delivered
 
-import { notImplemented } from "../not-implemented";
-import type { FetchLike } from "./session-api";
+import { problemCode, type FetchLike } from "./session-api";
 import type { MyBetsPage, WalletBalance, WalletRecharge } from "./wire";
 
 /** A wallet call failed: the ProblemDetails `code` (RECHARGE_NOT_ALLOWED, NOT_DEMO, …), NETWORK or UNKNOWN. */
@@ -19,28 +18,74 @@ export class WalletError extends Error {
   }
 }
 
-export function fetchWalletBalance(
+function authorized(sessionToken: string): Record<string, string> {
+  return { accept: "application/json", authorization: `Bearer ${sessionToken}` };
+}
+
+async function call(fetchImpl: FetchLike, url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetchImpl(url, init);
+  } catch {
+    throw new WalletError("NETWORK");
+  }
+}
+
+function isRecord(body: unknown): body is Record<string, unknown> {
+  return typeof body === "object" && body !== null;
+}
+
+async function balanceBody<T extends { balance: unknown; currency: unknown }>(
+  response: Response,
+): Promise<T> {
+  if (!response.ok) throw new WalletError((await problemCode(response)) ?? "UNKNOWN");
+  const body = (await response.json()) as unknown;
+  if (
+    !isRecord(body) ||
+    typeof body["balance"] !== "string" ||
+    typeof body["currency"] !== "string"
+  ) {
+    throw new WalletError("UNKNOWN");
+  }
+  return body as T;
+}
+
+export async function fetchWalletBalance(
   apiBaseUrl: string,
   sessionToken: string,
   fetchImpl: FetchLike,
 ): Promise<WalletBalance> {
-  return notImplemented(apiBaseUrl, sessionToken, fetchImpl);
+  const response = await call(fetchImpl, `${apiBaseUrl}/api/v1/wallet/balance`, {
+    headers: authorized(sessionToken),
+  });
+  return balanceBody<WalletBalance>(response);
 }
 
-export function rechargeDemoWallet(
+export async function rechargeDemoWallet(
   apiBaseUrl: string,
   sessionToken: string,
   fetchImpl: FetchLike,
 ): Promise<WalletRecharge> {
-  return notImplemented(apiBaseUrl, sessionToken, fetchImpl);
+  const response = await call(fetchImpl, `${apiBaseUrl}/api/v1/wallet/demo/recharge`, {
+    method: "POST",
+    headers: authorized(sessionToken),
+  });
+  return balanceBody<WalletRecharge>(response);
 }
 
 /** Most recent bets of the player; resolves null when the endpoint answers 404 (not delivered yet). */
-export function fetchMyBets(
+export async function fetchMyBets(
   apiBaseUrl: string,
   sessionToken: string,
   fetchImpl: FetchLike,
   limit?: number,
 ): Promise<MyBetsPage | null> {
-  return notImplemented(apiBaseUrl, sessionToken, fetchImpl, limit);
+  const query = limit === undefined ? "" : `?limit=${String(limit)}`;
+  const response = await call(fetchImpl, `${apiBaseUrl}/api/v1/me/bets${query}`, {
+    headers: authorized(sessionToken),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new WalletError((await problemCode(response)) ?? "UNKNOWN");
+  const body = (await response.json()) as unknown;
+  if (!isRecord(body) || !Array.isArray(body["items"])) throw new WalletError("UNKNOWN");
+  return body as unknown as MyBetsPage;
 }

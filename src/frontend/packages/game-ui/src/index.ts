@@ -13,3 +13,4 @@ export * from "./bets/bet-panel";
 export * from "./bets/balance-display";
 export * from "./bets/use-bets-state";
 export * from "./bets/crash-shake";
+export * from "./bets/bet-announcement";

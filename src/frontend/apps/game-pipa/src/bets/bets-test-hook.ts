@@ -3,7 +3,7 @@
 
 import type { BetsState, BetsStateSource } from "@apogeu/game-sdk/state";
 
-import { notImplemented } from "./not-implemented";
+import { isTestBuild } from "../test-hook";
 
 declare module "../test-hook" {
   interface ApogeuTestHook {
@@ -13,5 +13,7 @@ declare module "../test-hook" {
 
 /** Installs `__APOGEU_TEST__.bets` in test builds (a no-op otherwise); call it after installTestHook. */
 export function installBetsTestHook(source: BetsStateSource): void {
-  notImplemented(source);
+  const hook = window.__APOGEU_TEST__;
+  if (!isTestBuild || hook === undefined) return;
+  hook.bets = () => source.getState();
 }

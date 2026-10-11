@@ -18,3 +18,34 @@
   --font-hud-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --font-hud-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Shake of the "PIPA CORTADA!" text on the crash (SPEC-0026 UT-07): one run of 280 ms, never with reduced motion. */
+.hud-crash-shake {
+  display: inline-block;
+  animation: hud-crash-shake 280ms ease-in-out 1;
+}
+
+@keyframes hud-crash-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-crash-shake {
+    animation: none;
+  }
+}

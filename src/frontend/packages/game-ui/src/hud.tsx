@@ -5,6 +5,12 @@
 import type { RoundState } from "@apogeu/game-sdk/state";
 import type { JSX, ReactNode } from "react";
 
+import {
+  browserMotionMedia,
+  crashShakeClassName,
+  prefersReducedMotion,
+  useCrashShake,
+} from "./bets/crash-shake";
 import { formatMultiplier, secondsLeft } from "./format";
 import { HistoryStrip } from "./history-strip";
 import { hudAnnouncement, hudTestIds, hudText } from "./hud-text";
@@ -47,6 +53,12 @@ function announcement(state: RoundState): string {
 
 function Readout({ state }: { readonly state: RoundState }): JSX.Element {
   const now = useNow(state.phase === "betting");
+  // The crash text shakes for ≤ 300 ms, never with reduced motion (SPEC-0026 UT-07, ADR-0021).
+  const shake = useCrashShake(
+    state.phase,
+    state.roundId,
+    prefersReducedMotion(browserMotionMedia()),
+  );
 
   switch (state.phase) {
     case "betting":
@@ -86,7 +98,9 @@ function Readout({ state }: { readonly state: RoundState }): JSX.Element {
           >
             {formatMultiplier(state.crashPoint ?? state.multiplier)}
           </p>
-          <p className="font-hud-display text-sm font-semibold tracking-wider text-hud-crashed">
+          <p
+            className={`font-hud-display text-sm font-semibold tracking-wider text-hud-crashed${shake ? ` ${crashShakeClassName}` : ""}`}
+          >
             {hudText.crashed}
           </p>
         </>
