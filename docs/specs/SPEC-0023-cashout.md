@@ -204,7 +204,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:03:50.96]     Dado o contrato v2 do cash-out no hub /hubs/bets gerado (SPEC-) — 3df9de0 | 2026-10-11 |
 | G2 Green | PASS | build exit 0 (✓ built in 139ms); test exit 0 (Duration  1.37s (tests 65%, transform 21%, import 12%, worker 2%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T04:39:42: Report generation took 0,8 seconds) — d91817c | 2026-10-11 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  756ms (tests 97%, transform 2%, import 1%)) — d91817c | 2026-10-11 |
-| G4 Review | PENDING | | |
+| G4 Review | FAIL | CHANGES_REQUESTED (d91817c): M1 automáticos só na memória do líder (falha de publicação, failover, corrida com o crash); M2 líder que não conhece a rodada responde TooLate; M3 manual vence automático vencido e paga acima do alvo; M4 crédito inline na fila sequencial de eventos da rodada | 2026-10-11 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
