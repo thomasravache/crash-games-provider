@@ -40,7 +40,7 @@ Implementa o módulo Wallet: a porta `IOperatorWallet` (débito, crédito, estor
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0009 — sessão do jogador e operador demo.
-- **Contratos consumidos:** N/A (a aposta mínima da SPEC-0020 é lida pela porta `IOperatorLimits` quando disponível; nos testes, dublê pelo contrato da SPEC-0020@1).
+- **Contratos consumidos:** N/A (a aposta mínima da SPEC-0020 é lida pela porta `IOperatorLimits` quando disponível; nos testes, dublê pelo contrato da SPEC-0020@2).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -65,7 +65,7 @@ Implementa o módulo Wallet: a porta `IOperatorWallet` (débito, crédito, estor
 - **Custo:** N/A
 
 ## 6. Artefato A — Contrato
-**Interface:** `Wallet.Contracts` (v2) + REST do jogador + documento público da carteira do operador. `OperatorId`, `PlayerId`, `Currency` e `Money` vêm de `BuildingBlocks.Contracts` (criados pela SPEC-0020); `RoundId` de `Rounds.Contracts`; `BetId` é `Guid`. A aposta mínima vem de `IOperatorLimits` (SPEC-0020@1).
+**Interface:** `Wallet.Contracts` (v2) + REST do jogador + documento público da carteira do operador. `OperatorId`, `PlayerId`, `Currency` e `Money` vêm de `BuildingBlocks.Contracts` (criados pela SPEC-0020); `RoundId` de `Rounds.Contracts`; `BetId` é `Guid`. A aposta mínima vem de `IOperatorLimits` (SPEC-0020@2).
 
 ```text
 IOperatorWallet
@@ -108,7 +108,13 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 | Recarga permitida | saldo < aposta mínima | saldo volta a 3.000,00 | UT-05, IT-04 |
 | Recarga negada | saldo ≥ aposta mínima | 409 RECHARGE_NOT_ALLOWED | UT-05, IT-04 |
 | Isolamento | sessão do jogador A | só vê e recarrega o próprio saldo; sem sessão → 401; sessão de modo real → 403 NOT_DEMO na recarga | IT-04 |
-| Livro-razão imutável | UPDATE/DELETE com a conexão do próprio módulo | recusado pelo banco (trigger de só inserção) | IT-06 |
+| Livro-razão imutável | UPDATE/DELETE/TRUNCATE com a conexão do próprio módulo | recusado pelo banco (trigger de só inserção) | IT-06 |
+| Escala do valor | 10,005 ou 0,001 | recusado, sem lançamento | UT-06 |
+| Estorno duplo do mesmo débito | dois rollbacks com ids diferentes | devolve uma única vez | UT-06 |
+| Banco indisponível | exceção transitória | Unavailable(retryable) | UT-07 |
+| Erro permanente do banco ou cancelamento | erro de esquema/overflow/trigger, ou cancelamento do chamador | propaga (não vira Unavailable) | UT-07 |
+| Estorno único no banco real | dois estornos com ids distintos (não determinísticos) do mesmo débito, em sequência e concorrentes | um único lançamento Rollback; um Ok e um Duplicate | IT-08 |
+| Estorno com id de outro tipo | TransactionId do estorno já usado por um débito/crédito | não devolve Duplicate de outro lançamento | UT-06 |
 | Desempenho do débito | 500 débitos | p99 ≤ 20 ms | IT-05 |
 | Contrato publicado | respostas REST | conferem com o OpenAPI gerado | CT-01 |
 
@@ -121,6 +127,8 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 - **UT-02** — Dado saldo 3.000,00, quando débito de 10,00 e depois débito de 5.000,00, então Ok com 2.990,00 e InsufficientFunds com saldo inalterado; cada lançamento soma zero.
 - **UT-03** — Dado um débito aplicado, quando o mesmo TransactionId chega de novo, então Duplicate com o resultado original.
 - **UT-04** — Dado um débito de 10,00, quando crédito de 25,00 e estorno do débito (duas vezes), então saldo 3.015,00 após o crédito, 3.025,00 após o estorno (+10,00 uma única vez), e estorno de débito inexistente devolve TransactionNotFound sem lançamento.
+- **UT-06** — Dados débitos, créditos e estornos com valor de 3 casas (10,005) ou abaixo de um centavo (0,001), quando chegam à porta, então são recusados como argumento inválido (ArgumentOutOfRange), sem lançamento; dois estornos com TransactionIds diferentes para o mesmo débito original devolvem uma única vez (o segundo é Duplicate do primeiro). A ordem dos estornos não importa: um primeiro estorno com id qualquer e um segundo com o id determinístico `bet:{betId}:rollback` também devolvem uma vez só (os dublês do livro-razão implementam a busca pelo débito original). Um estorno cujo TransactionId já pertence a um débito ou crédito não devolve Duplicate desse outro lançamento.
+- **UT-07** — Dada uma falha transitória do banco (exceção de conexão ou tempo esgotado) durante um débito, quando a operação é executada, então devolve `Unavailable(retryable: true)` e o trace fica com status de erro. Dado um erro permanente do PostgreSQL (ex.: 22003 overflow, 42P01 objeto ausente) ou o cancelamento do chamador (OperationCanceledException, inclusive com PostgresException 57014 interna), então a exceção propaga e não vira Unavailable; o cancelamento não marca o trace como erro.
 - **UT-05** — Dada aposta mínima 1,00, quando a recarga é pedida com saldo 0,50 e com saldo 1,00, então recarrega para 3.000,00 e recusa com RECHARGE_NOT_ALLOWED.
 
 ### 7.3 Testes de Integração
@@ -130,7 +138,8 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 - **IT-04** — Dado o Host real com sessões de dois jogadores, quando cada um lê o saldo e pede recarga, então cada um só vê o próprio saldo, recarga funciona abaixo do mínimo e retorna 409 acima; sem sessão → 401; com sessão de modo real, a recarga → 403 NOT_DEMO.
 - **IT-07** — Dado saldo 15,00 e PostgreSQL real, quando dois débitos com TransactionIds diferentes de 10,00 chegam ao mesmo tempo para o mesmo jogador (repetido 20 vezes), então em cada repetição um recebe Ok e o outro InsufficientFunds, e o saldo nunca fica negativo.
 - **IT-05** — Dados 500 débitos sequenciais com Postgres real, quando medidos, então p99 ≤ 20 ms (`Category=Performance`).
-- **IT-06** — Dado um lançamento gravado, quando se tenta UPDATE/DELETE direto no banco, com a mesma conexão do módulo usada pela aplicação, então o banco recusa com erro (trigger `BEFORE UPDATE OR DELETE` nas tabelas de lançamentos e partidas — vale também para o dono das tabelas e para o superusuário dos testes).
+- **IT-06** — Dado um lançamento gravado, quando se tenta UPDATE, DELETE ou TRUNCATE direto no banco, com a mesma conexão do módulo usada pela aplicação, então o banco recusa com erro (trigger `BEFORE UPDATE OR DELETE` nas tabelas de lançamentos e partidas — vale também para o dono das tabelas e para o superusuário dos testes).
+- **IT-08** — Dado um débito de 10,00 no PostgreSQL real, quando chegam dois estornos com TransactionIds distintos e não determinísticos, primeiro em sequência e depois concorrentes (repetido 20 vezes em débitos novos), então existe exatamente um lançamento Rollback por débito, um estorno recebe Ok e o outro Duplicate do primeiro, e o saldo sobe 10,00 uma vez só.
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dadas as respostas reais de IT-04, quando validadas contra o OpenAPI gerado, então conferem (contrato v2 consumido pelas SPEC-0022, 0023, 0024, 0025 e 0026).
@@ -141,7 +150,7 @@ Contrato público (docs/integration/operator-wallet-api.md): POST {walletBaseUrl
 ### 7.6 Outros
 - Revisão do documento `operator-wallet-api.md` no G4 contra o ADR-0007.
 
-**Dublês e dados de teste:** limites pela porta `IOperatorLimits` com dublê do contrato SPEC-0020@1.
+**Dublês e dados de teste:** limites pela porta `IOperatorLimits` com dublê do contrato SPEC-0020@2.
 
 **Ambiente de execução:** Testcontainers (Postgres, Redis); Host real via WebApplicationFactory.
 
@@ -170,13 +179,13 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0007, ADR-0001, ADR-0002, ADR-0010, ADR-0014, ADR-0015, ADR-0018 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05 com a tag `SPEC-0021:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07 com a tag `SPEC-0021:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar, seguindo os ADRs
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, CT-01 com a tag `SPEC-0021:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, IT-08, CT-01 com a tag `SPEC-0021:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -192,10 +201,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:02.01]     Dada uma falha transitória do banco durante um débito, quando ) — 963fe9f | 2026-10-10 |
-| G2 Green | PASS | build exit 0 (✓ built in 434ms); test exit 0 (Duration  1.63s (tests 61%, transform 26%, import 12%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T18:20:42: Report generation took 0,8 seconds) — dfbc59c | 2026-10-10 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  870ms (tests 97%, transform 2%, import 1%)) — f92095b | 2026-10-10 |
-| G4 Review | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:01.34]     Dado um erro permanente do PostgreSQL durante um débito, quand) — c95588b | 2026-10-10 |
+| G2 Green | PASS | build exit 0 (✓ built in 159ms); test exit 0 (Duration  1.54s (tests 69%, transform 19%, import 11%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T21:07:02: Report generation took 0,5 seconds) — b062a0b | 2026-10-10 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  780ms (tests 97%, transform 2%, import 1%)) — b062a0b | 2026-10-10 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (3ª revisão, b062a0b; 3 minors: verify sem IT-08 na base do worktree, UT-06 só afirma não-Duplicate, IT-08 não distingue a guarda) — b062a0b | 2026-10-10 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
@@ -248,6 +257,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0021`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| v4 (inalterado) | 2026-10-10 | 2ª revisão (G4): estorno único independe da ordem dos ids e é provado no banco real (IT-08); erro permanente do banco e cancelamento propagam (UT-07); estorno com id de outro tipo não vira Duplicate (UT-06) | Review: o corpo padrão de `FindRollbackOfAsync` e o fallback no id fixo escondiam estorno duplo nos dublês e a garantia do banco não tinha teste; `IsTransient` amplo | Nenhuma (contrato inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
+| v4 (inalterado) | 2026-10-10 | Correções do review (G4): valores com mais de 2 casas são recusados na porta (UT-06); um débito só pode ser estornado uma vez, mesmo com TransactionIds diferentes (UT-06); falha transitória do banco vira `Unavailable(retryable)` (UT-07); IT-06 cobre TRUNCATE | Review independente: o `numeric(18,2)` arredondava em silêncio e o saldo informado divergia das partidas (major); estorno duplo e exceção de banco (minors de segurança de dinheiro) | Nenhuma (contrato inalterado; esclarece o comportamento já esperado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
 | v4 | 2026-10-10 | `WalletRollback.RoundId` opcional: nulo só ao estornar o débito de uma aposta queued (cancelamento antes da rodada existir ou reversão de débito incerto); documento público atualizado | IMP-01 da SPEC-0022: o estorno de aposta queued não tem rodada | SPEC-0022..SPEC-0026 (pin @3 → @4; só afrouxa um campo) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
 | v3 | 2026-10-10 | `WalletOperation.RoundId` opcional: nulo só no débito de uma aposta para a próxima rodada (queued), cuja rodada ainda não existe; crédito e estorno sempre levam a rodada; o documento público reflete isso | G1 da SPEC-0022: o débito acontece na hora da aposta (inclusive queued) e o contrato v2 exigia RoundId | SPEC-0022..SPEC-0026 (pin @2 → @3; só afrouxa um campo) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
 | v2 (inalterado) | 2026-10-10 | Correção do UT-04 (3.015,00 após o crédito, 3.025,00 após o estorno); novo IT-07 (dois débitos diferentes simultâneos nunca deixam o saldo negativo — aposta dupla); IT-04 cobre 403 NOT_DEMO. Esclarecimentos confirmados: TransactionId com Guid no formato "D"; `currency` como string ISO; 20 débitos iguais → um WalletOk e 19 WalletDuplicate com o mesmo resultado; estorno repetido → WalletDuplicate(WalletOk); recarga é lançamento balanceado (jogador +x, casa −x); cada lançamento tem exatamente duas partidas | G1 do Test-writer: erro de conta no UT-04, corrida de débitos distintos sem teste (risco de saldo negativo) e código do contrato sem teste | Nenhuma (contrato inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-10) |
