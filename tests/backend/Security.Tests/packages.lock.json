@@ -968,24 +968,36 @@
         }
       },
       "Apogeu.Wallet.Contracts": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
+          "Apogeu.Rounds.Contracts": "[1.0.0, )"
+        }
       },
       "Apogeu.Wallet.Domain": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "Apogeu.Wallet.Contracts": "[1.0.0, )"
+        }
       },
       "Apogeu.Wallet.Features": {
         "type": "Project",
         "dependencies": {
+          "Apogeu.BuildingBlocks": "[1.0.0, )",
           "Apogeu.Wallet.Contracts": "[1.0.0, )",
           "Apogeu.Wallet.Domain": "[1.0.0, )",
-          "Apogeu.Wallet.Infrastructure": "[1.0.0, )"
+          "Apogeu.Wallet.Infrastructure": "[1.0.0, )",
+          "OpenTelemetry.Extensions.Hosting": "[1.19.1, )"
         }
       },
       "Apogeu.Wallet.Infrastructure": {
         "type": "Project",
         "dependencies": {
+          "Apogeu.Operators.Contracts": "[1.0.0, )",
           "Apogeu.Wallet.Contracts": "[1.0.0, )",
-          "Apogeu.Wallet.Domain": "[1.0.0, )"
+          "Apogeu.Wallet.Domain": "[1.0.0, )",
+          "Microsoft.EntityFrameworkCore": "[10.0.12, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )"
         }
       },
       "Microsoft.AspNetCore.Authentication.JwtBearer": {

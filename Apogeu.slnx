@@ -53,6 +53,7 @@
     <Project Path="tests/backend/Modules/Fairness.Tests/Fairness.Tests.csproj" />
     <Project Path="tests/backend/Modules/Operators.Tests/Operators.Tests.csproj" />
     <Project Path="tests/backend/Modules/Rounds.Tests/Rounds.Tests.csproj" />
+    <Project Path="tests/backend/Modules/Wallet.Tests/Wallet.Tests.csproj" />
     <Project Path="tests/backend/Repository.Tests/Repository.Tests.csproj" />
     <Project Path="tests/backend/Security.Tests/Security.Tests.csproj" />
     <Project Path="tests/backend/ServiceDefaults.Tests/ServiceDefaults.Tests.csproj" />

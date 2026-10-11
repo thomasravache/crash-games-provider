@@ -5,6 +5,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The module's meter and activity source in the Host's OpenTelemetry pipeline (ADR-0017). -->
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Contract scalars (Money), the error body and the player-session policy name (SPEC-0009, ADR-0008). -->
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
     <ProjectReference Include="../Wallet.Contracts/Wallet.Contracts.csproj" />
     <ProjectReference Include="../Wallet.Domain/Wallet.Domain.csproj" />
     <ProjectReference Include="../Wallet.Infrastructure/Wallet.Infrastructure.csproj" />
