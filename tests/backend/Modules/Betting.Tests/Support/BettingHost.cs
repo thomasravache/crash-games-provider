@@ -237,6 +237,27 @@ internal sealed class BettingHost : IAsyncDisposable
         }
     }
 
+    /// <summary>The recorded reception instant of the pending cash-out of <paramref name="betId"/> (SPEC-0023), if any.</summary>
+    public async Task<DateTimeOffset?> CashOutRequestedAtAsync(Guid betId, CancellationToken ct)
+    {
+        var connection = new NpgsqlConnection(DatabaseConnectionString);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
+            var command = new NpgsqlCommand("SELECT cash_out_requested_at FROM betting.bets WHERE id = @id", connection);
+            await using (command.ConfigureAwait(false))
+            {
+                command.Parameters.AddWithValue("id", betId);
+                return await command.ExecuteScalarAsync(ct).ConfigureAwait(false) switch
+                {
+                    DateTime at => new DateTimeOffset(DateTime.SpecifyKind(at, DateTimeKind.Utc)),
+                    DateTimeOffset at => at,
+                    _ => null,
+                };
+            }
+        }
+    }
+
     /// <summary>How many bets of <c>betting.bets</c> are in <paramref name="status"/> among <paramref name="betIds"/>.</summary>
     public async Task<int> CountStatusAsync(IReadOnlyCollection<Guid> betIds, string status, CancellationToken ct)
     {

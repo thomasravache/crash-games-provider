@@ -5,7 +5,9 @@ internal sealed class ArbiterProbe
 {
     private readonly Lock _gate = new();
     private readonly List<ArbiterCall> _calls = [];
+    private readonly List<ArbiterCall> _requests = [];
     private TimeSpan? _leaderDelay;
+    private TaskCompletionSource? _hold;
 
     public IReadOnlyList<ArbiterCall> Calls
     {
@@ -15,6 +17,52 @@ internal sealed class ArbiterProbe
             {
                 return [.. _calls];
             }
+        }
+    }
+
+    /// <summary>
+    /// Every decision asked of this instance, recorded when asked (before it is answered, forwarded or failed), with a
+    /// <see langword="null"/> decision.
+    /// </summary>
+    public IReadOnlyList<ArbiterCall> Requests
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _requests];
+            }
+        }
+    }
+
+    /// <summary>Holds every decision this instance runs while leading until <see cref="ReleaseLeader"/> (at most 60 s).</summary>
+    public void HoldLeaderDecisions()
+    {
+        lock (_gate)
+        {
+            _hold ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+    }
+
+    /// <summary>Lets the decisions held by <see cref="HoldLeaderDecisions"/> run.</summary>
+    public void ReleaseLeader()
+    {
+        TaskCompletionSource? hold;
+        lock (_gate)
+        {
+            hold = _hold;
+            _hold = null;
+        }
+
+        hold?.TrySetResult();
+    }
+
+    /// <summary>The hold armed by <see cref="HoldLeaderDecisions"/>, if any.</summary>
+    public Task? LeaderHold()
+    {
+        lock (_gate)
+        {
+            return _hold?.Task;
         }
     }
 
@@ -34,6 +82,14 @@ internal sealed class ArbiterProbe
             var delay = _leaderDelay;
             _leaderDelay = null;
             return delay;
+        }
+    }
+
+    public void Asked(ArbiterCall request)
+    {
+        lock (_gate)
+        {
+            _requests.Add(request);
         }
     }
 
