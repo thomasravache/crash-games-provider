@@ -204,7 +204,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:01.34]     Dado um erro permanente do PostgreSQL durante um débito, quand) — c95588b | 2026-10-10 |
 | G2 Green | PASS | build exit 0 (✓ built in 159ms); test exit 0 (Duration  1.54s (tests 69%, transform 19%, import 11%, worker 1%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-10T21:07:02: Report generation took 0,5 seconds) — b062a0b | 2026-10-10 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  780ms (tests 97%, transform 2%, import 1%)) — b062a0b | 2026-10-10 |
-| G4 Review | FAIL | CHANGES_REQUESTED (2ª revisão, 7e48e0d): FindRollbackOfAsync com corpo padrão + fallback no id fixo esconde estorno duplo nos dublês e a garantia no banco não tem teste; IsTransient amplo (erros permanentes e cancelamento viram Unavailable); round trips extras no estorno; estorno com id colidindo de outro tipo | 2026-10-10 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (3ª revisão, b062a0b; 3 minors: verify sem IT-08 na base do worktree, UT-06 só afirma não-Duplicate, IT-08 não distingue a guarda) — b062a0b | 2026-10-10 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
