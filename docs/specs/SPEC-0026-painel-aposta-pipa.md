@@ -199,8 +199,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  746ms (tests 95%, transform 4%, import 1%)) — 088c1dd | 2026-10-12 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, 088c1dd; minors: foco perdido em 'Aguardando o resultado…', requestFailed não confere o tipo de pedido) — 088c1dd | 2026-10-12 |
 | G5 Integração & CI | PASS | MANUAL: CI do PR #26 verde (run 38227481466, commit 7c323ee): backend, frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; local: build, testes, integração (43/43), arquitetura e segurança PASS em 21ac3da; E2E local isolado 51/51 — decisão do IMP-01 | 2026-10-12 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-12 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #26, merge 89b1b79) | 2026-10-12 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
