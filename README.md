@@ -53,7 +53,7 @@ Com o Docker aberto:
 dotnet run --project src/backend/AppHost
 ```
 
-O terminal mostra o link de login do painel do Aspire (porta 15270). No painel, copie o endereço do recurso `api` e abra `<endereço>/dev/launch-demo` (só em Development): ele cria uma sessão demo e redireciona para o jogo. O token de lançamento vale uma vez — para recarregar, volte a esse link. Rodadas, histórico, "Comprovadamente Justo" e som funcionam. A carteira demo (R$ 3.000,00) e as apostas já existem no backend (hub `/hubs/bets`); o painel de aposta na tela, o cash-out e a liquidação chegam com as SPEC-0023, 0024 e 0026 do épico SPEC-0019. Os E2E sobem o mesmo ambiente com `tools/ci/run-e2e.sh`.
+O terminal mostra o link de login do painel do Aspire (porta 15270). No painel, copie o endereço do recurso `api` e abra `<endereço>/dev/launch-demo` (só em Development): ele cria uma sessão demo e redireciona para o jogo. O token de lançamento vale uma vez — para recarregar, volte a esse link. Rodadas, histórico, "Comprovadamente Justo" e som funcionam. Dá para apostar com a carteira demo (R$ 3.000,00): painel de aposta com cash-out manual e automático, perda no crash e estorno de rodada anulada. Para fixar a porta da API, use `AppHost__ApiHttpPort=5080`. Os E2E sobem o mesmo ambiente com `tools/ci/run-e2e.sh`.
 
 ## Qualidade de código
 
