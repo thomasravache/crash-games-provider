@@ -69,17 +69,29 @@
   max-width: 40cqw;
   background: transparent;
   text-align: center;
+  /* Crisp 1 px black halo (no blur) around every glyph, so the small coloured labels reach WCAG 2.2 AA over the sky
+     and the white clouds (ADR-0020): the label is read against the halo, the halo against the sky. Then a soft glow. */
   text-shadow:
-    0 1px 3px rgb(0 0 0 / 0.7),
-    0 0 12px rgb(0 0 0 / 0.45);
+    1px 0 0 #000,
+    -1px 0 0 #000,
+    0 1px 0 #000,
+    0 -1px 0 #000,
+    1px 1px 0 #000,
+    -1px 1px 0 #000,
+    1px -1px 0 #000,
+    -1px -1px 0 #000,
+    0 0 8px rgb(0 0 0 / 0.5);
 }
 
+/* Bounded by the scene height and width, so a long multiplier ("10.000,00x", ~6 em) stays inside 40cqw. */
 .hud-scoreboard-value {
-  font-size: clamp(1.5rem, 10cqh, 3.75rem);
+  font-size: clamp(1.25rem, min(10cqh, 6cqw), 3.75rem);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .hud-scoreboard-label {
-  font-size: clamp(0.625rem, 3.5cqh, 0.875rem);
+  font-size: clamp(0.625rem, min(3.5cqh, 2.4cqw), 0.875rem);
   line-height: 1.2;
+  white-space: nowrap;
 }
