@@ -192,7 +192,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 145ms); test exit 0 (Duration  1.38s (tests 67%, transform 18%, import 12%, worker 2%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T19:57:57: Report generation took 0,9 seconds) — c186b3d | 2026-10-11 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  766ms (tests 97%, transform 2%, import 1%)) — c186b3d | 2026-10-11 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, c186b3d; minors n1–n6: revive × fechamento do resumo sem lock, alerta falso de cash-out tardio com líder lento, p99 do cash-out no limite, segundo chamador fica em pending, carência na fila sequencial, resumo de anulada × TransactionNotFound tardio) — c186b3d | 2026-10-11 |
-| G5 Integração & CI | PENDING | | |
+| G5 Integração & CI | FAIL | build exit 0 (✓ built in 161ms); test exit 1 ([xUnit.net 00:04:41.70]     Dados dois CashOut concorrentes para a mesma aposta com o líde); test_integration exit 1 ([xUnit.net 00:06:18.97]     Dados dois CashOut concorrentes para a mesma aposta com o líde); test_e2e exit 1 (Distributed application started. Press Ctrl+C to shut down.); arch_test exit 0 (Duration  769ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 510 files: 0 findings.) — bc4862d | 2026-10-12 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
