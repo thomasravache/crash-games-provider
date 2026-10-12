@@ -28,7 +28,7 @@ Atual: durante o voo, o placar (multiplicador "3,42x" + "EM VOO") fica numa caix
 O HUD da SPEC-0010 centraliza o bloco do multiplicador sobre a cena (`hud-base.css`), e a cena da SPEC-0011 enquadra a pipa no centro do canvas; as duas specs foram feitas separadas e nenhum teste confere a sobreposição do HUD com a pipa.
 
 ## 3. Mudança Proposta
-Muda: posição e fundo do bloco do multiplicador no HUD (terço superior da área da cena, centralizado na horizontal, texto com sombra para leitura sobre o céu, sem caixa opaca), nas três fases. Não muda: a cena, a câmera, a pipa, os quadros-chave aprovados (que fotografam só o canvas), os textos e test ids do HUD, o tremor do crash e o painel de aposta.
+Muda: posição, tamanho e fundo do bloco do multiplicador no HUD, nas três fases: no terço superior da área da cena, centralizado na horizontal, compacto (no máximo 20% da altura e 40% da largura da cena) e sem caixa opaca — só o texto com sombra suave para leitura sobre o céu, de modo que nuvens, sol, rastro e linha continuem visíveis ao redor. Não muda: a cena, a câmera, a pipa, os quadros-chave aprovados (que fotografam só o canvas), os textos e test ids do HUD, o tremor do crash e o painel de aposta.
 
 **Padrão seguido:** `src/frontend/packages/game-ui/src/hud-base.css` e `hud.tsx` (HUD da SPEC-0010); identidade visual do ADR-0025 (valores nunca em dourado).
 
@@ -40,11 +40,11 @@ Muda: posição e fundo do bloco do multiplicador no HUD (terço superior da ár
 <!-- Mínimo: um teste de regressão que reproduz o problema e FALHA antes da correção, no nível em que o defeito aparece (IT para fronteiras de I/O, E2E para jornadas de usuário). Código sem cobertura: primeiro CH-xx fixando o comportamento atual. Tag no código: `SPEC-0049:<ID>`. Categoria sem teste: "N/A — motivo" SEM ID. -->
 - Caracterização: N/A — os textos e test ids do HUD já são cobertos pelos E2E da SPEC-0010 e continuam valendo.
 Unitário: N/A — posição na tela só é verificável com layout real no navegador (E2E).
-- **E2E-01** — Dado o jogo aberto pelo lançamento demo, nas fases de apostas, voo e crash, quando a posição do bloco do multiplicador (`hud-multiplier` e o texto da fase) é medida em relação à área da cena, então a borda de baixo do bloco fica acima de 35% da altura da cena e o centro da cena (onde a pipa é enquadrada) não fica sob o bloco; em Chromium, WebKit e Firefox.
+- **E2E-01** — Dado o jogo aberto pelo lançamento demo, nas fases de apostas, voo e crash, quando a posição do bloco do multiplicador (`hud-multiplier` e o texto da fase) é medida em relação à área da cena, então a borda de baixo do bloco fica acima de 35% da altura da cena, o centro da cena (onde a pipa é enquadrada) não fica sob o bloco, o bloco ocupa no máximo 20% da altura e 40% da largura da cena e não tem fundo opaco (cor de fundo transparente ou com opacidade ≤ 0,3); em Chromium, WebKit e Firefox.
 
 ## 5. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
-- [x] Como resolver o multiplicador cobrindo a pipa? — Placar no terço de cima da cena, sem caixa escura; a câmera e a pipa não mudam (thomas, 2026-10-12)
+- [x] Como resolver o multiplicador cobrindo a pipa? — Placar no terço de cima da cena, sem caixa escura; a câmera e a pipa não mudam; compacto, sem prejudicar o cenário (thomas, 2026-10-12)
 
 ## 6. Aprovação (H1)
 Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado".
