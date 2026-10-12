@@ -14,6 +14,8 @@ export const betPanelText = {
   /** Orange button while active, with the formatted payout preview: "RETIRAR R$ 24,70". */
   cashOut: (formattedPayout: string) => `RETIRAR ${formattedPayout}`,
   cashingOut: "Retirando…",
+  /** Active bet whose round already crashed or was annulled, before the server outcome arrives. */
+  settling: "Aguardando o resultado…",
   won: (formattedPayout: string) => `Ganhou ${formattedPayout}`,
   lost: "Perdeu",
   refunded: (formattedAmount: string) => `Estornado ${formattedAmount}`,

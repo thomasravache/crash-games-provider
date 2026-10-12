@@ -4,10 +4,10 @@
 import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
 
 import { reconnectDelayMs, type HubConnectionOptions } from "./hub-connection";
-import type { BetsHubClientEvents, BetsHubServer } from "./wire";
+import type { BetsHubClient, BetsHubServer } from "./wire";
 
 export type BetsHubServerMethod = keyof BetsHubServer;
-export type BetsHubClientEvent = keyof BetsHubClientEvents;
+export type BetsHubClientEvent = keyof BetsHubClient;
 
 export interface BetsHubConnection {
   start(): Promise<void>;
@@ -16,7 +16,7 @@ export interface BetsHubConnection {
     method: M,
     ...args: Parameters<BetsHubServer[M]>
   ): ReturnType<BetsHubServer[M]>;
-  on<E extends BetsHubClientEvent>(event: E, handler: BetsHubClientEvents[E]): void;
+  on<E extends BetsHubClientEvent>(event: E, handler: BetsHubClient[E]): void;
   /** The transport dropped and automatic reconnection started. */
   onreconnecting(callback: (error?: Error) => void): void;
   /** Automatic reconnection succeeded: the bets client reloads the balance and the open bets (UT-03). */

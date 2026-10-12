@@ -3,8 +3,10 @@
 // until the first read: never "R$ 0,00" nor a false recharge.
 
 import {
+  betErrorMessage,
   formatMoney,
   shouldOfferRecharge,
+  type BetErrorCode,
   type BetLimits,
   type Money,
 } from "@apogeu/game-sdk/state";
@@ -19,6 +21,8 @@ export interface BalanceDisplayProps {
   /** Recharge request in flight (the button is disabled meanwhile). */
   readonly recharging: boolean;
   readonly onRecharge: () => void;
+  /** Code of the last refused recharge (RECHARGE_NOT_ALLOWED, WALLET_UNAVAILABLE…), shown as an alert; null when none. */
+  readonly rechargeError?: BetErrorCode | null;
 }
 
 export function BalanceDisplay({
@@ -26,6 +30,7 @@ export function BalanceDisplay({
   limits,
   recharging,
   onRecharge,
+  rechargeError,
 }: BalanceDisplayProps): JSX.Element {
   return (
     <div className="flex flex-col items-end gap-1">
@@ -46,6 +51,11 @@ export function BalanceDisplay({
           {balanceText.recharge}
         </button>
       ) : null}
+      {rechargeError === undefined || rechargeError === null ? null : (
+        <p role="alert" className="max-w-56 text-right text-xs text-hud-text">
+          {betErrorMessage(rechargeError)}
+        </p>
+      )}
     </div>
   );
 }

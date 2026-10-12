@@ -207,10 +207,13 @@ export function BetPanel({
       <button
         type="button"
         data-testid={betTestIds.action(n)}
-        disabled={view.disabled}
+        disabled={view.disabled && !view.busy}
+        aria-disabled={view.busy ? true : undefined}
         aria-describedby={view.disabledReason === null ? undefined : reasonId}
-        onClick={act}
-        className={`min-h-12 w-full rounded-xl font-hud-display text-base font-bold tracking-wide disabled:cursor-not-allowed disabled:opacity-60 ${focusRing} ${actionStyles[view.action]}`}
+        onClick={() => {
+          if (!view.disabled) act();
+        }}
+        className={`min-h-12 w-full rounded-xl font-hud-display text-base font-bold tracking-wide disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-wait aria-disabled:opacity-60 ${focusRing} ${actionStyles[view.action]}`}
       >
         {view.label}
       </button>

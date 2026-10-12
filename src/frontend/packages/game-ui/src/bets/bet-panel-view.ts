@@ -38,6 +38,11 @@ export interface BetPanelView {
   /** "PRÓXIMA" while queued; null otherwise. */
   readonly badge: string | null;
   readonly disabled: boolean;
+  /**
+   * A request of the panel is waiting for the server (placing, cancelling, "Retirando…"): the button stays focusable
+   * and announces aria-disabled instead of losing the focus to the disabled attribute (UT-10).
+   */
+  readonly busy: boolean;
   /** pt-BR reason of a disabled button (local validation); null when enabled or busy. */
   readonly disabledReason: string | null;
   /** "Ganhou R$ y", "Perdeu", "Estornado R$ x"; null while there is no result. */
@@ -82,8 +87,9 @@ function cashOutLabel(amount: Money | null, multiplier: number, limits: BetLimit
 
 export function betPanelView(input: BetPanelViewInput): BetPanelView {
   const { panel, draft, limits } = input;
-  const busy = panel.request !== "none";
+  const busy = panel.request !== "none" || panel.status === "cashing_out";
   const common = {
+    busy,
     title: betPanelText.title(panel.panel),
     badge: null,
     disabledReason: null,
@@ -123,6 +129,10 @@ export function betPanelView(input: BetPanelViewInput): BetPanelView {
         disabled: busy,
       };
     case "active":
+      // The round is over and the outcome (BetSettled, CashedOut) has not arrived: no RETIRAR (UT-08).
+      if (input.phase === "crashed" || input.phase === "annulled") {
+        return { ...common, action: "none", label: betPanelText.settling, disabled: true };
+      }
       return {
         ...common,
         action: "cashOut",

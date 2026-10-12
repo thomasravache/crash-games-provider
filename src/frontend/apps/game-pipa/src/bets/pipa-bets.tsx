@@ -2,11 +2,12 @@
 // bound to the BetsClient of game-sdk. Each panel keeps its own draft (amount, automatic cash-out) and only sends
 // intents; what it shows comes from the bets store. Bet accepted, cash-out and loss are announced (aria-live).
 
-import type { BetsClient } from "@apogeu/game-sdk";
+import { BetError, type BetsClient } from "@apogeu/game-sdk";
 import {
   parseMoneyInput,
   parseMultiplierInput,
   type BetDraft,
+  type BetErrorCode,
   type BetsState,
   type PanelNumber,
   type RoundState,
@@ -108,16 +109,22 @@ export interface PipaBalanceProps {
 export function PipaBalance({ client }: PipaBalanceProps): JSX.Element {
   const state = useBetsState(client.store);
   const [recharging, setRecharging] = useState(false);
+  // The last refusal of the demo recharge, shown next to the balance until the next attempt (UT-10).
+  const [rechargeError, setRechargeError] = useState<BetErrorCode | null>(null);
   return (
     <BalanceDisplay
       balance={state.balance}
       limits={state.limits}
       recharging={recharging}
+      rechargeError={rechargeError}
       onRecharge={() => {
         setRecharging(true);
+        setRechargeError(null);
         client
           .rechargeDemo()
-          .catch(() => undefined)
+          .catch((error: unknown) => {
+            setRechargeError(error instanceof BetError ? error.code : "UNKNOWN");
+          })
           .finally(() => {
             setRecharging(false);
           });

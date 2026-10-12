@@ -1,6 +1,6 @@
 // Wire types of the RoundsHub (SPEC-0008@2 §6), of the session exchange (SPEC-0009@1 §6) and of the BetsHub and wallet
 // (SPEC-0026), taken from the generated contracts (ADR-0008): never written by hand here, so a contract change breaks
-// the build of the client. The few local stand-ins are marked as such.
+// the build of the client. The SPEC-0025 history types are local stand-ins until that endpoint is generated.
 
 import type {
   BetsHubClient,
@@ -66,32 +66,11 @@ export type BetActivated = Parameters<BetsHubClient["BetActivated"]>[0];
 /** GetBetLimits result (SPEC-0020@2 / SPEC-0022@3). */
 export type BetLimitsResponse = Awaited<ReturnType<BetsHubServer["GetBetLimits"]>>;
 
-/**
- * BetSettled (SPEC-0024@2). LOCAL STAND-IN: not in the generated contracts yet (SPEC-0024 is finished in another
- * branch); replace by the generated type when `pnpm contracts:generate` brings it.
- */
-export interface BetSettled {
-  betId: string;
-  roundId: string;
-  status: "lost";
-}
+/** BetSettled (SPEC-0024@2). */
+export type BetSettled = Parameters<BetsHubClient["BetSettled"]>[0];
 
-/**
- * BetRefunded (SPEC-0024@2); balance null while refundStatus is "pending". LOCAL STAND-IN, like BetSettled.
- */
-export interface BetRefunded {
-  betId: string;
-  roundId: string;
-  refunded: Money;
-  refundStatus: "refunded" | "pending";
-  balance: Money | null;
-}
-
-/** Messages BetsHub sends to the player: the generated ones plus the SPEC-0024@2 stand-ins. */
-export interface BetsHubClientEvents extends BetsHubClient {
-  BetSettled(message: BetSettled): void;
-  BetRefunded(message: BetRefunded): void;
-}
+/** BetRefunded (SPEC-0024@2); balance null while refundStatus is "pending". */
+export type BetRefunded = Parameters<BetsHubClient["BetRefunded"]>[0];
 
 /** GET /api/v1/wallet/balance 200 body (SPEC-0021@4). */
 export type WalletBalance = components["schemas"]["BalanceResponse"];

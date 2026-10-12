@@ -1,7 +1,7 @@
 // Bets store without a framework (SPEC-0026 §4), like the round store: subscribable, consumed by React through
 // useSyncExternalStore. It only mirrors what the server confirmed: the balance changes only with server values.
 
-import { toBetErrorCode } from "./bet-errors";
+import { toBetErrorCode, type BetErrorCode } from "./bet-errors";
 import type { BetsEvent } from "./bets-events";
 import type {
   BetsState,
@@ -46,6 +46,12 @@ export const initialBetsState: BetsState = {
 
 /** Panel states that show a finished bet until the next betting phase. */
 const finishedStatuses: readonly PanelStatus[] = ["cashed_out", "lost", "refunded"];
+
+/** Panel states of a bet still open in a round (queued bets have no round yet). */
+const openStatuses: readonly PanelStatus[] = ["placed", "active", "cashing_out"];
+
+/** Server answers meaning the bet is no longer open there. */
+const staleBetCodes: readonly BetErrorCode[] = ["BET_NOT_ACTIVE", "BET_NOT_FOUND"];
 
 /** Panel states from which the player may place a new bet. */
 const bettableStatuses: readonly PanelStatus[] = ["idle", ...finishedStatuses];
@@ -226,11 +232,15 @@ export function reduceBetsEvent(state: BetsState, event: BetsEvent): BetsState {
       }));
 
     case "betSettled":
-      return updatePanels(state, byBet(event.betId, ["placed", "active"]), (panel) => ({
-        ...panel,
-        status: "lost",
-        request: "none",
-      }));
+      return updatePanels(
+        state,
+        byBet(event.betId, ["placed", "active", "cashing_out"]),
+        (panel) => ({
+          ...panel,
+          status: "lost",
+          request: "none",
+        }),
+      );
 
     case "betRefunded":
       return updatePanels(
@@ -247,8 +257,9 @@ export function reduceBetsEvent(state: BetsState, event: BetsEvent): BetsState {
       );
 
     case "requestFailed":
+      // The server no longer knows the bet as open (its outcome was missed): the panel starts over (UT-09).
       return updatePanels(state, byNumber(event.panel), (panel) =>
-        panel.status === "idle"
+        panel.status === "idle" || staleBetCodes.includes(event.code)
           ? { ...idlePanel(panel.panel), error: event.code }
           : { ...panel, request: "none", error: event.code },
       );
@@ -261,9 +272,13 @@ export function reduceBetsEvent(state: BetsState, event: BetsEvent): BetsState {
       );
 
     case "roundBetting":
+      // Finished panels start over; a bet still open from another round lost its outcome (for example a BetSettled
+      // missed in a connection drop) and starts over too (UT-09). Queued bets wait for BetActivated.
       return updatePanels(
         state,
-        (panel) => finishedStatuses.includes(panel.status) && panel.request === "none",
+        (panel) =>
+          (finishedStatuses.includes(panel.status) && panel.request === "none") ||
+          (openStatuses.includes(panel.status) && panel.roundId !== event.roundId),
         (panel) => idlePanel(panel.panel),
       );
 
