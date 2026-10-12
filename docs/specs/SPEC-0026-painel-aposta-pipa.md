@@ -197,7 +197,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯) — e96e513 | 2026-10-12 |
 | G2 Green | PASS | build exit 0 (✓ built in 160ms); test exit 0 (at least ~400ms faster with isolate: false — reuses workers across files instead of one pe); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-12T01:12:36: Report generation took 0,8 seconds) — 088c1dd | 2026-10-12 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  746ms (tests 95%, transform 4%, import 1%)) — 088c1dd | 2026-10-12 |
-| G4 Review | FAIL | CHANGES_REQUESTED (1c7f207): M1 BetSettled/BetRefunded duplicados à mão em vez dos tipos gerados (ADR-0008); minors: RETIRAR ativo após o crash, BetSettled ignorado em cashing_out, painel preso após reconexão sem /me/bets, recarga falha sem mensagem, foco perdido no botão desabilitado | 2026-10-12 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, 088c1dd; minors: foco perdido em 'Aguardando o resultado…', requestFailed não confere o tipo de pedido) — 088c1dd | 2026-10-12 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
