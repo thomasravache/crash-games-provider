@@ -4,7 +4,7 @@ title: "Painel de aposta da Pipa"
 tier: full
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0010, SPEC-0024]
@@ -201,7 +201,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | MANUAL: CI do PR #26 verde (run 38227481466, commit 7c323ee): backend, frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; local: build, testes, integração (43/43), arquitetura e segurança PASS em 21ac3da; E2E local isolado 51/51 — decisão do IMP-01 | 2026-10-12 |
 | H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-12 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #26, merge 89b1b79) | 2026-10-12 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — d8c089c | 2026-10-12 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
