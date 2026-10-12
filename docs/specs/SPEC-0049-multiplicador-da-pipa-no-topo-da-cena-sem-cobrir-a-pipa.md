@@ -4,7 +4,7 @@ title: Multiplicador da Pipa no topo da cena, sem cobrir a pipa
 tier: lite
 type: fix
 user_facing: true
-status: proposed
+status: in-progress
 created: 2026-10-12
 parent: SPEC-0019
 depends_on: []
@@ -13,8 +13,8 @@ touches: ["src/frontend/packages/game-ui/src/hud-base.css", "src/frontend/packag
 adrs: [ADR-0009, ADR-0025]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-12
 ---
 
 # SPEC-0049 — Multiplicador da Pipa no topo da cena, sem cobrir a pipa
@@ -51,6 +51,16 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
+**Fase 1: Placar no topo**
+- [ ] Red: escrever E2E-01 com a tag `SPEC-0049:E2E-01` e confirmar que falha pelo motivo certo (placar no centro, com caixa opaca)
+- [ ] Green: mover e compactar o placar no HUD (`hud-base.css`, `hud.tsx`)
+- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy via pipeline com smoke/E2E no ambiente (G6)
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
