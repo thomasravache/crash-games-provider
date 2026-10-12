@@ -55,6 +55,31 @@ dotnet run --project src/backend/AppHost
 
 O terminal mostra o link de login do painel do Aspire (porta 15270). No painel, copie o endereço do recurso `api` e abra `<endereço>/dev/launch-demo` (só em Development): ele cria uma sessão demo e redireciona para o jogo. O token de lançamento vale uma vez — para recarregar, volte a esse link. Rodadas, histórico, "Comprovadamente Justo" e som funcionam. Dá para apostar com a carteira demo (R$ 3.000,00): painel de aposta com cash-out manual e automático, perda no crash e estorno de rodada anulada. Para fixar a porta da API, use `AppHost__ApiHttpPort=5080`. Os E2E sobem o mesmo ambiente com `tools/ci/run-e2e.sh`.
 
+### Testar no celular (túnel)
+
+Dois túneis do cloudflared (sem conta) expõem a API e o jogo locais; o AppHost recebe os endereços públicos e os repassa à API (link de lançamento e CORS) e ao jogo (endereço da API).
+
+```bash
+brew install cloudflared
+
+# 1. Suba o AppHost com as portas fixas
+AppHost__ApiHttpPort=5080 AppHost__GameHttpPort=5173 dotnet run --project src/backend/AppHost
+
+# 2. Em outros dois terminais, abra um túnel para cada porta e anote os endereços https://….trycloudflare.com
+cloudflared tunnel --url http://localhost:5080
+cloudflared tunnel --url http://localhost:5173
+
+# 3. Pare o AppHost (Ctrl+C) e suba de novo com os endereços públicos (os túneis continuam abertos)
+AppHost__ApiHttpPort=5080 AppHost__GameHttpPort=5173 \
+AppHost__PublicApiUrl=https://<api>.trycloudflare.com \
+AppHost__PublicGameUrl=https://<jogo>.trycloudflare.com \
+dotnet run --project src/backend/AppHost
+```
+
+No celular, abra `https://<api>.trycloudflare.com/dev/launch-demo`. Sem os endereços públicos, tudo funciona como antes (só no Mac).
+
+> **Atenção:** enquanto um túnel estiver aberto, qualquer pessoa com o link abre o jogo demo. Ao terminar, feche os túneis com Ctrl+C.
+
 ## Qualidade de código
 
 - C#: `Nullable`, `TreatWarningsAsErrors`, `AnalysisMode=Recommended` e Meziantou.Analyzer em `Directory.Build.props`; versões de pacotes em `Directory.Packages.props` (Central Package Management) com `packages.lock.json` versionados; fonte de pacotes única em `nuget.config`.
