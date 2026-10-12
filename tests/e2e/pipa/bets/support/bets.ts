@@ -253,7 +253,19 @@ export async function cashOutAndMeasure(
   panel: PanelNumber,
 ): Promise<{ readonly outcome: HookPanel; readonly elapsedMs: number | null }> {
   const button = actionButton(page, panel);
-  await expect(button).toHaveText(betText.cashOut);
+  // A short round can crash between "active" and the click: then the panel settles (lost) and there is nothing to
+  // cash out — the caller counts it as a lost round and tries the next one.
+  try {
+    await expect(button).toHaveText(betText.cashOut, { timeout: 2_000 });
+  } catch {
+    const settled = await waitForPanel(page, panel, [
+      "lost",
+      "cashed_out",
+      "refunded",
+      "idle",
+    ]);
+    return { outcome: settled, elapsedMs: null };
+  }
   await page.evaluate(
     ({ actionId, resultId }) => {
       const target = window as unknown as {
