@@ -85,11 +85,59 @@ public interface IBetStore
     /// instant never replaces it, an earlier concurrent one does — with the single durable command that has it decided later
     /// (stored with the first record). Returns whether the bet is active with a pending request.
     /// </summary>
-    Task<bool> RequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, CancellationToken ct);
+    /// <remarks>
+    /// The hub records it before asking the leader (SPEC-0024 review G4, M1), so the crash never marks lost a bet whose cash-out
+    /// is being decided; the command is delayed by <paramref name="decisionDelay"/> as a fallback of the hub's own decision.
+    /// </remarks>
+    Task<bool> RequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, TimeSpan decisionDelay, CancellationToken ct);
 
-    /// <summary>Forgets the pending request of <paramref name="betId"/>, refused by the leader (received after the crash).</summary>
-    Task ClearCashOutRequestAsync(Guid betId, CancellationToken ct);
+    /// <summary>Stores a <c>DecideCashOut</c> of <paramref name="betId"/> to run at once (the leader did not decide in time).</summary>
+    Task ScheduleDecisionAsync(Guid betId, CancellationToken ct);
+
+    /// <summary>
+    /// Forgets the pending request of <paramref name="betId"/>, refused by the leader (received after the crash). Returns whether
+    /// this call forgot it (one refusal is told once).
+    /// </summary>
+    Task<bool> ClearCashOutRequestAsync(Guid betId, CancellationToken ct);
+
+    /// <summary>
+    /// A cash-out the leader accepted for a bet already marked lost (SPEC-0024 review G4, M1): <c>lost → cashed_out</c> (compare-and-set)
+    /// with its durable credit, only while the round's summary is not closed. Returns whether this call cashed it out.
+    /// </summary>
+    Task<bool> ReviveCashOutAsync(Bet bet, DateTimeOffset at, TimeSpan creditDelay, CancellationToken ct);
 
     /// <summary>The wallet confirmed the credit of the cash-out of <paramref name="betId"/>; whether this call recorded it (it was pending).</summary>
     Task<bool> ConfirmCreditAsync(Guid betId, decimal balance, CancellationToken ct);
+
+    /// <summary>How Betting processed the end of <paramref name="roundId"/>: <c>crashed</c>, <c>annulled</c>, or <see langword="null"/> not yet.</summary>
+    Task<string?> RoundOutcomeAsync(RoundId roundId, CancellationToken ct);
+
+    /// <summary>Records that Betting processed the end of <paramref name="roundId"/> (<c>crashed</c> or <c>annulled</c>); idempotent.</summary>
+    Task MarkRoundEndedAsync(RoundId roundId, string outcome, DateTimeOffset at, CancellationToken ct);
+
+    /// <summary>
+    /// The round crashed (SPEC-0024): its active bets without a pending cash-out request become lost, in one statement. Returns
+    /// the bets this call made lost (a repeated crash makes none).
+    /// </summary>
+    Task<IReadOnlyList<Bet>> SettleLostAsync(RoundId roundId, CancellationToken ct);
+
+    /// <summary>
+    /// The round was annulled (SPEC-0024): its placed and active bets (pending cash-out requests included) become refunded with
+    /// their full amount, each with its durable refund stored in the same transaction (Wolverine outbox, ADR-0007). Returns the
+    /// bets this call refunded.
+    /// </summary>
+    /// <remarks>With <paramref name="placedOnly"/>, only the placed bets: a crashed round whose activation of them was lost (IT-07).</remarks>
+    Task<IReadOnlyList<Bet>> RefundRoundAsync(RoundId roundId, bool placedOnly, CancellationToken ct);
+
+    /// <summary>The wallet confirmed the refund of <paramref name="betId"/>; whether this call recorded it (it was pending).</summary>
+    /// <remarks><paramref name="refunded"/> is what the refund returned: 0,00 when the wallet had no debit to reverse.</remarks>
+    Task<bool> ConfirmRefundAsync(Guid betId, decimal refunded, decimal balance, CancellationToken ct);
+
+    /// <summary>
+    /// Closes the summary of <paramref name="roundId"/> when its end was processed and no bet of it is open (placed, active):
+    /// one immutable row per operator and currency, written once (unique index, <c>ON CONFLICT DO NOTHING</c>). Returns whether
+    /// this call wrote it.
+    /// </summary>
+    /// <remarks>Not before <paramref name="grace"/> after the round's end was processed: a cash-out in flight may still revive a lost bet.</remarks>
+    Task<bool> CloseSettlementAsync(RoundId roundId, DateTimeOffset at, TimeSpan grace, CancellationToken ct);
 }

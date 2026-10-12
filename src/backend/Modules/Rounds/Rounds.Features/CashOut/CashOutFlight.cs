@@ -10,4 +10,7 @@ namespace Apogeu.Rounds.Features.CashOut;
 internal sealed record CashOutFlight(RoundId RoundId, DateTimeOffset StartedAt, DateTimeOffset CrashAt, decimal CrashPoint, GrowthCurve Curve)
 {
     public bool Ended { get; init; }
+
+    /// <summary>The round was annulled: every cash-out of it is too late (SPEC-0023 review m-a; its bets are refunded).</summary>
+    public bool Annulled { get; init; }
 }

@@ -26,22 +26,30 @@ test("SPEC-0010:E2E-02 rodada completa: PREPARE SUA PIPA, EM VOO crescente e PIP
   test.setTimeout(maxRounds * roundTimeoutMs + 60_000);
   await openGame(page);
 
-  // Betting panel: disabled in every state, with an accessible name.
-  const bet = page.getByRole("button", { name: text.betDisabled });
+  // The disabled betting placeholder of SPEC-0010 was replaced by the betting panel of SPEC-0026: both panels are
+  // present in every phase (their behaviour is covered by tests/e2e/pipa/bets/**).
+  const bet = page.getByTestId("bet-panel-1");
   await expect(bet).toBeVisible();
-  await expect(bet).toBeDisabled();
+  await expect(page.getByTestId("bet-panel-2")).toBeVisible();
 
   let followed: HookRoundState | undefined;
-  for (let attempt = 0; attempt < maxRounds && followed === undefined; attempt += 1) {
+  for (
+    let attempt = 0;
+    attempt < maxRounds && followed === undefined;
+    attempt += 1
+  ) {
     const previous = await hookState(page);
     const betting = await waitForState(
       page,
-      (state) => state.phase === "betting" && state.roundId !== null && state.roundId !== previous.roundId,
+      (state) =>
+        state.phase === "betting" &&
+        state.roundId !== null &&
+        state.roundId !== previous.roundId,
       "a new round in betting",
     );
     await expect(page.getByText(text.betting, { exact: true })).toBeVisible();
     await expect(page.getByTestId(testId.countdown)).toBeVisible();
-    await expect(bet).toBeDisabled();
+    await expect(bet).toBeVisible();
     await expectNoAxeViolations(page, "betting");
 
     const flying = await waitForState(
@@ -62,18 +70,24 @@ test("SPEC-0010:E2E-02 rodada completa: PREPARE SUA PIPA, EM VOO crescente e PIP
           if ((await hudMultiplier(page)) > first) grew = true;
           return grew || (await hookState(page)).phase !== "flying";
         },
-        { message: "the multiplier grows while flying", timeout: roundTimeoutMs },
+        {
+          message: "the multiplier grows while flying",
+          timeout: roundTimeoutMs,
+        },
       )
       .toBe(true);
     if (grew) followed = betting;
   }
-  if (followed === undefined) throw new Error(`no round flew long enough in ${String(maxRounds)} rounds`);
-  await expect(bet).toBeDisabled();
+  if (followed === undefined)
+    throw new Error(`no round flew long enough in ${String(maxRounds)} rounds`);
+  await expect(bet).toBeVisible();
 
   const roundId = followed.roundId ?? "";
   const crashed = await waitForState(
     page,
-    (state) => state.roundId === roundId && (state.phase === "crashed" || state.phase === "annulled"),
+    (state) =>
+      state.roundId === roundId &&
+      (state.phase === "crashed" || state.phase === "annulled"),
     `the crash of round ${roundId}`,
   );
   expect(crashed.phase).toBe("crashed");
@@ -85,11 +99,18 @@ test("SPEC-0010:E2E-02 rodada completa: PREPARE SUA PIPA, EM VOO crescente e PIP
   expect(await hudMultiplier(page)).toBe(Number(fromServer));
 
   // The history gains the round.
-  await expect.poll(async () => (await hookState(page)).history[0]?.roundId).toBe(roundId);
-  const latest = page.getByRole("list", { name: text.historyLabel }).getByRole("listitem").first();
+  await expect
+    .poll(async () => (await hookState(page)).history[0]?.roundId)
+    .toBe(roundId);
+  const latest = page
+    .getByRole("list", { name: text.historyLabel })
+    .getByRole("listitem")
+    .first();
   await expect(latest).toBeVisible();
-  expect(Number((await latest.innerText()).replace(/\D/gu, "")) / 100).toBe(Number(fromServer));
+  expect(Number((await latest.innerText()).replace(/\D/gu, "")) / 100).toBe(
+    Number(fromServer),
+  );
 
-  await expect(bet).toBeDisabled();
+  await expect(bet).toBeVisible();
   await expectNoAxeViolations(page, "crashed");
 });

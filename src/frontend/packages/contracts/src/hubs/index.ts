@@ -50,6 +50,14 @@ export interface BetsHubServer {
 export interface BetsHubClient {
   BalanceUpdated(message: { balance: Money; currency: string }): void;
   BetActivated(message: { betId: string; roundId: string; roundNumber: number }): void;
+  BetRefunded(message: {
+    betId: string;
+    roundId: string;
+    refunded: Money;
+    balance: Money | null;
+    refundStatus: "refunded" | "pending";
+  }): void;
+  BetSettled(message: { betId: string; roundId: string; status: "lost" }): void;
   CashOutRejected(message: { betId: string; code: string }): void;
   CashedOut(message: {
     betId: string;

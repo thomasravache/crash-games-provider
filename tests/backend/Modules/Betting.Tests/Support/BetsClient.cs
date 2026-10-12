@@ -44,8 +44,8 @@ internal sealed class BetsClient : IAsyncDisposable
         }
     }
 
-    /// <summary>The server messages of SPEC-0023 recorded by <see cref="Events"/>.</summary>
-    public static IReadOnlyList<string> ServerTargets { get; } = ["CashedOut", "CashOutRejected", "BalanceUpdated"];
+    /// <summary>The server messages of SPEC-0023 and SPEC-0024 recorded by <see cref="Events"/>.</summary>
+    public static IReadOnlyList<string> ServerTargets { get; } = ["CashedOut", "CashOutRejected", "BalanceUpdated", "BetSettled", "BetRefunded"];
 
     public string Player { get; }
 

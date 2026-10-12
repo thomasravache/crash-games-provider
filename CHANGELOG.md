@@ -9,6 +9,7 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 ## [Unreleased]
 
 ### Added
+- Cash-out manual e automático: decisão pelo líder da sala no horário de recebimento (tolerância 0 ms), pagamento truncado em centavos e limitado ao ganho máximo, automático no alvo exato e reconciliado no crash, pedido pendente decidido pelo horário gravado e crédito durável com aviso de saldo (SPEC-0023)
 - Apostas pelo hub `/hubs/bets`: até duas apostas por rodada (painéis 1 e 2) com saída automática opcional, aposta durante o voo valendo para a próxima rodada e cancelamento com estorno integral (ou pendente, idempotente); reserva gravada antes do débito, varredura e estorno durável pelo outbox do Wolverine, sem débito sem aposta ou sem estorno (SPEC-0022)
 - Carteira demo por jogador e operador: R$ 3.000,00 iniciais, débito, crédito e estorno idempotentes, recarga abaixo da aposta mínima, livro-razão em partidas dobradas só de inserção e contrato público da carteira do operador (`docs/integration/operator-wallet-api.md`) (SPEC-0021)
 - Som da Pipa com Web Audio: vento e tensão que crescem com o multiplicador, decolagem, marcos e corte no crash; ligado após o primeiro gesto, botão de mudo acessível por teclado e preferência lembrada (SPEC-0018)

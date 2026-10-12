@@ -22,6 +22,12 @@ public sealed class BetsNotifier(IHubContext<BetsHub, IBetsClient> hub)
     /// <summary><c>BalanceUpdated</c> once a credit retried later is confirmed (SPEC-0023).</summary>
     public Task BalanceUpdatedAsync(BetOwner owner, BalanceUpdatedMessage message) => hub.Clients.Group(GroupOf(owner)).BalanceUpdated(message);
 
+    /// <summary><c>BetSettled</c> of a bet lost when its round crashed (SPEC-0024).</summary>
+    public Task BetSettledAsync(BetOwner owner, BetSettled message) => hub.Clients.Group(GroupOf(owner)).BetSettled(message);
+
+    /// <summary><c>BetRefunded</c> of a bet of an annulled round (SPEC-0024).</summary>
+    public Task BetRefundedAsync(BetOwner owner, BetRefunded message) => hub.Clients.Group(GroupOf(owner)).BetRefunded(message);
+
     /// <summary><c>BetActivated</c> of a queued bet that entered the betting phase of its round.</summary>
     public Task BetActivatedAsync(Bet bet)
     {

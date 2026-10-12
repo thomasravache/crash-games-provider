@@ -58,6 +58,12 @@ public sealed class Bet
     public decimal? Payout { get; private set; }
 
     /// <summary>
+    /// What the refund of an annulled round returned (SPEC-0024): the amount, or 0,00 when the wallet had no debit to reverse;
+    /// <see langword="null"/> unless <see cref="BetStatus.Refunded"/>.
+    /// </summary>
+    public decimal? Refunded { get; private set; }
+
+    /// <summary>
     /// The payout of a cash-out (SPEC-0023 §6): <c>min(floor(amount × multiplier × 100)/100, maxWin)</c>, truncated in cents.
     /// </summary>
     public static decimal PayoutOf(decimal amount, decimal multiplier, decimal maxWin) =>
@@ -126,10 +132,27 @@ public sealed class Bet
         long? roundNumber,
         decimal? cashOutMultiplier,
         decimal? payout) =>
+        Restore(id, owner, request, status, roundId, roundNumber, cashOutMultiplier, payout, refunded: null);
+
+    /// <summary>
+    /// Rebuilds a bet already accepted (persistence), with its cash-out and, when <see cref="BetStatus.Refunded"/>, what its
+    /// refund returned (<paramref name="refunded"/>; the amount when not given).
+    /// </summary>
+    public static Bet Restore(
+        Guid id,
+        BetOwner owner,
+        BetRequest request,
+        BetStatus status,
+        RoundId? roundId,
+        long? roundNumber,
+        decimal? cashOutMultiplier,
+        decimal? payout,
+        decimal? refunded) =>
         new(id, owner ?? throw new ArgumentNullException(nameof(owner)), request ?? throw new ArgumentNullException(nameof(request)), status, roundId, roundNumber)
         {
             CashOutMultiplier = cashOutMultiplier,
             Payout = payout,
+            Refunded = status == BetStatus.Refunded ? refunded ?? request.Amount : null,
         };
 
     /// <summary>
@@ -179,6 +202,37 @@ public sealed class Bet
         CashOutMultiplier = multiplier;
         Payout = PayoutOf(Amount, multiplier, maxWin);
         return new BetCashOutAccepted(multiplier, Payout.Value);
+    }
+
+    /// <summary>
+    /// The round of the bet crashed (SPEC-0024): an active bet becomes <see cref="BetStatus.Lost"/> (<see cref="BetClosedLost"/>);
+    /// any other bet is unchanged (<see cref="BetClosureSkipped"/>).
+    /// </summary>
+    public BetClosure Settle()
+    {
+        if (Status != BetStatus.Active)
+        {
+            return new BetClosureSkipped(Status);
+        }
+
+        Status = BetStatus.Lost;
+        return new BetClosedLost();
+    }
+
+    /// <summary>
+    /// The round of the bet was annulled (SPEC-0024): a placed or active bet becomes <see cref="BetStatus.Refunded"/> with its full
+    /// amount (<see cref="BetClosedRefunded"/>); any other bet — a cashed-out one included — is unchanged (<see cref="BetClosureSkipped"/>).
+    /// </summary>
+    public BetClosure Refund()
+    {
+        if (Status is not (BetStatus.Placed or BetStatus.Active))
+        {
+            return new BetClosureSkipped(Status);
+        }
+
+        Status = BetStatus.Refunded;
+        Refunded = Amount;
+        return new BetClosedRefunded(Amount);
     }
 
     /// <summary>

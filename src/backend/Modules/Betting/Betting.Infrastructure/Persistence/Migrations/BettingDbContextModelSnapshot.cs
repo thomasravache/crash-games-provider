@@ -204,7 +204,85 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_bets_round", "(status = 'queued') = (round_id IS NULL) OR status IN ('cancelled', 'pending')");
 
-                            t.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled', 'cashed_out')");
+                            t.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled', 'cashed_out', 'lost', 'refunded')");
+                        });
+                });
+
+            modelBuilder.Entity("Apogeu.Betting.Infrastructure.Persistence.RoundClosureRecord", b =>
+                {
+                    b.Property<Guid>("RoundId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("round_id");
+
+                    b.Property<DateTimeOffset>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("outcome");
+
+                    b.HasKey("RoundId")
+                        .HasName("pk_round_closures");
+
+                    b.ToTable("round_closures", "betting", t =>
+                        {
+                            t.HasCheckConstraint("ck_round_closures_outcome", "outcome IN ('crashed', 'annulled')");
+                        });
+                });
+
+            modelBuilder.Entity("Apogeu.Betting.Infrastructure.Persistence.RoundSettlementRecord", b =>
+                {
+                    b.Property<Guid>("RoundId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("round_id");
+
+                    b.Property<string>("OperatorId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("operator_id");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("currency");
+
+                    b.Property<int>("BetsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("bets_count");
+
+                    b.Property<decimal>("Ggr")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("ggr");
+
+                    b.Property<DateTimeOffset>("SettledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("settled_at");
+
+                    b.Property<decimal>("TotalPaid")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_paid");
+
+                    b.Property<decimal>("TotalRefunded")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_refunded");
+
+                    b.Property<decimal>("TotalWagered")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("total_wagered");
+
+                    b.HasKey("RoundId", "OperatorId", "Currency")
+                        .HasName("pk_round_settlements");
+
+                    b.ToTable("round_settlements", "betting", t =>
+                        {
+                            t.HasCheckConstraint("ck_round_settlements_ggr", "ggr = total_wagered - total_paid - total_refunded");
                         });
                 });
 #pragma warning restore 612, 618

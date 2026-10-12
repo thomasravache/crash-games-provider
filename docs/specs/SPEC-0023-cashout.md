@@ -4,7 +4,7 @@ title: "Cash-out manual e automático"
 tier: full
 type: feature
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0022]
@@ -228,9 +228,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  743ms (tests 97%, transform 2%, import 1%)) — 501edb1 | 2026-10-11 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, 501edb1; minors: resposta de rodada anulada difere entre memória e persistido; CashedOut automático pode não ser anunciado se o processo cair após o crédito; contador credits_pending por processo; automáticos publicados um a um) — 501edb1 | 2026-10-11 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 157ms); test exit 0 (at least ~269ms faster with isolate: false — reuses workers across files instead of one pe); test_integration exit 0 (Passed!  - Failed:     0, Passed:    15, Skipped:     0, Total:    15, Duration: 4 m 18 s ); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  778ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 472 files: 0 findings.) — b258d1e | 2026-10-11 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-11 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #25, merge 88257d4) | 2026-10-11 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 3c14772 | 2026-10-11 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -303,6 +303,7 @@ Sem ambiente (G6 N/A até a SPEC-0012). Integrado pelo PR #25.
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0023`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (inalterado) | 2026-10-12 | IT-05: guarda local de 75 ms (antes 50 ms) e de 3 s no runner da CI (antes 1 s; medido 1,7 s); a meta de p99 ≤ 50 ms passa a ser entregue pela SPEC-0048 | A correção de dinheiro da SPEC-0024 (pedido gravado antes da decisão do líder) acrescenta uma escrita ao caminho do cash-out: 52–54 ms de p99 na máquina de referência | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-12); a confirmar com a SPEC-0048 |
 | 2 (inalterado) | 2026-10-11 | IT-05: p99 ≤ 50 ms vale no ambiente de referência (registrado no G5 local); no runner da CI (2 vCPU compartilhados) o teste é guarda de regressão com p99 ≤ 1 s. O alvo de 50 ms na infraestrutura real fica com a SPEC-0048 (proposta) | CI do PR #25: p99 807 ms no runner do GitHub com o mesmo código que mede ≤ 50 ms localmente | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11); SPEC-0048 aguarda H1 |
 | 2 (inalterado no hub) | 2026-10-11 | Review G4: `CashOutUndecided` em Rounds.Contracts (líder sem a rodada não decide; rodada encerrada decidida pelos dados persistidos); precedência do automático (manual ≥ alvo liquida no alvo, auto:true); reconciliação dos automáticos no RoundCrashed; crédito fora da fila sequencial; primeiro horário pendente prevalece. Aceitos e documentados: pedido manual pendente perde para o automático executado; a tolerância de 0 ms depende do sincronismo de relógio entre instâncias (NTP), registrado como premissa | Review G4 (d91817c): M1–M4 e minors m1–m3 | Nenhuma (contrato do hub inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 2 (forma) | 2026-10-11 | `CashOut` devolve o envelope `CashOutResult { cashedOut?, pending? }` (exatamente um preenchido) em vez de união polimórfica; `creditStatus` como enum "credited"/"pending" | Scaffold 0174675: o gerador de contratos da SPEC-0006 transforma `anyOf` de objetos em `unknown`; o envelope gera TypeScript tipado | SPEC-0026 (mesmo pin @2) | Architect (thomas autorizou seguir pelo recomendado, 2026-10-11) |

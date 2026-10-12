@@ -1,6 +1,7 @@
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.Settlement;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.Rounds.Contracts;
@@ -108,14 +109,21 @@ public static class RoundEventsHandler
     /// <summary>
     /// The round crashed, its crash point now public: every active bet of the round not cashed out whose automatic target is
     /// below the crash point is cashed out at the exact target (auto:true) — the leader's schedule in memory is only the fast
-    /// path (review G4, M1). The settlement of the other bets is SPEC-0024's.
+    /// path (SPEC-0023 review G4, M1) — and only then the round is settled (SPEC-0024).
     /// </summary>
-    public static async Task HandleAsync(RoundCrashed crashed, IRoundFeed feed, IBetStore store, CashOutSettlement settlement, CancellationToken ct)
+    public static async Task HandleAsync(
+        RoundCrashed crashed,
+        IRoundFeed feed,
+        IBetStore store,
+        CashOutSettlement settlement,
+        RoundSettler settler,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(crashed);
         ArgumentNullException.ThrowIfNull(feed);
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(settlement);
+        ArgumentNullException.ThrowIfNull(settler);
 
         feed.Apply(crashed);
         foreach (var bet in await store.ListAutoCashOutsAsync(crashed.RoundId, ct).ConfigureAwait(false))
@@ -125,12 +133,18 @@ public static class RoundEventsHandler
                 await settlement.StoreAsync(bet, target, automatic: true, ct).ConfigureAwait(false);
             }
         }
+
+        // Then the settlement (SPEC-0024): the other active bets are lost, except those waiting for the leader's decision.
+        await settler.SettleCrashAsync(crashed.RoundId, ct).ConfigureAwait(false);
     }
 
-    /// <summary>The refund of the annulled round's bets is SPEC-0024's; Betting only closes the round.</summary>
-    public static void Handle(RoundAnnulled annulled, IRoundFeed feed)
+    /// <summary>The round was annulled (SPEC-0024): its placed and active bets not cashed out are refunded in full.</summary>
+    public static async Task HandleAsync(RoundAnnulled annulled, IRoundFeed feed, RoundSettler settler, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(annulled);
         ArgumentNullException.ThrowIfNull(feed);
+        ArgumentNullException.ThrowIfNull(settler);
         feed.Apply(annulled);
+        await settler.RefundAnnulledAsync(annulled.RoundId, ct).ConfigureAwait(false);
     }
 }
