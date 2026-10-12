@@ -22,7 +22,7 @@ approved_at:
 <!-- Tier lite: bug fix ou mudança pequena, um módulo, sem mudança de contrato público, tamanho S. type: fix | feature | refactor. user_facing: true se o defeito aparece numa jornada do usuário (o teste de regressão deveria ser E2E). Se qualquer condição falhar, use o tier full. Substitua todos os marcadores com chaves duplas. -->
 
 ## 1. Problema
-Na CI (runner do GitHub, 2 vCPU, PostgreSQL em container no mesmo host), a rajada de 300 cash-outs em 1 s da SPEC-0023 (IT-05) tem p99 ≈ 807 ms e p50 ≈ 420 ms (PR #25); no ambiente de referência local o p99 fica ≤ 50 ms. O alvo da SPEC-0023 §5 (p99 ≤ 50 ms) precisa valer na infraestrutura em que o produto vai rodar, não só na máquina do desenvolvedor.
+Na CI (runner do GitHub, 2 vCPU, PostgreSQL em container no mesmo host), a rajada de 300 cash-outs em 1 s da SPEC-0023 (IT-05) tem p99 ≈ 807 ms e p50 ≈ 420 ms (PR #25); no ambiente de referência local o p99 ficava ≤ 50 ms até a SPEC-0024, que grava o pedido antes da decisão do líder (uma escrita a mais) e levou o p99 local a 52–54 ms; o IT-05 usa hoje 75 ms como guarda local. O alvo da SPEC-0023 §5 (p99 ≤ 50 ms) precisa valer na infraestrutura em que o produto vai rodar, não só na máquina do desenvolvedor.
 
 ## 2. Causa Raiz
 Hipótese a confirmar com medição: o pool de conexões por módulo é limitado (padrão 10, ADR-0019) e cada cash-out faz a transação do cash-out e, no caminho manual, a tentativa de crédito em linha; numa rajada as requisições fazem fila no pool. CPU do runner compartilhada com o PostgreSQL.
