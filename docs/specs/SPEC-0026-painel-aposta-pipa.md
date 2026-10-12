@@ -198,7 +198,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 160ms); test exit 0 (at least ~400ms faster with isolate: false — reuses workers across files instead of one pe); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-12T01:12:36: Report generation took 0,8 seconds) — 088c1dd | 2026-10-12 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  746ms (tests 95%, transform 4%, import 1%)) — 088c1dd | 2026-10-12 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, 088c1dd; minors: foco perdido em 'Aguardando o resultado…', requestFailed não confere o tipo de pedido) — 088c1dd | 2026-10-12 |
-| G5 Integração & CI | FAIL | build exit 0 (✓ built in 150ms); test exit 0 (at least ~394ms faster with isolate: false — reuses workers across files instead of one pe); test_integration exit 0 (Passed!  - Failed:     0, Passed:    43, Skipped:     0, Total:    43, Duration: 9 m 16 s ); test_e2e exit 1 (Distributed application started. Press Ctrl+C to shut down.); arch_test exit 0 (Duration  775ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 510 files: 0 findings.) — d9bf950 | 2026-10-12 |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #26 verde (run 38227481466, commit 7c323ee): backend, frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; local: build, testes, integração (43/43), arquitetura e segurança PASS em 21ac3da; E2E local isolado 51/51 — decisão do IMP-01 | 2026-10-12 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
