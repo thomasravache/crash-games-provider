@@ -206,9 +206,11 @@ public sealed class CashOutResilienceTests(BettingContainers containers)
             var outcomes = await Task.WhenAll(clients.Select(client => client.CashOutAsync(betId, ct)));
             Assert.All(outcomes, outcome => CashOutFlight.PendingOf(outcome));
 
-            // The recorded instant is the first reception among the requests the follower received.
+            // The recorded instant is the first reception among the requests that asked the leader. Since SPEC-0024 the
+            // request is recorded before the leader is asked, so a request that finds one already recorded answers pending
+            // without asking: under load only the first ones reach the leader.
             var received = cluster.FollowerProbe.Requests.Where(r => !r.Leading && r.RoundId.Value == flight.RoundId).Select(r => r.ReceivedAt).ToList();
-            Assert.True(received.Count >= connections, $"Precondition: the follower asked the leader for every request ({received.Count}).");
+            Assert.True(received.Count >= 1, $"Precondition: the follower asked the leader at least once ({received.Count}).");
             var first = received.Min();
 
             // PostgreSQL keeps microseconds.
