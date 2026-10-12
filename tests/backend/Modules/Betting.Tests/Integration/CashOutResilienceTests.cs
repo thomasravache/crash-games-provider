@@ -116,6 +116,7 @@ public sealed class CashOutResilienceTests(BettingContainers containers)
     [Fact(DisplayName = "Dados 300 automáticos em 1,50x com a carteira indisponível, quando a rodada crasha e a seguinte abre, então RoundCrashed é processado e as apostas da rodada seguinte são ativadas em ≤ 2 s, e os créditos são confirmados quando a carteira volta")]
     [Trait("Spec", "SPEC-0023:IT-10")]
     [Trait("Category", "Integration")]
+    [Trait("Category", "Performance")] // 2 s budgets: runs in the isolated performance step, without coverage
     public async Task GivenThreeHundredAutosWithWalletDownWhenRoundCrashesThenRoundEventsAreNotDelayedAndCreditsLaterConfirmed()
     {
         const int players = 150;

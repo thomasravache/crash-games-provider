@@ -4,6 +4,7 @@ using Apogeu.Betting.Features.Hubs;
 using Apogeu.Betting.Features.PlaceBet;
 using Apogeu.Betting.Features.Reservations;
 using Apogeu.Betting.Features.RoundEvents;
+using Apogeu.Betting.Features.Settlement;
 using Apogeu.Betting.Infrastructure;
 using Apogeu.BuildingBlocks.Security;
 using Microsoft.AspNetCore.Builder;
@@ -60,6 +61,7 @@ public static class BettingModule
         services.AddScoped<CancelBetUseCase>();
         services.AddScoped<CashOutUseCase>();
         services.AddScoped<CashOutSettlement>();
+        services.AddScoped<RoundSettler>();
 
         return services;
     }

@@ -237,6 +237,17 @@ internal sealed class BettingHost : IAsyncDisposable
         }
     }
 
+    /// <summary>The settlement summaries of <paramref name="roundId"/> (SPEC-0024 <c>IRoundSettlementQuery</c>).</summary>
+    public async Task<IReadOnlyList<Apogeu.Betting.Contracts.RoundSettlement>> SettlementsAsync(Guid roundId, CancellationToken ct)
+    {
+        var scope = Services.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var query = scope.ServiceProvider.GetRequiredService<Apogeu.Betting.Contracts.IRoundSettlementQuery>();
+            return await query.GetAsync(new Apogeu.Rounds.Contracts.RoundId(roundId), ct).ConfigureAwait(false);
+        }
+    }
+
     /// <summary>The recorded reception instant of the pending cash-out of <paramref name="betId"/> (SPEC-0023), if any.</summary>
     public async Task<DateTimeOffset?> CashOutRequestedAtAsync(Guid betId, CancellationToken ct)
     {

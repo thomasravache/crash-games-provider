@@ -188,10 +188,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:09:42.54]     Dada uma carteira que falha no estorno e um reinício do proces) — 03821c2 | 2026-10-11 |
-| G2 Green | PASS | build exit 0 (✓ built in 152ms); test exit 0 (at least ~278ms faster with isolate: false — reuses workers across files instead of one pe); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T09:43:09: Report generation took 0,8 seconds) — dc9f499 | 2026-10-11 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  773ms (tests 97%, transform 2%, import 1%)) — dc9f499 | 2026-10-11 |
-| G4 Review | FAIL | CHANGES_REQUESTED (dc9f499): M1 cash-out aceito pelo líder antes do crash termina como aposta perdida quando a liquidação marca lost antes do commit do cash-out (janela de ~50 ms, até 200 ms com líder lento) | 2026-10-11 |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:06:25.35]     Dado um cash-out recebido pouco antes do crash, o líder aceita) — 2669d0a | 2026-10-11 |
+| G2 Green | PASS | build exit 0 (✓ built in 145ms); test exit 0 (Duration  1.38s (tests 67%, transform 18%, import 12%, worker 2%)); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T19:57:57: Report generation took 0,9 seconds) — c186b3d | 2026-10-11 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  766ms (tests 97%, transform 2%, import 1%)) — c186b3d | 2026-10-11 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, c186b3d; minors n1–n6: revive × fechamento do resumo sem lock, alerta falso de cash-out tardio com líder lento, p99 do cash-out no limite, segundo chamador fica em pending, carência na fila sequencial, resumo de anulada × TransactionNotFound tardio) — c186b3d | 2026-10-11 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |

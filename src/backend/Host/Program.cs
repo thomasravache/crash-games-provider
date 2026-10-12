@@ -1,6 +1,7 @@
 using Apogeu.Backoffice.Features;
 using Apogeu.Betting.Features;
 using Apogeu.Betting.Features.CashOut;
+using Apogeu.Betting.Features.Settlement;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.BuildingBlocks.Messaging;
 using Apogeu.Fairness.Features;
@@ -84,6 +85,7 @@ builder.UseWolverine(options =>
     options.CodeGeneration.AlwaysUseServiceLocationFor<IBetStore>();
     options.CodeGeneration.AlwaysUseServiceLocationFor<ICashOutArbiter>();
     options.CodeGeneration.AlwaysUseServiceLocationFor<CashOutSettlement>();
+    options.CodeGeneration.AlwaysUseServiceLocationFor<RoundSettler>();
 });
 MessagingLifecycle.AddMessagingLifecycle(builder.Services, RoundsModule.ConnectionName);
 builder.Services.AddSingleton<IMessagingReadiness>(provider =>

@@ -10,7 +10,7 @@ parent: SPEC-0019
 depends_on: [SPEC-0010, SPEC-0024]
 consumes_contract: [SPEC-0020@2, SPEC-0021@4, SPEC-0022@3, SPEC-0023@2, SPEC-0024@2, SPEC-0025@1]
 contract_version: 3
-touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "src/frontend/apps/game-pipa/src/main.tsx", "src/frontend/apps/game-pipa/src/test-hook.ts", "src/frontend/apps/game-pipa/src/styles.css", "src/frontend/apps/game-pipa/src/bets/**", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**"]
+touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "src/frontend/apps/game-pipa/src/main.tsx", "src/frontend/apps/game-pipa/src/test-hook.ts", "src/frontend/apps/game-pipa/src/styles.css", "src/frontend/apps/game-pipa/src/bets/**", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**", "tests/e2e/pipa/round.spec.ts", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/packages/game-ui/src/hud.tsx"]
 adrs: [ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021]
 external: []
 size: M
@@ -188,9 +188,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/41]⎯) — 9c8f5d6 | 2026-10-11 |
+| G2 Green | PASS | build exit 0 (✓ built in 161ms); test exit 0 (at least ~359ms faster with isolate: false — reuses workers across files instead of one pe); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-11T20:21:37: Report generation took 0,8 seconds) — d359339 | 2026-10-11 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  760ms (tests 97%, transform 2%, import 1%)) — d359339 | 2026-10-11 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |

@@ -1,6 +1,7 @@
 using Apogeu.Betting.Contracts;
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.Settlement;
 using Apogeu.Betting.Infrastructure.Messaging;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.Rounds.Contracts;
@@ -26,6 +27,7 @@ public static class DecideCashOutHandler
         CashOutSettlement settlement,
         BetsNotifier notifier,
         BettingMetrics metrics,
+        RoundSettler settler,
         IMessageBus bus,
         ILogger<DecideCashOut> logger,
         CancellationToken ct)
@@ -36,6 +38,7 @@ public static class DecideCashOutHandler
         ArgumentNullException.ThrowIfNull(settlement);
         ArgumentNullException.ThrowIfNull(notifier);
         ArgumentNullException.ThrowIfNull(metrics);
+        ArgumentNullException.ThrowIfNull(settler);
         ArgumentNullException.ThrowIfNull(bus);
 
         if (await store.FindByIdAsync(command.BetId, ct).ConfigureAwait(false) is not
@@ -44,18 +47,7 @@ public static class DecideCashOutHandler
             return;
         }
 
-        CashOutDecision? decision;
-        try
-        {
-            decision = await arbiter.DecideAsync(found.SalaId, roundId, receivedAt, ct).ConfigureAwait(false);
-        }
-#pragma warning disable CA1031 // The leader could not be reached: the decision is scheduled again with the same instant.
-        catch (Exception exception) when (exception is not OperationCanceledException || !ct.IsCancellationRequested)
-#pragma warning restore CA1031
-        {
-            BettingLog.CashOutPending(logger, bet.Id, exception.GetType().Name);
-            decision = null;
-        }
+        var decision = await DecideAsync(arbiter, found.SalaId, roundId, bet.Id, receivedAt, logger, ct).ConfigureAwait(false);
 
         // Undecided (the leader is taking the round over) is never too late: decided again later (review G4, M2). An earlier
         // concurrent reception recorded meanwhile is the one decided (m1).
@@ -76,18 +68,59 @@ public static class DecideCashOutHandler
         found = current;
         if (decision is CashOutAccepted accepted)
         {
-            if (await settlement.SettleAsync(found, accepted.Multiplier.Value, automatic: false).ConfigureAwait(false) is { } cashedOut)
+            // Told only by the call that settled it: the hub's own decision and this fallback may both run (SPEC-0024 M1).
+            if (await settlement.SettleOnceAsync(found, accepted.Multiplier.Value, automatic: false).ConfigureAwait(false) is { Settled: true, CashedOut: { } cashedOut })
             {
                 await SendAsync(() => notifier.CashedOutAsync(bet.Owner, cashedOut), bet.Id, logger).ConfigureAwait(false);
             }
 
+            // The last open bet of an ended round closes its summary (SPEC-0024).
+            await settler.CloseAsync(roundId, ct).ConfigureAwait(false);
             return;
         }
 
         metrics.TooLate();
-        await store.ClearCashOutRequestAsync(bet.Id, ct).ConfigureAwait(false);
+        await RefuseAsync(store, notifier, settler, bet, logger, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The request came at or after the crash: it is forgotten and the player told <c>CashOutRejected</c>; once the crash is
+    /// settled the bet is lost like the others, and the summary may close (SPEC-0024).
+    /// </summary>
+    private static async Task RefuseAsync(IBetStore store, BetsNotifier notifier, RoundSettler settler, Bet bet, ILogger logger, CancellationToken ct)
+    {
+        if (!await store.ClearCashOutRequestAsync(bet.Id, ct).ConfigureAwait(false))
+        {
+            // Refused already by another decision of the same request.
+            return;
+        }
+
         await SendAsync(() => notifier.CashOutRejectedAsync(bet.Owner, new CashOutRejected(bet.Id, BettingErrorCodes.CashOutTooLate)), bet.Id, logger)
             .ConfigureAwait(false);
+        await settler.SettleRefusedAsync(bet.RoundId!.Value, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>The leader's decision; <see langword="null"/> when it could not be reached (decided again later, same instant).</summary>
+    private static async Task<CashOutDecision?> DecideAsync(
+        ICashOutArbiter arbiter,
+        string salaId,
+        RoundId roundId,
+        Guid betId,
+        DateTimeOffset receivedAt,
+        ILogger logger,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await arbiter.DecideAsync(salaId, roundId, receivedAt, ct).ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // The leader could not be reached: the decision is scheduled again with the same instant.
+        catch (Exception exception) when (exception is not OperationCanceledException || !ct.IsCancellationRequested)
+#pragma warning restore CA1031
+        {
+            BettingLog.CashOutPending(logger, betId, exception.GetType().Name);
+            return null;
+        }
     }
 
     private static async Task SendAsync(Func<Task> send, Guid betId, ILogger logger)

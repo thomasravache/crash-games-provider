@@ -40,25 +40,48 @@ public sealed class CashOutSettlement(
     /// <see cref="CashedOut"/> of the bet — the one already persisted when another call cashed it out first — or
     /// <see langword="null"/> when the bet is no longer active.
     /// </summary>
-    public async Task<CashedOut?> SettleAsync(AcceptedBet found, decimal multiplier, bool automatic)
+    public async Task<CashedOut?> SettleAsync(AcceptedBet found, decimal multiplier, bool automatic) =>
+        (await SettleOnceAsync(found, multiplier, automatic).ConfigureAwait(false)).CashedOut;
+
+    /// <summary>
+    /// As <see cref="SettleAsync"/>, also saying whether this call settled it (<c>Settled</c>), so the player is told once. A bet
+    /// already marked lost whose cash-out the leader accepted (received before the crash) becomes cashed out while its round's
+    /// summary is not closed (SPEC-0024 review G4, M1); otherwise a critical reconciliation alert.
+    /// </summary>
+    public async Task<(CashedOut? CashedOut, bool Settled)> SettleOnceAsync(AcceptedBet found, decimal multiplier, bool automatic)
     {
         ArgumentNullException.ThrowIfNull(found);
         var bet = found.Bet;
-        if (bet.Status != BetStatus.Active)
+        var revive = bet.Status == BetStatus.Lost;
+        if (bet.Status != BetStatus.Active && !revive)
         {
-            return Answer(found);
+            return (Answer(found), false);
+        }
+
+        if (revive)
+        {
+            bet = Bet.Restore(bet.Id, bet.Owner, new BetRequest(bet.ClientBetId, bet.Panel, bet.Amount, bet.AutoCashOut), BetStatus.Active, bet.RoundId, bet.RoundNumber);
         }
 
         (multiplier, automatic) = WithPrecedence(bet, multiplier, automatic);
         if (CashOut(bet, multiplier) is not { } accepted)
         {
-            return null;
+            return (null, false);
         }
 
         // Not tied to the caller: once decided, the cash-out is settled even if the connection is gone.
-        if (!await store.CashOutAsync(bet, automatic, time.GetUtcNow(), CreditRetry, announce: false, CancellationToken.None).ConfigureAwait(false))
+        var at = time.GetUtcNow();
+        var stored = revive
+            ? await store.ReviveCashOutAsync(bet, at, CreditRetry, CancellationToken.None).ConfigureAwait(false)
+            : await store.CashOutAsync(bet, automatic, at, CreditRetry, announce: false, CancellationToken.None).ConfigureAwait(false);
+        if (!stored)
         {
-            return await StoredAsync(bet.Id).ConfigureAwait(false);
+            if (revive)
+            {
+                BettingLog.LateCashOutUnreconciled(logger, bet.Id, "summary closed or bet changed");
+            }
+
+            return (await StoredAsync(bet.Id).ConfigureAwait(false), false);
         }
 
         metrics.CashedOut(automatic);
@@ -74,13 +97,15 @@ public sealed class CashOutSettlement(
             metrics.CreditPending(1);
         }
 
-        return new CashedOut(
-            bet.Id,
-            new Multiplier(accepted.Multiplier),
-            new Money(accepted.Payout),
-            balance is null ? CreditStatus.Pending : CreditStatus.Credited,
-            balance is { } after ? new Money(after) : null,
-            automatic);
+        return (
+            new CashedOut(
+                bet.Id,
+                new Multiplier(accepted.Multiplier),
+                new Money(accepted.Payout),
+                balance is null ? CreditStatus.Pending : CreditStatus.Credited,
+                balance is { } after ? new Money(after) : null,
+                automatic),
+            true);
     }
 
     /// <summary>
