@@ -98,6 +98,9 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 | Mensagens de erro | cada código do contrato | mensagem pt-BR correspondente | UT-05 |
 | Tremor do texto no crash | RoundCrashed; movimento normal e reduzido | "PIPA CORTADA!" treme ≤ 300 ms; sem tremor com movimento reduzido | UT-07 |
 | Recarga | saldo abaixo/acima do mínimo | botão visível/oculto; recarga atualiza saldo | UT-06 |
+| Crash antes do BetSettled | fase crashed com painel active | sem RETIRAR; BetSettled em cashing_out → lost | UT-08 |
+| Painel preso de rodada anterior | evento perdido na reconexão; BET_NOT_ACTIVE | painel volta a idle | UT-09 |
+| Recarga recusada e foco | recarga falha; botão ocupado | mensagem com role=alert; foco mantido | UT-10 |
 | SDK de apostas contra servidor real | backend do Aspire | aposta, retira, saldo atualizado | IT-01 |
 | Tipos do hub e REST | mensagens reais | conferem com os tipos gerados | CT-01 |
 | Aposta e cash-out | jogador aposta R$ 10 e retira no voo | painel mostra o ganho; saldo = 3.000 − 10 + pagamento | E2E-01 |
@@ -118,6 +121,9 @@ Gancho de teste (só build de teste): __APOGEU_TEST__.bets() → BetsState
 - **UT-05** — Dado cada código de erro do contrato, quando recebido, então a mensagem pt-BR correspondente aparece no painel.
 - **UT-06** — Dado saldo 0,50 com mínimo 1,00 e depois saldo 10,00, quando o painel renderiza, então "Recarregar demo" aparece e some; a recarga atualiza o saldo.
 - **UT-07** — Dado o HUD em voo, quando chega RoundCrashed, então o texto "PIPA CORTADA!" recebe a animação de tremor de ≤ 300 ms; com `prefers-reduced-motion: reduce`, não treme.
+- **UT-08** — Dado um painel active quando a fase da rodada passa a crashed (ou annulled) e o BetSettled ainda não chegou, então o painel não oferece RETIRAR (ação desabilitada, sem valor de retirada) — o estado do store não muda; e um BetSettled que chega com o painel em cashing_out leva o painel a lost.
+- **UT-09** — Dado um painel placed ou active de uma rodada anterior (BetSettled perdido numa queda de conexão), quando a fase de apostas de outra rodada começa, então o painel volta a idle; e um BET_NOT_ACTIVE ou BET_NOT_FOUND em RETIRAR ou CANCELAR também devolve o painel a idle.
+- **UT-10** — Dada uma recarga recusada (RECHARGE_NOT_ALLOWED ou WALLET_UNAVAILABLE), quando o jogador clica em "Recarregar demo", então a mensagem pt-BR aparece com role="alert"; e o botão de ação do painel não perde o foco do teclado durante "placing"/"Retirando…" (aria-disabled em vez de disabled).
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dado o backend real do Aspire, quando o `game-sdk` (Node) aposta 10,00, retira no voo e relê o saldo, então recebe BetAccepted e CashedOut e o saldo é 3.000 − 10 + pagamento.
@@ -162,7 +168,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07 com a tag `SPEC-0026:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07, UT-08, UT-09, UT-10 com a tag `SPEC-0026:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar, seguindo os ADRs
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
@@ -243,6 +249,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0026`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 3 (inalterado) | 2026-10-12 | Review G4: tipos BetSettled/BetRefunded vêm só do contrato gerado (ADR-0008); painel sem RETIRAR após o crash e BetSettled aceito em cashing_out (UT-08); painel de rodada anterior volta a idle (UT-09); recarga recusada com mensagem e foco preservado (UT-10). Pendências: falha ao iniciar o hub de apostas não deve bloquear o jogo (modo só assistir, com nova tentativa); axe em todos os estados do painel; aviso de crédito pendente por aposta (BalanceUpdated não traz betId) | Review G4 (1c7f207) | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-12) |
 | 3 (inalterado) | 2026-10-11 | Decisões do scaffold e2e5c6c: todos os códigos de erro dos contratos consumidos têm mensagem pt-BR (além dos 11 listados: INVALID_AMOUNT, AUTO_CASHOUT_INVALID, BET_NOT_FOUND, RECHARGE_NOT_ALLOWED, NOT_DEMO, falha de rede e desconhecido); saldo e limites ficam vazios até a primeira leitura (sem "R$ 0,00" nem recarga falsa); fichas definem o valor; aposta cancelada volta o painel a idle; o tique sonoro dos 3 últimos segundos sai deste escopo e vai para a SPEC-0033 (exige `tick()` no `GameAudio`, fora dos `touches`) | Ambiguidades levantadas no scaffold | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | 3 (inalterado) | 2026-10-11 | Repin em SPEC-0023@2: estados cashing_out (CashOutPending), lost por CashOutRejected, refunded (BetRefunded) e crédito pendente com BalanceUpdated (UT-01); novos códigos de erro INVALID_PANEL, ROUND_CLOSED, BET_NOT_ACTIVE, REAL_MONEY_DISABLED (UT-05); reconexão tolera GET /api/v1/me/bets ausente (404) até a SPEC-0025 (UT-03); escopo inclui `main.tsx`, `test-hook.ts`, `styles.css` e `src/bets/**` do app | Contratos v3 da SPEC-0022 e v2 da SPEC-0023; a SPEC-0025 (histórico) não é dependência desta | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |
 | v3 | 2026-10-09 | Tremor do texto "PIPA CORTADA!" no HUD no crash (≤ 300 ms, sem tremor com movimento reduzido), com UT-07 | Saiu do escopo da SPEC-0011 (texto pertence ao HUD) | Nenhuma | thomas, 2026-10-09 (chat: "ok nas 3") |
