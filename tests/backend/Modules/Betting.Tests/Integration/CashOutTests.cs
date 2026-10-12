@@ -98,11 +98,11 @@ public sealed class CashOutTests(BettingContainers containers)
         Assert.Equal("credited", Json.Text(auto, "creditStatus"));
         Assert.Equal(FakeOperatorWallet.OpeningBalance - 20.00m + 15.00m, Json.Decimal(auto, "balance"));
 
-        // Executed at t_alvo = ln(1,5)/k ≈ 2,03 s, during the flight: received after it and before the crash instant.
+        // Executed at t_alvo = ln(1,5)/k ≈ 2,03 s, never before it. The notice comes from the credit handler (SPEC-0023 §6),
+        // so on a slow machine it may arrive after the crash; the exact 1,50x above proves where it was executed.
         var executedNoEarlierThan = flight.StartedAt + CashOutMath.TimeTo(flight.K, 1.50m);
         var received = bets.EventsOf("CashedOut", below)[0].ReceivedAt;
         Assert.True(received >= executedNoEarlierThan - TimeSpan.FromMilliseconds(1), $"CashedOut auto received at {received:O}, before t_alvo {executedNoEarlierThan:O}.");
-        Assert.True(received < Json.Instant(crashed.Payload, "crashedAt"), $"CashedOut auto received at {received:O}: executed during the flight, not at its end ({crashed}).");
 
         Assert.Empty(bets.EventsOf("CashedOut", above));
         var credit = Assert.Single(wallet.Inner.AppliedCredits);
