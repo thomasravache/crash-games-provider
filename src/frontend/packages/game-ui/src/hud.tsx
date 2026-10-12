@@ -64,12 +64,12 @@ function Readout({ state }: { readonly state: RoundState }): JSX.Element {
     case "betting":
       return (
         <>
-          <p className="font-hud-display text-sm font-semibold tracking-wider text-hud-betting">
+          <p className="hud-scoreboard-label font-hud-display font-semibold tracking-wider text-hud-betting">
             {hudText.betting}
           </p>
           <p
             data-testid={hudTestIds.countdown}
-            className="font-hud-display text-5xl font-bold tabular-nums text-hud-text md:text-6xl"
+            className="hud-scoreboard-value font-hud-display font-bold tabular-nums text-hud-text"
           >
             {`${String(secondsLeft(state.bettingEndsAt, state.serverOffsetMs, now))}s`}
           </p>
@@ -80,11 +80,11 @@ function Readout({ state }: { readonly state: RoundState }): JSX.Element {
         <>
           <p
             data-testid={hudTestIds.multiplier}
-            className="font-hud-display text-5xl font-bold tabular-nums text-hud-text md:text-7xl"
+            className="hud-scoreboard-value font-hud-display font-bold tabular-nums text-hud-text"
           >
             {formatMultiplier(state.multiplier)}
           </p>
-          <p className="font-hud-display text-sm font-semibold tracking-wider text-hud-flying">
+          <p className="hud-scoreboard-label font-hud-display font-semibold tracking-wider text-hud-flying">
             {hudText.flying}
           </p>
         </>
@@ -94,12 +94,12 @@ function Readout({ state }: { readonly state: RoundState }): JSX.Element {
         <>
           <p
             data-testid={hudTestIds.multiplier}
-            className="font-hud-display text-5xl font-bold tabular-nums text-hud-crashed md:text-7xl"
+            className="hud-scoreboard-value font-hud-display font-bold tabular-nums text-hud-crashed"
           >
             {formatMultiplier(state.crashPoint ?? state.multiplier)}
           </p>
           <p
-            className={`font-hud-display text-sm font-semibold tracking-wider text-hud-crashed${shake ? ` ${crashShakeClassName}` : ""}`}
+            className={`hud-scoreboard-label font-hud-display font-semibold tracking-wider text-hud-crashed${shake ? ` ${crashShakeClassName}` : ""}`}
           >
             {hudText.crashed}
           </p>
@@ -161,12 +161,13 @@ export function Hud({
 
         <section aria-label="Rodada" className="flex min-h-[45dvh] flex-col md:col-span-8">
           <HistoryStrip history={state.history} />
-          <div className="relative flex-1 overflow-hidden">
+          <div className="hud-scene relative flex-1 overflow-hidden">
             <div className="absolute inset-0" aria-hidden="true">
               {scene}
             </div>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-              <div className="flex min-w-48 flex-col items-center gap-1 rounded-2xl border border-hud-border bg-hud-surface/85 px-6 py-4 text-center backdrop-blur">
+            {/* Scoreboard at the top of the scene, compact and without a box: the kite flies in the centre (SPEC-0049). */}
+            <div className="hud-scoreboard-area pointer-events-none absolute inset-x-0 top-0 flex justify-center">
+              <div className="hud-scoreboard">
                 <Readout state={state} />
               </div>
             </div>
