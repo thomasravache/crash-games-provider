@@ -163,25 +163,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0002, ADR-0007, ADR-0010, ADR-0017, ADR-0018 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0002, ADR-0007, ADR-0010, ADR-0017, ADR-0018 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0024:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04 com a tag `SPEC-0024:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, CT-01 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, IT-04, IT-05, IT-06, IT-07, CT-01 com a tag `SPEC-0024:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -207,37 +207,55 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+Ao fim de cada rodada as apostas são liquidadas: no crash, as não retiradas viram perdidas (BetSettled) depois da reconciliação dos automáticos; na anulação, as colocadas e ativas são estornadas integralmente (BetRefunded, com estorno pendente avisado e BalanceUpdated depois); aposta com cash-out em andamento só fecha com a decisão do líder; cada rodada fecha um resumo único por operador e moeda (apostado, pago, estornado, GGR), consultável por `IRoundSettlementQuery`.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Módulo Betting: `RoundSettler` no handler do RoundCrashed (marcação lost em lote com `UPDATE … RETURNING`, estorno das apostas placed sem ativação), `RefundBetHandler` em fila própria (estorno durável pelo outbox, TransactionNotFound → 0,00 e alerta), tabelas `round_closures` e `round_settlements` (chave por rodada/operador/moeda, inserção numa transação com ON CONFLICT DO NOTHING) e carência de 500 ms antes do fechamento. Correção de dinheiro do review: o pedido de cash-out é gravado antes da decisão do líder e uma aposta já marcada lost volta a cashed_out se o líder aceitou (enquanto o resumo não fechou). Rodada anulada responde TooLate nos dois caminhos do árbitro. Contrato v2. Duas rodadas de review (G4).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dada uma rodada com 3 apostas active (1 retirada), quando o crash é processado, então 2 viram lost com BetSettled e a retirada não muda. | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-02 | Dada uma rodada com apostas placed, active e uma retirada, quando a anulação é processada, então placed e active viram refunded com estorno … | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-03 | Dadas apostas de 10,00, 20,00 e 30,00 com um pagamento de 24,70, quando o resumo é calculado, então apostado 60,00, pago 24,70 e GGR 35,30. | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-04 | Dado um estorno respondido com TransactionNotFound, quando registrado, então refunded é 0,00, o alerta de conciliação é emitido e o resumo c… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-01 | Dado o Host real com duas rodadas (uma termina em crash e outra anulada), quando liquidadas, então estados, saldos e resumos batem com o liv… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-02 | Dado um evento de crash entregue duas vezes, quando processado, então resumo e estados não mudam na segunda vez. | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-03 | Dada uma carteira que falha no estorno e um reinício do processo, quando a varredura roda, então BetRefunded chega com refundStatus "pending… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-04 | Dadas 5.000 apostas active numa rodada, quando o crash é liquidado, então termina em ≤ 2 s (`Category=Performance`). | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-05 | Dada uma aposta active com pedido de cash-out pendente (líder impedido de responder) recebido antes do crash, quando a rodada crasha e o líd… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-06 | Dado um cash-out recebido pouco antes do crash, o líder aceitando e a Betting processando o RoundCrashed antes de o hub gravar o cash-out (f… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-07 | Dada uma aposta placed cuja ativação foi perdida numa rodada que crasha, quando a liquidação roda, então a aposta é estornada integralmente … | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| CT-01 | Dadas as mensagens reais BetSettled e BetRefunded (refunded e pending) de IT-01 e IT-03, quando validadas contra os tipos gerados do hub /hu… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — IT-04 (5.000 apostas liquidadas em ≤ 2 s)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #26
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métricas `betting.settled{status}`, `betting.refunds_pending`, `betting.settlement_duration`; logs de conciliação com o betId; rollback = revert do merge e das migrações
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; lint e format verdes
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pelo PR #26.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0048 — capacidade do cash-out em rajada: a gravação do pedido antes da decisão levou o p99 local a 52–54 ms (guarda temporária de 75 ms no IT-05 da SPEC-0023).
+- Minors aceitos do review: revive e fechamento do resumo sem lock de linha; alerta falso de cash-out tardio com líder lento; segundo chamador pode ficar em pending sem aviso; carência no laço sequencial; resumo de rodada anulada × TransactionNotFound tardio; contadores pendentes por processo e alertas do §8 (SPEC-0014).
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0024`. -->

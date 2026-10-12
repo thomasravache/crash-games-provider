@@ -165,29 +165,29 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07, UT-08, UT-09, UT-10 com a tag `SPEC-0026:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03, UT-04, UT-05, UT-06, UT-07, UT-08, UT-09, UT-10 com a tag `SPEC-0026:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, CT-01 com a tag `SPEC-0026:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, CT-01 com a tag `SPEC-0026:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase 4: Jornada E2E**
-- [ ] Red: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05 falhando pelo motivo certo
-- [ ] Green: jornada completa passando localmente
+- [x] Red: E2E-01, E2E-02, E2E-03, E2E-04, E2E-05 falhando pelo motivo certo
+- [x] Green: jornada completa passando localmente
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -214,37 +214,61 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O jogador aposta pela tela da Pipa: dois painéis (APOSTA 1 e APOSTA 2) com valor, fichas, cash-out automático, botões APOSTAR / CANCELAR / RETIRAR / PRÓXIMA, ganho, perda e estorno no painel, saldo "R$ 3.000,00 · DEMO" com recarga quando abaixo da aposta mínima, mensagens de erro em português e o texto PIPA CORTADA! tremendo no crash (sem tremor com movimento reduzido).
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+game-sdk: cliente do hub `/hubs/bets` e da carteira, store de apostas com máquina de estados por painel e dinheiro em centavos (bigint, sem Number), tipos derivados do contrato gerado (ADR-0008). game-ui: `BetPanel`, `BalanceDisplay` e `betPanelView` puro. game-pipa: painel no HUD e gancho de teste `__APOGEU_TEST__.bets()`. Review G4 (duas rodadas): tipos do contrato gerado, sem RETIRAR após o crash, painéis presos voltam a idle, recarga recusada com aviso e foco preservado. Tique sonoro dos 3 últimos segundos movido para a SPEC-0033.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A — type feature.
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dada a sequência de eventos (BetAccepted placed, RoundFlying, CashedOut; BetAccepted queued, BetActivated, RoundCrashed com BetSettled; Cash… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-02 | Dados limites 1,00/1.000,00 e alvo mínimo 1,01x, quando o valor é 0,50, 1.000,01 ou o alvo 1,00x, então o botão fica desabilitado com o moti… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-03 | Dado o store com dados antigos, quando a conexão volta, então o saldo é substituído pelo lido do servidor e as apostas pelas de GET /api/v1/… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-04 | Dados "2990.5" e "24.70", quando formatados e enviados, então aparecem como "R$ 2.990,50" e "R$ 24,70" e trafegam como string, sem `Number`. | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-05 | Dado cada código de erro do contrato, quando recebido, então a mensagem pt-BR correspondente aparece no painel. | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-06 | Dado saldo 0,50 com mínimo 1,00 e depois saldo 10,00, quando o painel renderiza, então "Recarregar demo" aparece e some; a recarga atualiza … | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-07 | Dado o HUD em voo, quando chega RoundCrashed, então o texto "PIPA CORTADA!" recebe a animação de tremor de ≤ 300 ms; com `prefers-reduced-mo… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-08 | Dado um painel active quando a fase da rodada passa a crashed (ou annulled) e o BetSettled ainda não chegou, então o painel não oferece RETI… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-09 | Dado um painel placed ou active de uma rodada anterior (BetSettled perdido numa queda de conexão), quando a fase de apostas de outra rodada … | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| UT-10 | Dada uma recarga recusada (RECHARGE_NOT_ALLOWED ou WALLET_UNAVAILABLE), quando o jogador clica em "Recarregar demo", então a mensagem pt-BR … | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| IT-01 | Dado o backend real do Aspire, quando o `game-sdk` (Node) aposta 10,00, retira no voo e relê o saldo, então recebe BetAccepted e CashedOut e… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| CT-01 | Dadas as mensagens reais de IT-01 (hub de apostas e carteira), quando validadas em tempo de execução contra os tipos gerados, então conferem… | PASS | G5 local 21ac3da (resultado integrado); CI do PR #26 |
+| E2E-01 | Dado o jogo aberto pelo lançamento demo, quando o jogador aposta R$ 10,00 no painel 1 e clica RETIRAR durante o voo, então o painel mostra o… | PASS | `tools/ci/run-e2e.sh` local 51/51 (integrado); job e2e da CI do PR #26 |
+| E2E-02 | Dado o jogo aberto, quando o jogador aposta R$ 10,00 e não retira, então após PIPA CORTADA! o painel mostra a perda (BetSettled), o saldo ca… | PASS | `tools/ci/run-e2e.sh` local 51/51 (integrado); job e2e da CI do PR #26 |
+| E2E-03 | Dado o jogo na fase de apostas, quando o jogador aposta e cancela, então o saldo volta ao valor anterior. | PASS | `tools/ci/run-e2e.sh` local 51/51 (integrado); job e2e da CI do PR #26 |
+| E2E-04 | Dado o jogo em voo, quando o jogador aposta nos dois painéis (um durante o voo), então o painel mostra PRÓXIMA e ativa na rodada seguinte, e… | PASS | `tools/ci/run-e2e.sh` local 51/51 (integrado); job e2e da CI do PR #26 |
+| E2E-05 | Dado o cash-out automático em 1,01x, quando a rodada voa, então a retirada automática é anunciada (rodada com crash 1,00x conta como perda e… | PASS | `tools/ci/run-e2e.sh` local 51/51 (integrado); job e2e da CI do PR #26 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — E2E-01 (RETIRAR → "Ganhou" em ≤ 150 ms); axe sem violações nos estados medidos
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A justificado: sem ambiente até a SPEC-0012 (G6 N/A); E2E com backend real na CI do PR #26
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — sem telemetria de cliente até haver hospedagem; rollback = revert do merge (o HUD volta ao painel desabilitado)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes) — gitleaks e Semgrep sem achados no G5
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha — TreatWarningsAsErrors; lint e format verdes
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente (G6 N/A até a SPEC-0012). Integrado pelo PR #26.
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+- SPEC-0017 — E2E com tempo fixo instáveis quando rodam logo após a integração na mesma máquina (IMP-01).
+- SPEC-0031 — histórico e abas de apostas; reconexão relê as apostas abertas quando GET /api/v1/me/bets existir (SPEC-0025).
+- Pendências aceitas do review: jogo continuar assistível se o hub de apostas falhar ao iniciar; axe em todos os estados do painel; aviso de crédito pendente por aposta; foco em "Aguardando o resultado…"; requestFailed sem conferir o tipo de pedido.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0026`. -->
