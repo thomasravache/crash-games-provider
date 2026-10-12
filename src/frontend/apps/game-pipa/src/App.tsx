@@ -1,4 +1,4 @@
-import { SessionError, type GameClient, type SessionInfo } from "@apogeu/game-sdk";
+import { SessionError, type BetsClient, type GameClient, type SessionInfo } from "@apogeu/game-sdk";
 import type { RoundStateSource } from "@apogeu/game-sdk/state";
 import {
   ConnectionFailedScreen,
@@ -12,6 +12,7 @@ import { useEffect, useRef, useState, type JSX } from "react";
 
 import type { SoundController } from "./audio/sound-controller";
 import { useSound } from "./audio/use-sound";
+import { PipaBalance, PipaBets } from "./bets/pipa-bets";
 import { demoBalance } from "./config";
 
 type Screen =
@@ -26,6 +27,8 @@ export interface AppProps {
   readonly session: Promise<SessionInfo>;
   /** The game's sound (SPEC-0018), created once per page; absent: the game is silent. */
   readonly sound?: SoundController;
+  /** The bets client (SPEC-0026); absent: the disabled bet panel of SPEC-0010. */
+  readonly bets?: BetsClient;
 }
 
 /** Host of the PixiJS scene, loaded on demand (the renderer is not part of the initial bundle). */
@@ -56,10 +59,12 @@ function Game({
   client,
   session,
   sound,
+  bets,
 }: {
   readonly client: GameClient;
   readonly session: SessionInfo;
   readonly sound: SoundController | undefined;
+  readonly bets: BetsClient | undefined;
 }): JSX.Element {
   const state = useRoundState(client.store);
   const soundControl = useSound(sound);
@@ -75,6 +80,12 @@ function Game({
       }}
       scene={<Scene source={client.store} />}
       {...(soundControl === undefined ? {} : { sound: soundControl })}
+      {...(bets === undefined
+        ? {}
+        : {
+            bets: <PipaBets client={bets} round={state} />,
+            balance: <PipaBalance client={bets} />,
+          })}
     >
       {fairnessOpen ? (
         <FairnessDialog
@@ -89,7 +100,7 @@ function Game({
   );
 }
 
-export function App({ client, session, sound }: AppProps): JSX.Element {
+export function App({ client, session, sound, bets }: AppProps): JSX.Element {
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
 
   useEffect(() => {
@@ -117,6 +128,6 @@ export function App({ client, session, sound }: AppProps): JSX.Element {
     case "failed":
       return <ConnectionFailedScreen />;
     case "game":
-      return <Game client={client} session={screen.session} sound={sound} />;
+      return <Game client={client} session={screen.session} sound={sound} bets={bets} />;
   }
 }
