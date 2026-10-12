@@ -3,7 +3,7 @@
 // sets, lets the test emit server messages and simulate the drop and return of the transport.
 import type {
   BetsHubClientEvent,
-  BetsHubClientEvents,
+  BetsHubClient,
   BetsHubConnection,
   BetsHubServer,
   BetsHubServerMethod,
@@ -73,10 +73,7 @@ export class FakeBetsHub implements BetsHubConnection {
     return (responder as (...values: unknown[]) => Promise<unknown>)(...args);
   }) as BetsHubConnection["invoke"];
 
-  on<E extends BetsHubClientEvent>(
-    event: E,
-    handler: BetsHubClientEvents[E],
-  ): void {
+  on<E extends BetsHubClientEvent>(event: E, handler: BetsHubClient[E]): void {
     const list = this.handlers.get(event) ?? [];
     list.push(handler as Handler);
     this.handlers.set(event, list);
@@ -102,7 +99,7 @@ export class FakeBetsHub implements BetsHubConnection {
   /** The server sends `event` to the player. */
   emit<E extends BetsHubClientEvent>(
     event: E,
-    message: Parameters<BetsHubClientEvents[E]>[0],
+    message: Parameters<BetsHubClient[E]>[0],
   ): void {
     for (const handler of this.handlers.get(event) ?? []) {
       (handler as (payload: typeof message) => void)(structuredClone(message));
