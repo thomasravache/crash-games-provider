@@ -68,7 +68,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 7c323ee | 2026-10-12 |
 | G1 Red | PASS | MANUAL: verify G1: PASS (red antes do green, tag SPEC-0049:E2E-01 no código); teste de regressão é E2E: tools/ci/run-e2e.sh --project=chromium pipa/layout/ falha em d815910 — borda de baixo do placar a 59–60% da altura da cena (limite 35%), centro da cena sob o placar e fundo com alfa 0,85 (limite 0,3); a suíte do test do sdd-config não roda E2E | 2026-10-12 |
-| G2 Green | PENDING | | |
+| G2 Green | FAIL | build exit 0 (✓ built in 163ms); test exit 1 ([xUnit.net 00:08:43.03]     Dado um cash-out recebido pouco antes do crash, o líder aceita); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:08:31.23]     Dada uma aposta active com pedido de cash-out pendente recebid) — e379289 | 2026-10-12 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
