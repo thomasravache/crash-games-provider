@@ -67,7 +67,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 7c323ee | 2026-10-12 |
-| G1 Red | FAIL | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 0 (verde: at least ~554ms faster with isolate: false — reuses workers across files instead of one pe) — d815910 | 2026-10-12 |
+| G1 Red | PASS | MANUAL: verify G1: PASS (red antes do green, tag SPEC-0049:E2E-01 no código); teste de regressão é E2E: tools/ci/run-e2e.sh --project=chromium pipa/layout/ falha em d815910 — borda de baixo do placar a 59–60% da altura da cena (limite 35%), centro da cena sob o placar e fundo com alfa 0,85 (limite 0,3); a suíte do test do sdd-config não roda E2E | 2026-10-12 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
