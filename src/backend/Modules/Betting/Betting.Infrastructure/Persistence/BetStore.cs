@@ -21,6 +21,10 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
     private static readonly string Queued = StatusName(BetStatus.Queued);
     private static readonly string Active = StatusName(BetStatus.Active);
     private static readonly string CashedOut = StatusName(BetStatus.CashedOut);
+    private static readonly string Lost = StatusName(BetStatus.Lost);
+    private static readonly string Refunded = StatusName(BetStatus.Refunded);
+    private const string RefundPending = "pending";
+    private const string RefundConfirmed = "refunded";
     private const string CreditPending = "pending";
     private const string Credited = "credited";
 
@@ -315,11 +319,11 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         }
     }
 
-    public async Task<bool> RequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, CancellationToken ct)
+    public async Task<bool> RequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, TimeSpan decisionDelay, CancellationToken ct)
     {
         for (var attempt = 0; attempt < ConcurrencyAttempts; attempt++)
         {
-            if (await TryRequestCashOutAsync(betId, receivedAt, ct).ConfigureAwait(false) is { } pending)
+            if (await TryRequestCashOutAsync(betId, receivedAt, decisionDelay, ct).ConfigureAwait(false) is { } pending)
             {
                 return pending;
             }
@@ -329,7 +333,7 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
     }
 
     /// <summary>One attempt of <see cref="RequestCashOutAsync"/>: <see langword="null"/> when the row changed meanwhile (try again).</summary>
-    private async Task<bool?> TryRequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, CancellationToken ct)
+    private async Task<bool?> TryRequestCashOutAsync(Guid betId, DateTimeOffset receivedAt, TimeSpan decisionDelay, CancellationToken ct)
     {
         var scope = scopes.CreateAsyncScope();
         await using (scope.ConfigureAwait(false))
@@ -350,7 +354,8 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
             if (record.CashOutRequestedAt is null)
             {
                 // One decision per request: the command is stored with its first record only.
-                await outbox.PublishAsync(new DecideCashOut(betId)).ConfigureAwait(false);
+                await outbox.PublishAsync(new DecideCashOut(betId), decisionDelay > TimeSpan.Zero ? new DeliveryOptions { ScheduleDelay = decisionDelay } : null)
+                    .ConfigureAwait(false);
             }
 
             record.CashOutRequestedAt = receivedAt;
@@ -366,16 +371,181 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         }
     }
 
-    public Task ClearCashOutRequestAsync(Guid betId, CancellationToken ct) =>
-        db.Bets
-            .Where(b => b.Id == betId && b.Status == Active)
-            .ExecuteUpdateAsync(set => set.SetProperty(b => b.CashOutRequestedAt, (DateTimeOffset?)null), ct);
+    public async Task<bool> ClearCashOutRequestAsync(Guid betId, CancellationToken ct) =>
+        await db.Bets
+            .Where(b => b.Id == betId && b.Status == Active && b.CashOutRequestedAt != null)
+            .ExecuteUpdateAsync(set => set.SetProperty(b => b.CashOutRequestedAt, (DateTimeOffset?)null), ct)
+            .ConfigureAwait(false) == 1;
 
     public async Task<bool> ConfirmCreditAsync(Guid betId, decimal balance, CancellationToken ct) =>
         await db.Bets
             .Where(b => b.Id == betId && b.Status == CashedOut && b.CreditStatus == CreditPending)
             .ExecuteUpdateAsync(set => set.SetProperty(b => b.CreditStatus, Credited).SetProperty(b => b.CreditBalance, balance), ct)
             .ConfigureAwait(false) == 1;
+
+    public Task<string?> RoundOutcomeAsync(RoundId roundId, CancellationToken ct) =>
+        db.RoundClosures.AsNoTracking().Where(c => c.RoundId == roundId.Value).Select(c => c.Outcome).SingleOrDefaultAsync(ct);
+
+    public Task MarkRoundEndedAsync(RoundId roundId, string outcome, DateTimeOffset at, CancellationToken ct) =>
+        db.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO betting.round_closures (round_id, outcome, closed_at) VALUES ({roundId.Value}, {outcome}, {at}) ON CONFLICT (round_id) DO NOTHING",
+            ct);
+
+    public async Task<IReadOnlyList<Bet>> SettleLostAsync(RoundId roundId, CancellationToken ct)
+    {
+        // One statement for the whole round (5.000 bets in ≤ 2 s, SPEC-0024 IT-04); the rows it changed come back to notify.
+        var lost = await db.Bets
+            .FromSqlInterpolated($"UPDATE betting.bets SET status = {Lost} WHERE round_id = {roundId.Value} AND status = {Active} AND cash_out_requested_at IS NULL RETURNING *")
+            .AsNoTracking()
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        return [.. lost.Select(ToDomain)];
+    }
+
+    public async Task<IReadOnlyList<Bet>> RefundRoundAsync(RoundId roundId, bool placedOnly, CancellationToken ct)
+    {
+        for (var attempt = 0; attempt < ConcurrencyAttempts; attempt++)
+        {
+            if (await TryRefundRoundAsync(roundId, placedOnly, ct).ConfigureAwait(false) is { } refunded)
+            {
+                return refunded;
+            }
+        }
+
+        throw new InvalidOperationException($"The bets of annulled round {roundId.Value} kept changing; the annulment is retried.");
+    }
+
+    public async Task<bool> ConfirmRefundAsync(Guid betId, decimal refunded, decimal balance, CancellationToken ct) =>
+        await db.Bets
+            .Where(b => b.Id == betId && b.Status == Refunded && b.RefundStatus == RefundPending)
+            .ExecuteUpdateAsync(
+                set => set.SetProperty(b => b.RefundStatus, RefundConfirmed).SetProperty(b => b.Refunded, refunded).SetProperty(b => b.RefundBalance, balance),
+                ct)
+            .ConfigureAwait(false) == 1;
+
+    public async Task<bool> CloseSettlementAsync(RoundId roundId, DateTimeOffset at, TimeSpan grace, CancellationToken ct)
+    {
+        var round = roundId.Value;
+        var closure = await db.RoundClosures.AsNoTracking().SingleOrDefaultAsync(c => c.RoundId == round, ct).ConfigureAwait(false);
+        if (closure is null
+            || at < closure.ClosedAt + grace
+            || await db.Bets.AsNoTracking().AnyAsync(b => b.RoundId == round && (b.Status == Placed || b.Status == Active), ct).ConfigureAwait(false))
+        {
+            return false;
+        }
+
+        // Closed bets are final: once none is open, the summary is the same whoever computes it. Every (operator, currency) row
+        // of the round is written in one transaction; ON CONFLICT keeps the first one (immutable).
+        var closed = await db.Bets.AsNoTracking()
+            .Where(b => b.RoundId == round && (b.Status == Lost || b.Status == CashedOut || b.Status == Refunded))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+        await using (transaction.ConfigureAwait(false))
+        {
+            var written = 0;
+            foreach (var summary in RoundSettlementCalculator.Summarize(closed.Select(ToDomain)))
+            {
+                written += await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"INSERT INTO betting.round_settlements (round_id, operator_id, currency, bets_count, total_wagered, total_paid, total_refunded, ggr, settled_at) VALUES ({round}, {summary.OperatorId.Value}, {summary.Currency.Code}, {summary.BetsCount}, {summary.TotalWagered}, {summary.TotalPaid}, {summary.TotalRefunded}, {summary.Ggr}, {at}) ON CONFLICT (round_id, operator_id, currency) DO NOTHING",
+                    ct).ConfigureAwait(false);
+            }
+
+            await transaction.CommitAsync(ct).ConfigureAwait(false);
+            return written > 0;
+        }
+    }
+
+    public async Task<bool> ReviveCashOutAsync(Bet bet, DateTimeOffset at, TimeSpan creditDelay, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(bet);
+        if (bet is not { Status: BetStatus.CashedOut, CashOutMultiplier: { } multiplier, Payout: { } payout, RoundId: { } round })
+        {
+            throw new InvalidOperationException($"Bet {bet.Id} is not cashed out in a round.");
+        }
+
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            var context = outbox.DbContext;
+            if (await context.RoundSettlements.AsNoTracking().AnyAsync(s => s.RoundId == round.Value, ct).ConfigureAwait(false)
+                || await context.Bets.SingleOrDefaultAsync(b => b.Id == bet.Id && b.Status == Lost, ct).ConfigureAwait(false) is not { } record)
+            {
+                return false;
+            }
+
+            record.Status = CashedOut;
+            record.CashOutMultiplier = multiplier;
+            record.Payout = payout;
+            record.CashOutAuto = false;
+            record.CashedOutAt = at;
+            record.CreditStatus = CreditPending;
+            await outbox.PublishAsync(
+                new CreditCashOut(record.Id, record.OperatorId, record.PlayerId, record.Currency, round.Value, payout),
+                new DeliveryOptions { ScheduleDelay = creditDelay }).ConfigureAwait(false);
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return false;
+            }
+        }
+    }
+
+    public async Task ScheduleDecisionAsync(Guid betId, CancellationToken ct)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            await outbox.PublishAsync(new DecideCashOut(betId)).ConfigureAwait(false);
+            await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>One attempt of <see cref="RefundRoundAsync"/>: <see langword="null"/> when a bet changed meanwhile (try again).</summary>
+    private async Task<IReadOnlyList<Bet>?> TryRefundRoundAsync(RoundId roundId, bool placedOnly, CancellationToken ct)
+    {
+        var scope = scopes.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<BettingDbContext>>();
+            var records = await outbox.DbContext.Bets
+                .Where(b => b.RoundId == roundId.Value && (b.Status == Placed || (!placedOnly && b.Status == Active)))
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            if (records.Count == 0)
+            {
+                return [];
+            }
+
+            foreach (var record in records)
+            {
+                record.Status = Refunded;
+                record.Refunded = record.Amount;
+                record.RefundStatus = RefundPending;
+                record.RefundBalance = null;
+                record.CashOutRequestedAt = null;
+
+                // ADR-0007: the refund is stored with the bet it refunds.
+                await outbox.PublishAsync(new RefundBet(record.Id, record.OperatorId, record.PlayerId, record.Currency, roundId.Value, record.Amount)).ConfigureAwait(false);
+            }
+
+            try
+            {
+                await outbox.SaveChangesAndFlushMessagesAsync(ct).ConfigureAwait(false);
+                return [.. records.Select(ToDomain)];
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return null;
+            }
+        }
+    }
 
     private async Task<bool> ActivateAsync(Bet bet, CancellationToken ct) =>
         await db.Bets
@@ -421,7 +591,8 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         record.RoundId is { } round ? new RoundId(round) : null,
         record.RoundNumber,
         record.CashOutMultiplier,
-        record.Payout);
+        record.Payout,
+        record.Refunded);
 
     private static string StatusName(BetStatus status) => status switch
     {
@@ -430,6 +601,8 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         BetStatus.Queued => "queued",
         BetStatus.Cancelled => "cancelled",
         BetStatus.CashedOut => "cashed_out",
+        BetStatus.Lost => "lost",
+        BetStatus.Refunded => "refunded",
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Unknown bet status."),
     };
 
@@ -440,6 +613,8 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         "queued" => BetStatus.Queued,
         "cancelled" => BetStatus.Cancelled,
         "cashed_out" => BetStatus.CashedOut,
+        "lost" => BetStatus.Lost,
+        "refunded" => BetStatus.Refunded,
         _ => throw new InvalidOperationException($"Unknown bet status '{status}' in the schema betting."),
     };
 

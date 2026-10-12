@@ -23,6 +23,8 @@ namespace Internal.Generated.WolverineHandlers
             await using var serviceScope = _serviceScopeFactory.CreateAsyncScope();
             Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Wolverine.Runtime.ScopedMessageContextHolder>(serviceScope.ServiceProvider).Context = context;
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
+            var roundSettler = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Apogeu.Betting.Features.Settlement.RoundSettler>(serviceScope.ServiceProvider);
+            // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var cashOutSettlement = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Apogeu.Betting.Features.CashOut.CashOutSettlement>(serviceScope.ServiceProvider);
             // This service has been marked as requiring service location independent of Wolverine's ability to use constructor injection of everything else
             var betStore = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Apogeu.Betting.Infrastructure.Persistence.IBetStore>(serviceScope.ServiceProvider);
@@ -33,7 +35,7 @@ namespace Internal.Generated.WolverineHandlers
             System.Diagnostics.Activity.Current?.SetTag("handler.type", "Apogeu.Betting.Features.RoundEvents.RoundEventsHandler");
             
             // The actual message execution
-            await Apogeu.Betting.Features.RoundEvents.RoundEventsHandler.HandleAsync(roundCrashed, _roundFeed, betStore, cashOutSettlement, cancellation).ConfigureAwait(false);
+            await Apogeu.Betting.Features.RoundEvents.RoundEventsHandler.HandleAsync(roundCrashed, _roundFeed, betStore, cashOutSettlement, roundSettler, cancellation).ConfigureAwait(false);
         }
     }
 

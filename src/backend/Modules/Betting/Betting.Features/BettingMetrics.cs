@@ -25,6 +25,12 @@ public sealed class BettingMetrics
 
     public const string CreditsPending = "betting.credits_pending";
 
+    public const string Settled = "betting.settled";
+
+    public const string RefundsPending = "betting.refunds_pending";
+
+    public const string SettlementDuration = "betting.settlement_duration";
+
     /// <summary>Activities of the module (a trace per <c>betId</c>, SPEC-0022 §8).</summary>
     internal static readonly ActivitySource Activities = new(MeterName);
 
@@ -35,6 +41,9 @@ public sealed class BettingMetrics
     private readonly Counter<long> _cashOutTooLate;
     private readonly Histogram<long> _decisionLatency;
     private readonly UpDownCounter<long> _creditsPending;
+    private readonly Counter<long> _settled;
+    private readonly UpDownCounter<long> _refundsPending;
+    private readonly Histogram<long> _settlementDuration;
 
     public BettingMetrics(IMeterFactory meterFactory)
     {
@@ -48,6 +57,9 @@ public sealed class BettingMetrics
         _cashOutTooLate = meter.CreateCounter<long>(CashOutTooLate, unit: "{bet}", description: "Manual cash-outs received at or after the crash.");
         _decisionLatency = meter.CreateHistogram<long>(CashOutDecisionLatency, unit: "us", description: "From receiving CashOut to the leader's decision.");
         _creditsPending = meter.CreateUpDownCounter<long>(CreditsPending, unit: "{credit}", description: "Credits of cash-outs not confirmed by the wallet yet.");
+        _settled = meter.CreateCounter<long>(Settled, unit: "{bet}", description: "Bets closed by the end of their round (lost, refunded), SPEC-0024.");
+        _refundsPending = meter.CreateUpDownCounter<long>(RefundsPending, unit: "{refund}", description: "Refunds of annulled rounds not confirmed by the wallet yet.");
+        _settlementDuration = meter.CreateHistogram<long>(SettlementDuration, unit: "ms", description: "From receiving the end of a round to its bets closed.");
     }
 
     public void BetReached(string status, long count = 1)
@@ -70,4 +82,17 @@ public sealed class BettingMetrics
 
     /// <summary>A credit left pending (<paramref name="delta"/> = 1) or confirmed after being pending (-1).</summary>
     public void CreditPending(int delta) => _creditsPending.Add(delta);
+
+    public void BetsSettled(string status, long count)
+    {
+        if (count > 0)
+        {
+            _settled.Add(count, new KeyValuePair<string, object?>("betting.status", status));
+        }
+    }
+
+    /// <summary>Refunds left pending (<paramref name="delta"/> &gt; 0) or confirmed after being pending (-1).</summary>
+    public void RefundPending(long delta) => _refundsPending.Add(delta);
+
+    public void SettledIn(TimeSpan duration) => _settlementDuration.Record((long)duration.TotalMilliseconds);
 }

@@ -19,6 +19,12 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
 
     public DbSet<BetRecord> Bets => Set<BetRecord>();
 
+    /// <summary>The immutable summaries of the settled rounds (SPEC-0024).</summary>
+    public DbSet<RoundSettlementRecord> RoundSettlements => Set<RoundSettlementRecord>();
+
+    /// <summary>The rounds whose end Betting processed (SPEC-0024).</summary>
+    public DbSet<RoundClosureRecord> RoundClosures => Set<RoundClosureRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
@@ -27,7 +33,7 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
         {
             bet.ToTable("bets", table =>
             {
-                table.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled', 'cashed_out')");
+                table.HasCheckConstraint("ck_bets_status", "status IN ('pending', 'placed', 'active', 'queued', 'cancelled', 'cashed_out', 'lost', 'refunded')");
                 table.HasCheckConstraint("ck_bets_accepted_status", "accepted_status IN ('placed', 'queued')");
                 table.HasCheckConstraint("ck_bets_panel", "panel IN (1, 2)");
                 table.HasCheckConstraint("ck_bets_amount", "amount > 0");
@@ -76,6 +82,36 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
             bet.HasIndex(b => b.CreatedAt).HasFilter("status = 'pending'").HasDatabaseName("ix_bets_pending_created_at");
 
             MapCashOut(bet);
+        });
+
+        MapSettlement(modelBuilder);
+    }
+
+    /// <summary>The summaries of the settled rounds, unique per (round, operator, currency), and the rounds whose end was processed.</summary>
+    private static void MapSettlement(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RoundSettlementRecord>(settlement =>
+        {
+            settlement.ToTable("round_settlements", table => table.HasCheckConstraint("ck_round_settlements_ggr", "ggr = total_wagered - total_paid - total_refunded"));
+            settlement.HasKey(s => new { s.RoundId, s.OperatorId, s.Currency }).HasName("pk_round_settlements");
+            settlement.Property(s => s.RoundId).HasColumnName("round_id");
+            settlement.Property(s => s.OperatorId).HasColumnName("operator_id").HasMaxLength(64);
+            settlement.Property(s => s.Currency).HasColumnName("currency").HasMaxLength(8);
+            settlement.Property(s => s.BetsCount).HasColumnName("bets_count");
+            settlement.Property(s => s.TotalWagered).HasColumnName("total_wagered").HasPrecision(18, 2);
+            settlement.Property(s => s.TotalPaid).HasColumnName("total_paid").HasPrecision(18, 2);
+            settlement.Property(s => s.TotalRefunded).HasColumnName("total_refunded").HasPrecision(18, 2);
+            settlement.Property(s => s.Ggr).HasColumnName("ggr").HasPrecision(18, 2);
+            settlement.Property(s => s.SettledAt).HasColumnName("settled_at");
+        });
+
+        modelBuilder.Entity<RoundClosureRecord>(closure =>
+        {
+            closure.ToTable("round_closures", table => table.HasCheckConstraint("ck_round_closures_outcome", "outcome IN ('crashed', 'annulled')"));
+            closure.HasKey(c => c.RoundId).HasName("pk_round_closures");
+            closure.Property(c => c.RoundId).HasColumnName("round_id").ValueGeneratedNever();
+            closure.Property(c => c.Outcome).HasColumnName("outcome").HasMaxLength(16);
+            closure.Property(c => c.ClosedAt).HasColumnName("closed_at");
         });
     }
 

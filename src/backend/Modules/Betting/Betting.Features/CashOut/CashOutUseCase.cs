@@ -2,6 +2,7 @@ using Apogeu.Betting.Contracts;
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Hubs;
 using Apogeu.Betting.Features.Sessions;
+using Apogeu.Betting.Features.Settlement;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.Rounds.Contracts;
 using Microsoft.Extensions.Logging;
@@ -19,12 +20,16 @@ public sealed class CashOutUseCase(
     IBetStore store,
     ICashOutArbiter arbiter,
     CashOutSettlement settlement,
+    RoundSettler settler,
     BettingMetrics metrics,
     TimeProvider time,
     ILogger<CashOutUseCase> logger)
 {
     /// <summary>How long the answer waits for the leader's decision before it is <c>CashOutPending</c> (SPEC-0023 §4).</summary>
     public static readonly TimeSpan DecisionDeadline = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>When the durable decision stored with the request runs, as a fallback of the one asked by the hub.</summary>
+    public static readonly TimeSpan FallbackDecision = TimeSpan.FromSeconds(2.5);
 
     /// <summary>
     /// The cash-out received at <paramref name="receivedAt"/>. Not cancellable: once received, a closed connection does not lose
@@ -46,30 +51,81 @@ public sealed class CashOutUseCase(
             return Answer(cashedOut);
         }
 
-        var bet = found.Bet;
-        if (bet is not { Status: BetStatus.Active, RoundId: { } roundId })
+        if (found.Bet is { Status: BetStatus.Active } && found.CashOutRequestedAt is not null)
         {
-            return Refuse(BettingErrorCodes.BetNotActive);
+            return Pending(found.Bet.Id);
         }
 
-        if (found.CashOutRequestedAt is not null)
+        if (found.Bet.Status == BetStatus.Active)
         {
-            return Pending(bet.Id);
+            // M1 (SPEC-0024 review G4): the request is recorded before the leader is asked, so the crash never marks lost a bet
+            // whose cash-out is being decided; its durable decision is a fallback of the one asked here.
+            if (!await store.RequestCashOutAsync(found.Bet.Id, receivedAt, FallbackDecision, CancellationToken.None).ConfigureAwait(false))
+            {
+                return await ChangedAsync(found.Bet.Id, receivedAt).ConfigureAwait(false);
+            }
+        }
+
+        return await DecideAndSettleAsync(found, receivedAt).ConfigureAwait(false);
+    }
+
+    /// <summary>The bet changed before its request was recorded: what it became (lost: still decided by the leader).</summary>
+    private async Task<BettingOutcome<CashOutResult>> ChangedAsync(Guid betId, DateTimeOffset receivedAt)
+    {
+        var current = await store.FindByIdAsync(betId, CancellationToken.None).ConfigureAwait(false);
+        return current switch
+        {
+            not null when CashOutSettlement.Answer(current) is { } cashedOut => Answer(cashedOut),
+            { Bet.Status: BetStatus.Active, CashOutRequestedAt: not null } => Pending(betId),
+            { Bet.Status: BetStatus.Lost } lost => await DecideAndSettleAsync(lost, receivedAt).ConfigureAwait(false),
+            _ => Refuse(BettingErrorCodes.BetNotActive),
+        };
+    }
+
+    /// <summary>
+    /// Asks the leader and settles its decision. An active bet has its request recorded; a lost one (marked before the request
+    /// could be recorded) is cashed out only if the leader accepts it, while its round's summary is open (M1).
+    /// </summary>
+    private async Task<BettingOutcome<CashOutResult>> DecideAndSettleAsync(AcceptedBet found, DateTimeOffset receivedAt)
+    {
+        var bet = found.Bet;
+        if (bet is not { Status: BetStatus.Active or BetStatus.Lost, RoundId: { } roundId })
+        {
+            return Refuse(BettingErrorCodes.BetNotActive);
         }
 
         switch (await DecideAsync(found.SalaId, roundId, bet.Id, receivedAt).ConfigureAwait(false))
         {
             case CashOutAccepted accepted:
-                return await settlement.SettleAsync(found, accepted.Multiplier.Value, automatic: false).ConfigureAwait(false) is { } settled
-                    ? Answer(settled)
-                    : Refuse(BettingErrorCodes.BetNotActive);
+                var (settled, _) = await settlement.SettleOnceAsync(found, accepted.Multiplier.Value, automatic: false).ConfigureAwait(false);
+                await settler.CloseAsync(roundId, CancellationToken.None).ConfigureAwait(false);
+                return settled is not null ? Answer(settled) : TooLate();
             case CashOutTooLate:
-                metrics.TooLate();
-                return Refuse(BettingErrorCodes.CashOutTooLate);
+                if (bet.Status == BetStatus.Active && await store.ClearCashOutRequestAsync(bet.Id, CancellationToken.None).ConfigureAwait(false))
+                {
+                    // Refused: the bet is lost like the others once the crash is settled.
+                    await settler.SettleRefusedAsync(roundId, CancellationToken.None).ConfigureAwait(false);
+                }
+
+                return TooLate();
             default:
+                if (bet.Status == BetStatus.Lost)
+                {
+                    // Nothing recorded to decide later: the leader did not answer for a bet already lost.
+                    BettingLog.LateCashOutUnreconciled(logger, bet.Id, "the leader did not decide in time");
+                    return TooLate();
+                }
+
                 // Not decided in time, or undecided (the leader is taking over the round): decided later, once.
-                return await RequestAsync(bet, receivedAt).ConfigureAwait(false);
+                await store.ScheduleDecisionAsync(bet.Id, CancellationToken.None).ConfigureAwait(false);
+                return Pending(bet.Id);
         }
+    }
+
+    private BettingOutcome<CashOutResult> TooLate()
+    {
+        metrics.TooLate();
+        return Refuse(BettingErrorCodes.CashOutTooLate);
     }
 
     /// <summary>
@@ -102,23 +158,6 @@ public sealed class CashOutUseCase(
         // The late decision is not used: the recorded request is decided again by the leader with the same instant.
         _ = deciding.ContinueWith(static task => _ = task.Exception, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
         return null;
-    }
-
-    /// <summary>Records the request for a later decision and answers it pending; what the bet became, when it changed meanwhile.</summary>
-    private async Task<BettingOutcome<CashOutResult>> RequestAsync(Bet bet, DateTimeOffset receivedAt)
-    {
-        if (await store.RequestCashOutAsync(bet.Id, receivedAt, CancellationToken.None).ConfigureAwait(false))
-        {
-            return Pending(bet.Id);
-        }
-
-        var current = await store.FindByIdAsync(bet.Id, CancellationToken.None).ConfigureAwait(false);
-        return current switch
-        {
-            not null when CashOutSettlement.Answer(current) is { } cashedOut => Answer(cashedOut),
-            { CashOutRequestedAt: not null } => Pending(bet.Id),
-            _ => Refuse(BettingErrorCodes.BetNotActive),
-        };
     }
 
     private static BettingOutcome<CashOutResult> Answer(CashedOut cashedOut) => new(new CashOutResult(cashedOut, Pending: null), null);

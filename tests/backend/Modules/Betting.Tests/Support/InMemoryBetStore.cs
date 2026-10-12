@@ -7,7 +7,7 @@ namespace Apogeu.Betting.Tests.Support;
 /// <summary>
 /// In-memory double of <see cref="IBetStore"/> for the unit tests of the cancellation (UT-07) and of the cash-out settlement
 /// (SPEC-0023 UT-05), built as a <see cref="DispatchProxy"/> so it keeps compiling when the store gains members: it answers
-/// <c>FindAsync</c>, <c>FindByIdAsync</c>, <c>TransitionAsync</c>, <c>CashOutAsync</c> and <c>ConfirmCreditAsync</c> over the bets
+/// <c>FindAsync</c>, <c>FindByIdAsync</c>, <c>TransitionAsync</c>, <c>CashOutAsync</c>, <c>ConfirmCreditAsync</c> and <c>ConfirmRefundAsync</c> over the bets
 /// the test seeded, and any other member fails the test naming it.
 /// </summary>
 public class InMemoryBetStore : DispatchProxy
@@ -15,6 +15,7 @@ public class InMemoryBetStore : DispatchProxy
     private readonly Lock _gate = new();
     private readonly Dictionary<Guid, (AcceptedBet Accepted, BetStatus Status)> _bets = [];
     private readonly Dictionary<Guid, CashOutRecord> _cashOuts = [];
+    private readonly List<object?[]> _refundConfirmations = [];
 
     public static (IBetStore Store, InMemoryBetStore State) Create()
     {
@@ -48,6 +49,18 @@ public class InMemoryBetStore : DispatchProxy
         }
     }
 
+    /// <summary>The arguments of every <c>ConfirmRefundAsync</c> call (SPEC-0024 UT-04).</summary>
+    public IReadOnlyList<object?[]> RefundConfirmations
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _refundConfirmations];
+            }
+        }
+    }
+
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
     {
         ArgumentNullException.ThrowIfNull(targetMethod);
@@ -57,6 +70,7 @@ public class InMemoryBetStore : DispatchProxy
             nameof(IBetStore.FindAsync) => Task.FromResult(Find((BetOwner)args[0]!, (Guid)args[1]!)),
             nameof(IBetStore.FindByIdAsync) => Task.FromResult(Find(owner: null, (Guid)args[0]!)),
             nameof(IBetStore.CashOutAsync) => Task.FromResult(CashOut((Bet)args[0]!, (bool)args[1]!)),
+            nameof(IBetStore.ConfirmRefundAsync) => Task.FromResult(ConfirmRefund(args)),
             nameof(IBetStore.ConfirmCreditAsync) => Task.FromResult(ConfirmCredit((Guid)args[0]!, (decimal)args[1]!)),
             nameof(IBetStore.TransitionAsync) => Task.FromResult(Transition((Bet)args[0]!, (BetStatus)args[1]!)),
             _ => throw new NotSupportedException($"The UT-07 store double does not answer IBetStore.{targetMethod.Name}."),
@@ -125,6 +139,15 @@ public class InMemoryBetStore : DispatchProxy
             }
 
             _cashOuts[betId] = cashOut with { Credited = true, Balance = balance };
+            return true;
+        }
+    }
+
+    private bool ConfirmRefund(object?[] args)
+    {
+        lock (_gate)
+        {
+            _refundConfirmations.Add(args);
             return true;
         }
     }

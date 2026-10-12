@@ -1,3 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <!-- Contract scalars Money, OperatorId and Currency of RoundSettlement (ADR-0008). -->
+    <ProjectReference Include="../../../BuildingBlocks/BuildingBlocks.csproj" />
+    <!-- RoundId of the Rounds contract (ADR-0001: only Contracts). -->
+    <ProjectReference Include="../../Rounds/Rounds.Contracts/Rounds.Contracts.csproj" />
+  </ItemGroup>
+
 </Project>
