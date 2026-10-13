@@ -4,13 +4,13 @@ title: "Apostas ao vivo e histórico pessoal"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0024]
 consumes_contract: [SPEC-0021@4]
-contract_version: 1
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**"]
+contract_version: 2
+touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Operators/Operators.Features/Sessions/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**", "src/backend/Host/Internal/Generated/**", "src/frontend/packages/contracts/**", "artifacts/openapi/**", "src/backend/Host/OpenApi/ContractScalarSchemaTransformer.cs"]
 adrs: [ADR-0005, ADR-0014, ADR-0019, ADR-0008]
 external: []
 size: M
@@ -68,16 +68,22 @@ Mostra para a sala as apostas da rodada em tempo real (apelido anonimizado, valo
 Hub /hubs/bets
   JoinSalaBets() → LiveBetsSnapshot { roundId, totalBets, totalPlayers, totalWagered:Money,
                                      bets:[LiveBet] (até 100, maiores valores primeiro) }
-Servidor → grupo da sala (a cada 200 ms, se houver novidade)
-  LiveBetsBatch { roundId, placed:[LiveBet], cashedOut:[{ betRef, multiplier, payout }], totalBets, totalPlayers, totalWagered }
+    (sem argumento: usa a sala da sessão do jogador)
+Servidor → grupo da sala (a cada 200 ms, se houver novidade), método do cliente "LiveBetsBatch"
+  LiveBetsBatch { roundId, placed:[LiveBet] (≤ 100, maiores valores), cashedOut:[{ betRef, multiplier, payout }] (≤ 100),
+                  totalBets, totalPlayers, totalWagered }
+  totalPlayers = jogadores distintos com aposta na rodada
 LiveBet { betRef, nickname:"Ma***", amount:Money, currency, multiplier?:Multiplier, payout?:Money }
 REST (sessão do jogador)
   GET /api/v1/me/bets?limit=1..50&before=<cursor>
-    → 200 { items:[{ betId, roundId, roundNumber, panel, amount, currency, autoCashOut?, multiplier?, payout?,
+    → 200 { items:[{ betId, roundId?, roundNumber?, panel, amount, currency, autoCashOut?, multiplier?, payout?,
                       status:"placed"|"queued"|"active"|"cashed_out"|"lost"|"cancelled"|"refunded", placedAt }],
             nextCursor? }
-    | 400 INVALID_LIMIT | 401
+      ordem: placedAt decrescente, desempate por betId decrescente; cursor opaco; aposta queued sem rodada → roundId e roundNumber nulos
+    | 400 { code:"INVALID_LIMIT", … } (mesmo envelope de erro dos outros REST) | 401
 Anonimização: 2 primeiras letras do apelido + "***"; apelido ausente → "Jogador***"
+Apelido (Emenda v2): claim opcional `nick` no token de sessão do jogador (SPEC-0009 §4), preenchida pelo Operators com o
+  apelido do lançamento; o Betting lê a claim na sessão; o apelido nunca vem do cliente
 ```
 
 **Design:** N/A — sem interface.
@@ -88,6 +94,7 @@ Anonimização: 2 primeiras letras do apelido + "***"; apelido ausente → "Joga
 | Cenário | Condição / Entrada | Resultado esperado | Testes |
 |---|---|---|---|
 | Anonimização | "Marcos", "A", sem apelido | "Ma***", "A***", "Jogador***" | UT-01 |
+| Apelido na sessão | lançamento com apelido "Marcos" / sem apelido | token com claim `nick` = "Marcos" / sem a claim; Betting lê a claim | UT-03 |
 | Agrupamento | 250 apostas em 200 ms | um lote com 100 itens e totais com 250 | UT-02 |
 | Snapshot e eventos | jogador entra no meio da rodada | snapshot atual + lotes seguintes; sem betId nem apelido completo | IT-01 |
 | Histórico | jogador com apostas em vários estados | página ordenada, cursor funciona; só as próprias | IT-02 |
@@ -101,12 +108,13 @@ Anonimização: 2 primeiras letras do apelido + "***"; apelido ausente → "Joga
 
 ### 7.2 Testes Unitários
 - **UT-01** — Dados os apelidos "Marcos", "A" e ausente, quando anonimizados, então "Ma***", "A***" e "Jogador***".
+- **UT-03** — Dado um lançamento com apelido "Marcos" e outro sem apelido, quando a sessão do jogador é criada, então o token traz a claim `nick` = "Marcos" no primeiro e nenhuma claim `nick` no segundo, e a sessão do Betting expõe o apelido ou nulo (Emenda v2).
 - **UT-02** — Dadas 250 apostas na mesma janela de 200 ms, quando o lote é montado, então traz 100 itens (maiores valores) e totais de 250.
 
 ### 7.3 Testes de Integração
-- **IT-01** — Dado o Host real com dois jogadores de operadores diferentes na mesma sala, quando um aposta e retira e o outro entra no meio da rodada, então o segundo recebe snapshot e lotes com apelidos anonimizados, `betRef` opaco e sem `betId`.
+- **IT-01** — Dado o Host real com dois jogadores de operadores diferentes na mesma sala (segundo operador por dublê de teste), com apelido na claim `nick`, quando um aposta e retira e o outro entra no meio da rodada, então o segundo recebe snapshot e lotes com apelidos anonimizados, `betRef` opaco e sem `betId`.
 - **IT-02** — Dado um jogador com apostas cashed_out, lost, cancelled e refunded, quando pagina `GET /api/v1/me/bets` com limit 2, então recebe as próprias apostas em ordem e o cursor leva à página seguinte; limit 0 e 51 → 400; sem sessão → 401.
-- **IT-03** — Dadas 1.000 apostas numa rodada, quando a difusão é observada por 5 s, então no máximo 5 lotes por segundo e cada um com ≤ 100 itens (`Category=Performance`).
+- **IT-03** — Dadas 1.000 apostas numa rodada (vários jogadores em paralelo; fase de apostas ampliada pela configuração da sala), quando a difusão é observada por 5 s, então em cada segundo inteiro contado a partir do primeiro lote há no máximo 5 lotes e cada um com ≤ 100 itens (`Category=Performance`).
 
 ### 7.4 Testes de Contrato
 - **CT-01** — Dadas as mensagens e respostas reais de IT-01/IT-02, quando validadas contra os tipos gerados, então conferem (contrato consumido pela SPEC-0026).
@@ -144,7 +152,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0005, ADR-0014, ADR-0019, ADR-0008 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02 com a tag `SPEC-0025:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, UT-02, UT-03 com a tag `SPEC-0025:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar, seguindo os ADRs
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
@@ -179,7 +187,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
-| IMP-01 | 2026-10-13 | G1 | spec | Betting não tem acesso ao apelido do jogador (token só leva sub/op/sala/cur/mode; apelido só no Operators, sem porta em Operators.Contracts); faltam no touches os contratos gerados (packages/contracts), o código gerado do Wolverine e o scaffold; contrato não fixa nome do método do lote, ordem/cursor do histórico, corpo do INVALID_LIMIT, totalPlayers e teto dos cashedOut | test-writer leu o código (PlayerSessionClaims, BettingSession, LaunchGrantRecord) e parou antes de escrever testes | Architect + thomas |  |  |
+| IMP-01 | 2026-10-13 | G1 | spec | Betting não tem acesso ao apelido do jogador (token só leva sub/op/sala/cur/mode; apelido só no Operators, sem porta em Operators.Contracts); faltam no touches os contratos gerados (packages/contracts), o código gerado do Wolverine e o scaffold; contrato não fixa nome do método do lote, ordem/cursor do histórico, corpo do INVALID_LIMIT, totalPlayers e teto dos cashedOut | test-writer leu o código (PlayerSessionClaims, BettingSession, LaunchGrantRecord) e parou antes de escrever testes | Architect + thomas | Emenda v2 — claim nick no token, contrato detalhado e touches ampliado (aprovada por thomas) | 2026-10-13 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -222,3 +230,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0025`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/OpenApi/ContractScalarSchemaTransformer.cs`: `Money`/`Multiplier` anuláveis passam a usar `oneOf` com null na propriedade, sem tornar o componente compartilhado anulável | Scaffold: o primeiro `Multiplier?` (autoCashOut do histórico) deixava `Multiplier` anulável em todo o contrato REST (crashPoint e cap do Rounds) | Nenhuma | thomas (Emenda v2 aprovada, 2026-10-13) |
+| 2 | 2026-10-13 | Claim opcional `nick` no token de sessão (Operators) lida pelo Betting; método do cliente `LiveBetsBatch`; `JoinSalaBets` sem argumento; `cashedOut` ≤ 100 por lote; `totalPlayers` = jogadores distintos; histórico em `placedAt` decrescente com desempate por `betId`, cursor opaco, `roundId`/`roundNumber` nulos em aposta queued; 400 no envelope `code`; IT-03 por segundos inteiros; `touches` com sessões do Operators, testes de Operators/Security, codegen do Wolverine, contratos gerados (ADR-0008) e OpenAPI | Test-writer (IMP-01): o Betting não tinha acesso ao apelido e o contrato deixava detalhes em aberto | SPEC-0026, SPEC-0031 | thomas (2026-10-13) |
