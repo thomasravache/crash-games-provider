@@ -70,9 +70,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 8ec0e8a | 2026-10-12 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:12.06]     Dada uma rodada encerrada com Postgres real, quando GET /verif) — 112e042 | 2026-10-13 |
-| G2 Green | PASS | build exit 0 (✓ built in 418ms); test exit 0 ($ dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (affected-tests: no coverage report produced) — da2d6a2 | 2026-10-13 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  941ms (tests 97%, transform 2%, import 1%)) — da2d6a2 | 2026-10-13 |
-| G4 Review | FAIL | Reviewer independente: CHANGES REQUESTED — B1 código de src/backend/Modules pula testes que sobem o Host (Security, Contracts, Betting usa Rounds.Features); B5 G5 local deixou de rodar a suíte inteira; M2 arquivos Support linkados e tools/contracts; M3 renomeações escondem o caminho antigo; M4 config do front sem Repository.Tests | 2026-10-13 |
+| G2 Green | PASS | build exit 0 (✓ built in 170ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7c473cf | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  762ms (tests 97%, transform 2%, import 1%)) — 7c473cf | 2026-10-13 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (2ª revisão, 7c473cf; minors: G5 roda a suíte duas vezes, IT-02 não isola staged/não rastreado, aviso de cobertura e fallback origin/ sem teste, nome test_integration) — 7c473cf | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
