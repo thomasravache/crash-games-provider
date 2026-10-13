@@ -4,7 +4,7 @@ title: "Carteira seamless: adaptador HTTP da carteira do operador"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0021, SPEC-0024]
