@@ -10,7 +10,7 @@ parent: SPEC-0019
 depends_on: [SPEC-0024]
 consumes_contract: [SPEC-0021@4]
 contract_version: 2
-touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Operators/Operators.Features/Sessions/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**", "src/backend/Host/Internal/Generated/**", "src/frontend/packages/contracts/**", "artifacts/openapi/**"]
+touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Operators/Operators.Features/Sessions/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**", "src/backend/Host/Internal/Generated/**", "src/frontend/packages/contracts/**", "artifacts/openapi/**", "src/backend/Host/OpenApi/ContractScalarSchemaTransformer.cs"]
 adrs: [ADR-0005, ADR-0014, ADR-0019, ADR-0008]
 external: []
 size: M
@@ -230,4 +230,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0025`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/OpenApi/ContractScalarSchemaTransformer.cs`: `Money`/`Multiplier` anuláveis passam a usar `oneOf` com null na propriedade, sem tornar o componente compartilhado anulável | Scaffold: o primeiro `Multiplier?` (autoCashOut do histórico) deixava `Multiplier` anulável em todo o contrato REST (crashPoint e cap do Rounds) | Nenhuma | thomas (Emenda v2 aprovada, 2026-10-13) |
 | 2 | 2026-10-13 | Claim opcional `nick` no token de sessão (Operators) lida pelo Betting; método do cliente `LiveBetsBatch`; `JoinSalaBets` sem argumento; `cashedOut` ≤ 100 por lote; `totalPlayers` = jogadores distintos; histórico em `placedAt` decrescente com desempate por `betId`, cursor opaco, `roundId`/`roundNumber` nulos em aposta queued; 400 no envelope `code`; IT-03 por segundos inteiros; `touches` com sessões do Operators, testes de Operators/Security, codegen do Wolverine, contratos gerados (ADR-0008) e OpenAPI | Test-writer (IMP-01): o Betting não tinha acesso ao apelido e o contrato deixava detalhes em aberto | SPEC-0026, SPEC-0031 | thomas (2026-10-13) |
