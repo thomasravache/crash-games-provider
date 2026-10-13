@@ -6,8 +6,9 @@
 # 1. Builds and starts the Aspire AppHost (postgres, redis, keycloak, api, game-pipa, ...) in the background, with every
 #    port picked free at random (the API through AppHost__ApiHttpPort; dashboard and its OTLP/resource endpoints too),
 #    so it never collides with a developer's own AppHost or another run on the same machine.
-# 2. Waits until GET {api}/health answers 200 and the game behind GET {api}/dev/launch-demo answers too.
-# 3. Exports APOGEU_API_URL and runs `pnpm -C src/frontend test:e2e "$@"` (the harness keeps its own webServer).
+# 2. Waits until GET {api}/health answers 200 and the game behind GET {api}/dev/launch-demo answers too; then until the
+#    demo-site (port fixed through AppHost__DemoSiteHttpPort) answers and forwards /casino to the DemoCasino (SPEC-0043).
+# 3. Exports APOGEU_API_URL and APOGEU_DEMO_SITE_URL and runs `pnpm -C src/frontend test:e2e "$@"` (the harness keeps its own webServer).
 # 4. Always stops the AppHost on exit; Aspire (DCP) then removes the containers it started (the postgres data volume
 #    stays, as in a normal local run).
 #
@@ -101,14 +102,19 @@ trap stop_apphost EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-log "building the AppHost"
-dotnet build src/backend/AppHost/AppHost.csproj --nologo -v quiet >"$log_dir/build.log" 2>&1 || {
-  cat "$log_dir/build.log" >&2
-  exit 1
-}
+log "building the AppHost and the DemoCasino"
+# The DemoCasino is not a project reference of the AppHost (ADR-0027) and Aspire runs it with --no-build: build it too.
+for project in src/backend/AppHost/AppHost.csproj src/demo/DemoCasino/DemoCasino.csproj; do
+  dotnet build "$project" --nologo -v quiet >"$log_dir/build.log" 2>&1 || {
+    cat "$log_dir/build.log" >&2
+    exit 1
+  }
+done
 
 api_port="$(free_port)"
 api_url="http://localhost:$api_port"
+demo_site_port="$(free_port)"
+demo_site_url="http://localhost:$demo_site_port"
 
 log "starting the AppHost (api on $api_url)"
 # No launch profile: its fixed dashboard ports would collide with another AppHost on the machine.
@@ -119,6 +125,7 @@ ASPNETCORE_ENVIRONMENT=Development \
   ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL="http://127.0.0.1:$(free_port)" \
   ASPIRE_ALLOW_UNSECURED_TRANSPORT=true \
   AppHost__ApiHttpPort="$api_port" \
+  AppHost__DemoSiteHttpPort="$demo_site_port" \
   dotnet run --project src/backend/AppHost/AppHost.csproj --no-build --no-launch-profile \
   >"$apphost_log" 2>&1 </dev/null &
 apphost_pid=$!
@@ -129,9 +136,13 @@ http_status() {
 }
 
 wait_until_ok() {
-  local name="$1" url="$2" deadline=$((SECONDS + startup_timeout))
+  wait_until_status "$1" "$2" 200
+}
+
+wait_until_status() {
+  local name="$1" url="$2" expected="$3" deadline=$((SECONDS + startup_timeout))
   log "waiting for $name ($url)"
-  until [[ "$(http_status "$url")" == "200" ]]; do
+  until [[ "$(http_status "$url")" == "$expected" ]]; do
     if ! kill -0 "$apphost_pid" 2>/dev/null; then
       log "the AppHost exited before $name was ready"
       exit 1
@@ -156,6 +167,12 @@ if [[ -z "$game_origin" ]]; then
 fi
 wait_until_ok "game-pipa" "$game_origin/"
 
+# SPEC-0043: the demo-site (Vite dev server under Aspire) and, through its /casino proxy, the DemoCasino: GET /casino/me
+# without a session answers 401 once both are up.
+wait_until_ok "demo-site" "$demo_site_url/"
+wait_until_status "the DemoCasino behind the demo-site" "$demo_site_url/casino/me" 401
+
 export APOGEU_API_URL="$api_url"
-log "running the E2E (APOGEU_API_URL=$APOGEU_API_URL)"
+export APOGEU_DEMO_SITE_URL="$demo_site_url"
+log "running the E2E (APOGEU_API_URL=$APOGEU_API_URL, APOGEU_DEMO_SITE_URL=$APOGEU_DEMO_SITE_URL)"
 pnpm -C src/frontend test:e2e "$@"

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Demo casino BFF (SPEC-0043, ADR-0027): the backend of the demo-site, an external operator of the Apogeu. It talks to
+    the Apogeu only over HTTP (public operator API of SPEC-0009, HMAC-signed), so it references no project of
+    src/backend/** (not even ServiceDefaults) and no Apogeu.* package. Everything it uses comes from the ASP.NET Core
+    shared framework.
+  -->
+  <PropertyGroup>
+    <UserSecretsId>7d0c3f5e-43a4-4b8e-9c1d-5e0f2a6b9c43</UserSecretsId>
+  </PropertyGroup>
+
+</Project>
