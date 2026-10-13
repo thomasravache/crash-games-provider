@@ -15,13 +15,17 @@ internal static class CatalogApi
 {
     public const string LaunchPath = "/api/v1/operator/launch";
     public const string GamesPath = "/api/v1/games";
+    public const string SessionsPath = "/api/v1/sessions";
 
-    /// <summary>A demo launch body (SPEC-0009 §6) with the given game and currency, as the exact bytes signed and sent.</summary>
-    public static byte[] LaunchBody(string gameCode, string currency) =>
+    /// <summary>
+    /// A demo launch body (SPEC-0009 §6) with the given game and currency, and the <paramref name="nickname"/> (null: sent as
+    /// null), as the exact bytes signed and sent.
+    /// </summary>
+    public static byte[] LaunchBody(string gameCode, string currency, string? nickname = "Pipeiro") =>
         Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["playerId"] = "player-" + Guid.NewGuid().ToString("N"),
-            ["nickname"] = "Pipeiro",
+            ["nickname"] = nickname,
             ["currency"] = currency,
             ["gameCode"] = gameCode,
             ["mode"] = "demo",

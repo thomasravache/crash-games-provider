@@ -12,7 +12,8 @@ namespace Apogeu.Betting.Tests.Support;
 /// A player on <c>/hubs/bets</c> through a real SignalR client: invokes <c>PlaceBet</c>, <c>CancelBet</c> and
 /// <c>GetBetLimits</c> with contract JSON (money and multipliers as decimal strings, ADR-0008) and records, in order, every
 /// result and every <c>BetActivated</c> it receives as raw JSON; for SPEC-0023 also <c>CashOut</c> and the server messages
-/// <c>CashedOut</c>, <c>CashOutRejected</c> and <c>BalanceUpdated</c>, with their receipt time.
+/// <c>CashedOut</c>, <c>CashOutRejected</c> and <c>BalanceUpdated</c>, with their receipt time; for SPEC-0025 also
+/// <c>JoinSalaBets</c> and the room's <c>LiveBetsBatch</c> (kept apart in <see cref="LiveBatches"/>).
 /// </summary>
 internal sealed class BetsClient : IAsyncDisposable
 {
@@ -20,6 +21,7 @@ internal sealed class BetsClient : IAsyncDisposable
     private readonly List<HubOutcome> _outcomes = [];
     private readonly List<JsonElement> _activated = [];
     private readonly List<HubEvent> _events = [];
+    private readonly List<HubEvent> _liveBatches = [];
 
     private BetsClient(string player, HubConnection connection)
     {
@@ -30,6 +32,13 @@ internal sealed class BetsClient : IAsyncDisposable
             lock (_gate)
             {
                 _activated.Add(payload.Clone());
+            }
+        });
+        connection.On<JsonElement>(LiveBetsBatchTarget, payload =>
+        {
+            lock (_gate)
+            {
+                _liveBatches.Add(new HubEvent(LiveBetsBatchTarget, payload.Clone(), DateTimeOffset.UtcNow));
             }
         });
         foreach (var target in ServerTargets)
@@ -47,7 +56,22 @@ internal sealed class BetsClient : IAsyncDisposable
     /// <summary>The server messages of SPEC-0023 and SPEC-0024 recorded by <see cref="Events"/>.</summary>
     public static IReadOnlyList<string> ServerTargets { get; } = ["CashedOut", "CashOutRejected", "BalanceUpdated", "BetSettled", "BetRefunded"];
 
+    /// <summary>Client method of the room's batches of live bets (SPEC-0025 §6).</summary>
+    public const string LiveBetsBatchTarget = "LiveBetsBatch";
+
     public string Player { get; }
+
+    /// <summary>Every <c>LiveBetsBatch</c> received (SPEC-0025), in order, with its receipt time.</summary>
+    public IReadOnlyList<HubEvent> LiveBatches
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _liveBatches];
+            }
+        }
+    }
 
     public HubConnection Connection { get; }
 
@@ -92,10 +116,16 @@ internal sealed class BetsClient : IAsyncDisposable
 
     public string DescribeEvents() => string.Join(Environment.NewLine, Events);
 
-    public static async Task<BetsClient> ConnectAsync(BettingHost host, string player, CancellationToken ct, string mode = "demo")
+    public static async Task<BetsClient> ConnectAsync(
+        BettingHost host,
+        string player,
+        CancellationToken ct,
+        string mode = "demo",
+        string? nickname = null,
+        string operatorId = BettingSessions.Operator)
     {
         ArgumentNullException.ThrowIfNull(host);
-        var client = new BetsClient(player, host.CreateBetsConnection(player, mode));
+        var client = new BetsClient(player, host.CreateBetsConnection(player, mode, nickname, operatorId));
         await client.Connection.StartAsync(ct).ConfigureAwait(false);
         return client;
     }
@@ -132,17 +162,43 @@ internal sealed class BetsClient : IAsyncDisposable
         return null!;
     }
 
-    public async Task<HubOutcome> LimitsAsync(CancellationToken ct)
+    public Task<HubOutcome> LimitsAsync(CancellationToken ct) => InvokeWithoutArgumentAsync("GetBetLimits", ct);
+
+    /// <summary><c>JoinSalaBets()</c> (SPEC-0025 §6): joins the room's group and answers the <c>LiveBetsSnapshot</c>.</summary>
+    public Task<HubOutcome> JoinSalaBetsAsync(CancellationToken ct) => InvokeWithoutArgumentAsync("JoinSalaBets", ct);
+
+    /// <summary>Waits for a <c>LiveBetsBatch</c> received at or after index <paramref name="from"/> that satisfies <paramref name="match"/>.</summary>
+    public async Task<HubEvent> WaitForLiveBatchAsync(Func<JsonElement, bool> match, TimeSpan timeout, int from = 0)
+    {
+        ArgumentNullException.ThrowIfNull(match);
+        var ct = TestContext.Current.CancellationToken;
+        var watch = Stopwatch.StartNew();
+        while (watch.Elapsed < timeout)
+        {
+            var found = LiveBatches.Skip(from).FirstOrDefault(e => match(e.Payload));
+            if (found is not null)
+            {
+                return found;
+            }
+
+            await Task.Delay(20, ct).ConfigureAwait(false);
+        }
+
+        Assert.Fail($"No matching LiveBetsBatch within {timeout}. Received:{Environment.NewLine}{string.Join(Environment.NewLine, LiveBatches)}");
+        return null!;
+    }
+
+    private async Task<HubOutcome> InvokeWithoutArgumentAsync(string method, CancellationToken ct)
     {
         HubOutcome outcome;
         try
         {
-            var result = await Connection.InvokeAsync<JsonElement>("GetBetLimits", ct).ConfigureAwait(false);
-            outcome = new HubOutcome("GetBetLimits", result.Clone(), null);
+            var result = await Connection.InvokeAsync<JsonElement>(method, ct).ConfigureAwait(false);
+            outcome = new HubOutcome(method, result.Clone(), null);
         }
         catch (HubException exception)
         {
-            outcome = new HubOutcome("GetBetLimits", null, exception.Message);
+            outcome = new HubOutcome(method, null, exception.Message);
         }
 
         Record(outcome);

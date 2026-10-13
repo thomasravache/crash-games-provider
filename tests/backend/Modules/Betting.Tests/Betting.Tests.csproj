@@ -54,4 +54,11 @@
     <Compile Include="../Rounds.Tests/Support/HubSchemaValidator.cs" Link="Support/Shared/HubSchemaValidator.cs" />
   </ItemGroup>
 
+  <!-- OpenAPI navigation and schema validation (SPEC-0006) and the error-body reader (SPEC-0009) for GET /api/v1/me/bets (SPEC-0025). -->
+  <ItemGroup>
+    <Compile Include="../../Contracts.Tests/Support/OpenApiDocument.cs" Link="Support/Shared/OpenApiDocument.cs" />
+    <Compile Include="../../Contracts.Tests/Support/OpenApiSchemaValidator.cs" Link="Support/Shared/OpenApiSchemaValidator.cs" />
+    <Compile Include="../../Security.Tests/Support/ErrorBodies.cs" Link="Support/Shared/ErrorBodies.cs" />
+  </ItemGroup>
+
 </Project>

@@ -34,6 +34,9 @@
     <Compile Include="../../Security.Tests/Support/ReferenceSignature.cs" Link="Support/Shared/ReferenceSignature.cs" />
     <Compile Include="../../Security.Tests/Support/ErrorBodies.cs" Link="Support/Shared/ErrorBodies.cs" />
     <Compile Include="../../Security.Tests/Support/TestDatabase.cs" Link="Support/Shared/TestDatabase.cs" />
+    <!-- SPEC-0025 UT-03: the launch token of the launch URL and the claims of the session JWT. -->
+    <Compile Include="../../Security.Tests/Support/LaunchUrls.cs" Link="Support/Shared/LaunchUrls.cs" />
+    <Compile Include="../../Security.Tests/Support/JwtParts.cs" Link="Support/Shared/JwtParts.cs" />
   </ItemGroup>
 
 </Project>
