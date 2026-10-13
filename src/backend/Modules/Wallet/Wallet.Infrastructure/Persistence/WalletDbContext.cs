@@ -15,6 +15,8 @@ internal sealed class WalletDbContext(DbContextOptions<WalletDbContext> options)
 
     public DbSet<LedgerPostingRecord> Postings => Set<LedgerPostingRecord>();
 
+    public DbSet<PendingResendRecord> PendingResends => Set<PendingResendRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
@@ -60,5 +62,31 @@ internal sealed class WalletDbContext(DbContextOptions<WalletDbContext> options)
                 .HasDatabaseName("ix_ledger_postings_account")
                 .IncludeProperties(p => p.Amount);
         });
+
+        MapPendingResends(modelBuilder);
     }
+
+    /// <summary>Credits and rollbacks of the seamless wallet still to confirm (SPEC-0046): mutable, unlike the ledger.</summary>
+    private static void MapPendingResends(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<PendingResendRecord>(entity =>
+        {
+            entity.ToTable(WalletLedgerTables.PendingResends, table =>
+                table.HasCheckConstraint("ck_pending_resends_kind", "kind IN ('Credit', 'Rollback')"));
+            entity.HasKey(p => p.TransactionId).HasName("pk_pending_resends");
+            entity.Property(p => p.TransactionId).HasColumnName(WalletLedgerTables.TransactionIdColumn).HasMaxLength(128);
+            entity.Property(p => p.Kind).HasColumnName("kind").HasMaxLength(16);
+            entity.Property(p => p.OperatorId).HasColumnName("operator_id").HasMaxLength(64);
+            entity.Property(p => p.PlayerId).HasColumnName("player_id").HasMaxLength(128);
+            entity.Property(p => p.Currency).HasColumnName("currency").HasMaxLength(3);
+            entity.Property(p => p.Amount).HasColumnName(WalletLedgerTables.AmountColumn).HasPrecision(AmountPrecision, AmountScale);
+            entity.Property(p => p.RoundId).HasColumnName("round_id");
+            entity.Property(p => p.BetId).HasColumnName("bet_id");
+            entity.Property(p => p.OriginalTransactionId).HasColumnName("original_transaction_id").HasMaxLength(128);
+            entity.Property(p => p.Attempts).HasColumnName("attempts");
+            entity.Property(p => p.NextAttemptAt).HasColumnName("next_attempt_at");
+            entity.Property(p => p.CreatedAt).HasColumnName("created_at");
+
+            // The sweep reads the due rows by their next attempt.
+            entity.HasIndex(p => p.NextAttemptAt).HasDatabaseName("ix_pending_resends_next_attempt_at");
+        });
 }
