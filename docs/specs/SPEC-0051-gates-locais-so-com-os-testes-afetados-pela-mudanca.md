@@ -69,8 +69,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 8ec0e8a | 2026-10-12 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:12.06]     Dada uma rodada encerrada com Postgres real, quando GET /verif) — 112e042 | 2026-10-13 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 418ms); test exit 0 ($ dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (affected-tests: no coverage report produced) — da2d6a2 | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  941ms (tests 97%, transform 2%, import 1%)) — da2d6a2 | 2026-10-13 |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
