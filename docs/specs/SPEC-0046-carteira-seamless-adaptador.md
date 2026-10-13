@@ -166,9 +166,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 420d3b6 | 2026-10-10 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:23.01]     Dado o backend compilado, quando contracts:generate roda, entã) — 4dc45ab | 2026-10-13 |
-| G2 Green | FAIL | build exit 0 (✓ built in 288ms); test exit 1 ([xUnit.net 00:01:30.46]     Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do ); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 9996d5b | 2026-10-13 |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | FAIL | Reviewer independente (2ª revisão, e7d91c1): CHANGES REQUESTED — MAJOR A sem deduplicação por transactionId cada chamada incerta do chamador cria outra cadeia de reenvio (amplificação de carga e M3 reaberto); minor B not_configured com pendência agendada devolve Unavailable(false) e a Betting manda para dead-letter | 2026-10-13 |
+| G2 Green | PASS | build exit 0 (✓ built in 337ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 3a2d2e0 | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.39s (tests 96%, import 2%, transform 2%)) — 3a2d2e0 | 2026-10-13 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (3ª revisão, 9996d5b; minors: guarda sem expiração, logs Error repetidos com not_configured, chamada extra depois de liquidar). Depois da revisão só entrou o merge da SPEC-0052 (3a2d2e0), revisada no G4 dela. — 3a2d2e0 | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
