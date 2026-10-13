@@ -4,7 +4,7 @@ title: Teto de ganho por rodada nos limites do operador
 tier: full
 type: feature
 user_facing: "false"
-status: proposed
+status: approved
 created: 2026-10-13
 parent: SPEC-0019
 depends_on: []
@@ -14,8 +14,8 @@ touches: [src/backend/Modules/Operators/**, tests/backend/Modules/Operators.Test
 adrs: [ADR-0001, ADR-0002, ADR-0020]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-13
 ---
 
 # SPEC-0053 — Teto de ganho por rodada nos limites do operador
@@ -129,6 +129,17 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 11. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
+
+**Fase 1: Teto nos limites**
+- [ ] Red: UT-01, IT-01 e CT-01 com a tag `SPEC-0053:<ID>`, falhando pelo motivo certo
+- [ ] Green: campo, migração (5 × max_win), seed BRL 500.000,00 e validação
+- [ ] Validar: build + suíte afetada + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->

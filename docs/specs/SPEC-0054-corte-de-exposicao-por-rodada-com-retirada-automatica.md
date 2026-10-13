@@ -4,18 +4,18 @@ title: Corte de exposição por rodada com retirada automática
 tier: full
 type: feature
 user_facing: "false"
-status: proposed
+status: approved
 created: 2026-10-13
 parent: SPEC-0019
 depends_on: [SPEC-0053, SPEC-0025]
-consumes_contract: [SPEC-0053@1, SPEC-0023@2, SPEC-0025@3]
+consumes_contract: [SPEC-0053@1, SPEC-0023@3, SPEC-0025@3]
 contract_version: 1
 touches: [src/backend/Modules/Betting/**, tests/backend/Modules/Betting.Tests/**, src/backend/Modules/Rounds/**, tests/backend/Modules/Rounds.Tests/**, src/backend/Host/Internal/Generated/**, src/frontend/packages/contracts/**, artifacts/openapi/**]
 adrs: [ADR-0001, ADR-0005, ADR-0007, ADR-0014, ADR-0019]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-13
 ---
 
 # SPEC-0054 — Corte de exposição por rodada com retirada automática
@@ -182,6 +182,22 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 11. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
+
+**Fase 1: Cálculo do corte (domínio)**
+- [ ] Red: UT-01, UT-02 e UT-03 com a tag `SPEC-0054:<ID>`, falhando pelo motivo certo
+- [ ] Green: `RoundExposure.CutOff` e a regra de aceitação, seguindo `Bet.PayoutOf`
+
+**Fase 2: Aplicação no voo, failover e contrato**
+- [ ] Red: IT-01, IT-02, IT-03, IT-04 e CT-01 com dependências reais, falhando pelo motivo certo
+- [ ] Green: alvo efetivo persistido, agendamento/reagendamento no líder, `reason`, `ROUND_LIMIT_REACHED`, métricas
+- [ ] Refactor mantendo tudo verde
+- [ ] Validar: build + suíte afetada + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->

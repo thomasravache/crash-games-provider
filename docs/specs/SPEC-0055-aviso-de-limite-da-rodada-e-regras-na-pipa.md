@@ -4,7 +4,7 @@ title: Aviso de limite da rodada e regras na Pipa
 tier: lite
 type: feature
 user_facing: "true"
-status: proposed
+status: approved
 created: 2026-10-13
 parent: SPEC-0019
 depends_on: [SPEC-0054]
@@ -13,8 +13,8 @@ touches: [src/frontend/apps/game-pipa/src/bets/**, src/frontend/apps/game-pipa/s
 adrs: [ADR-0004, ADR-0020, ADR-0025]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-13
 ---
 
 # SPEC-0055 — Aviso de limite da rodada e regras na Pipa
@@ -68,6 +68,17 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
+
+**Fase 1: Aviso e regras**
+- [ ] Red: UT-01 e E2E-01 com a tag `SPEC-0055:<ID>`, falhando pelo motivo certo
+- [ ] Green: aviso de `round_limit` e painel "Regras" acessível
+- [ ] Validar: build, lint, typecheck, testes do front e E2E (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
