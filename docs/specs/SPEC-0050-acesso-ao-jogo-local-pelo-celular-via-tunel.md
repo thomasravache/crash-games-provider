@@ -68,9 +68,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 0ca62a9 | 2026-10-12 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:03.29]     Dado o modelo do AppHost com a porta fixa do jogo e os endereç) — e0d39b1 | 2026-10-12 |
-| G2 Green | FAIL | build exit 0 (✓ built in 158ms); test exit 0 (learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:04:18.25]     Dado o backend compilado, quando contracts:generate roda, entã) — 6049d8d | 2026-10-13 |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 167ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 6049d8d | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  772ms (tests 97%, transform 2%, import 1%)) — 6049d8d | 2026-10-13 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (minors: m1 texto sobre exposição no README, m2 avisar quando só uma URL pública está definida, m3 passos do README) — 6049d8d | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
