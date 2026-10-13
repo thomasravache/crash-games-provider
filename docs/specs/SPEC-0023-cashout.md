@@ -8,8 +8,8 @@ status: implemented
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0022]
-consumes_contract: [SPEC-0020@2, SPEC-0021@4]
-contract_version: 2
+consumes_contract: [SPEC-0020@3, SPEC-0021@4]
+contract_version: 3
 touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Rounds/**", "tests/backend/Modules/Rounds.Tests/**", "src/backend/Host/Internal/Generated/**", "src/backend/Host/Program.cs", "tests/backend/Architecture.Tests/**"]
 adrs: [ADR-0001, ADR-0002, ADR-0005, ADR-0006, ADR-0007, ADR-0014, ADR-0018, ADR-0019, ADR-0028]
 external: []
@@ -91,6 +91,7 @@ Rounds.Contracts
   ICashOutArbiter.ScheduleAutoAsync(salaId:string, roundId, betId, target:Multiplier, ct)
     // chamado pela Betting quando a aposta fica active com autoCashOut; instância que não é o líder encaminha ao
     // líder pelo Redis (como DecideAsync); o líder executa em t_alvo se t_alvo < t_c
+    // Emenda v3 (SPEC-0054): nova chamada para a mesma aposta e rodada substitui o alvo anterior
   AutoCashOutExecuted { salaId, roundId, betId, multiplier, executedAt }   // evento de integração publicado pelo
     // líder (Wolverine); a Betting persiste o cash-out, credita e envia CashedOut{auto:true}
 Regras
@@ -303,6 +304,7 @@ Sem ambiente (G6 N/A até a SPEC-0012). Integrado pelo PR #25.
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0023`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 3 | 2026-10-13 | `ScheduleAutoAsync` para a mesma aposta e rodada substitui o alvo; `CashedOut` ganha `reason?:"round_limit"`; ambos implementados pela SPEC-0054 | Corte de exposição por rodada reagenda o automático quando o corte sobe | SPEC-0026 (repinada em @3; campo opcional), SPEC-0054 | thomas (2026-10-13, H1 das SPEC-0053/0054/0055) |
 | 2 (inalterado) | 2026-10-12 | IT-05: guarda local de 75 ms (antes 50 ms) e de 3 s no runner da CI (antes 1 s; medido 1,7 s); a meta de p99 ≤ 50 ms passa a ser entregue pela SPEC-0048 | A correção de dinheiro da SPEC-0024 (pedido gravado antes da decisão do líder) acrescenta uma escrita ao caminho do cash-out: 52–54 ms de p99 na máquina de referência | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-12); a confirmar com a SPEC-0048 |
 | 2 (inalterado) | 2026-10-11 | IT-05: p99 ≤ 50 ms vale no ambiente de referência (registrado no G5 local); no runner da CI (2 vCPU compartilhados) o teste é guarda de regressão com p99 ≤ 1 s. O alvo de 50 ms na infraestrutura real fica com a SPEC-0048 (proposta) | CI do PR #25: p99 807 ms no runner do GitHub com o mesmo código que mede ≤ 50 ms localmente | Nenhuma | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11); SPEC-0048 aguarda H1 |
 | 2 (inalterado no hub) | 2026-10-11 | Review G4: `CashOutUndecided` em Rounds.Contracts (líder sem a rodada não decide; rodada encerrada decidida pelos dados persistidos); precedência do automático (manual ≥ alvo liquida no alvo, auto:true); reconciliação dos automáticos no RoundCrashed; crédito fora da fila sequencial; primeiro horário pendente prevalece. Aceitos e documentados: pedido manual pendente perde para o automático executado; a tolerância de 0 ms depende do sincronismo de relógio entre instâncias (NTP), registrado como premissa | Review G4 (d91817c): M1–M4 e minors m1–m3 | Nenhuma (contrato do hub inalterado) | Architect — pela autorização do usuário para seguir pelo recomendado (thomas, 2026-10-11) |

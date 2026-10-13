@@ -166,7 +166,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 420d3b6 | 2026-10-10 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:23.01]     Dado o backend compilado, quando contracts:generate roda, entã) — 4dc45ab | 2026-10-13 |
-| G2 Green | PENDING | | |
+| G2 Green | FAIL | build exit 0 (✓ built in 288ms); test exit 1 ([xUnit.net 00:01:30.46]     Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do ); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 9996d5b | 2026-10-13 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | FAIL | Reviewer independente (2ª revisão, e7d91c1): CHANGES REQUESTED — MAJOR A sem deduplicação por transactionId cada chamada incerta do chamador cria outra cadeia de reenvio (amplificação de carga e M3 reaberto); minor B not_configured com pendência agendada devolve Unavailable(false) e a Betting manda para dead-letter | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
@@ -178,6 +178,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-13 | G2 | falha | 3 FAILs seguidos no G2. A 1ª falha foi do pnpm 12 da máquina, já corrigida. Na 2ª e na 3ª, só o CashOutLatencyTests falha (p99 ≤ 75 ms local). Isolado, dá p99 de 165–202 ms na branch da 0046 e de 145–154 ms na branch de integração sem a 0046. Ou seja, a máquina nova (4 núcleos) não alcança o limite local; não é regressão da 0046. | pnpm 10.23.0 fixado no corepack; G2 rodado com a máquina livre; SeamlessResendChainTests 3/3 isolado; latência medida 2x na 0046 e 2x na linha de base | thomas |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
