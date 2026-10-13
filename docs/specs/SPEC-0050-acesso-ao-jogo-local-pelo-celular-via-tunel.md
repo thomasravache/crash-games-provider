@@ -51,16 +51,16 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 7. Checklist de Implementação
 **Fase 1: Endereços públicos**
-- [ ] Caracterização: CH-01 passando no código atual
-- [ ] Red: UT-01 e IT-01 com a tag `SPEC-0050:<ID>`, falhando pelo motivo certo
-- [ ] Green: parâmetros no AppHost, allowedHosts no Vite, README
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Caracterização: CH-01 passando no código atual
+- [x] Red: UT-01 e IT-01 com a tag `SPEC-0050:<ID>`, falhando pelo motivo certo
+- [x] Green: parâmetros no AppHost, allowedHosts no Vite, README
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy via pipeline com smoke/E2E no ambiente (G6)
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy via pipeline com smoke/E2E no ambiente (G6) — N/A até a SPEC-0012; E2E com backend real na CI
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -73,7 +73,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (minors: m1 texto sobre exposição no README, m2 avisar quando só uma URL pública está definida, m3 passos do README) — 6049d8d | 2026-10-13 |
 | G5 Integração & CI | PASS | MANUAL: CI do PR #30 verde (run 38351277297, commit b3a04b0): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox; Firefox E2E-04 da SPEC-0026 instável no 1º attempt, verde no re-run), security e sdd; local em 85dd922: build, arquitetura e segurança PASS; testes do AppHost e E2E locais falham só por conflito de portas 5080/5173 com o AppHost do thomas aberto desde 2026-10-12 08:03 (não encerrado por ser sessão dele) | 2026-10-13 |
 | H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-13 |
-| G6 Deploy | PENDING | | |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #30, merge 4933105) | 2026-10-13 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 9. Registro de Impedimentos
@@ -85,28 +85,36 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
 
 ### O que foi entregue
+Dá para abrir e jogar o jogo local num celular por dois túneis (API e jogo): com `AppHost:PublicApiUrl` e `AppHost:PublicGameUrl` informados, o lançamento demo redireciona para o endereço público do jogo, o jogo chama a API pública e o CORS libera essa origem; sem os parâmetros, nada muda.
 
 ### Como foi feito
+Parâmetros opcionais no `src/backend/AppHost/Program.cs` (padrão de `AppHost:ApiHttpPort`), porta fixa do jogo `AppHost:GameHttpPort` e `server.allowedHosts` do Vite aceitando `.trycloudflare.com`; README com o passo a passo.
 
 ### Prova de Correção
 <!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| CH-01 | sem parâmetros públicos, as variáveis da API e do jogo ficam como antes | PASS | G2 do registro de gates; CI do PR #30 verde (run 38351277297, b3a04b0), merge 4933105 |
+| UT-01 | Vite aceita hosts .trycloudflare.com | PASS | G2 do registro de gates; CI do PR #30 verde (run 38351277297, b3a04b0), merge 4933105 |
+| IT-01 | com os parâmetros públicos, GameBaseUrl, CORS e URL da API usam os endereços públicos | PASS | G2 do registro de gates; CI do PR #30 verde (run 38351277297, b3a04b0), merge 4933105 |
 
 ### Definição de Pronto
-- [ ] Teste de regressão falhou antes e passa depois da correção
-- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão existente mantido
-- [ ] Disponível no ambiente-alvo via pipeline (G6)
-- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
-- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [x] Teste de regressão falhou antes e passa depois da correção
+- [x] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão existente mantido
+- [x] Disponível no ambiente-alvo via pipeline (G6) — N/A até a SPEC-0012; em main pelo PR #30
+- [x] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [x] Outras ocorrências registradas como novas specs (ou nenhuma)
 
 ### Deploy
+Só para execução local (sem ambiente de deploy até a SPEC-0012); disponível em main (merge 4933105).
 
 ### Pendências
+Minors do review: m1 texto sobre exposição no README, m2 avisar quando só uma URL pública está definida, m3 passos do README (sem spec aberta).
 
 ## 11. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
