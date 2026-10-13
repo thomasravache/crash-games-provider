@@ -155,7 +155,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 8e78b2d | 2026-10-10 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:32.46]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — c4f0154 | 2026-10-13 |
-| G2 Green | PENDING | | |
+| G2 Green | FAIL | build exit 0 (✓ built in 148ms); test exit 1 ([xUnit.net 00:01:30.85]     Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do ); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 6cfb8eb | 2026-10-13 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
