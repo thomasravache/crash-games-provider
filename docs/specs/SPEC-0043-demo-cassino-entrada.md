@@ -10,7 +10,7 @@ parent: SPEC-0035
 depends_on: [SPEC-0009]
 consumes_contract: [SPEC-0009@1]
 contract_version: 1
-touches: ["src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/frontend/apps/demo-site/**", "tests/e2e/demo-site/**", "src/backend/AppHost/Program.cs", "tests/backend/Architecture.Tests/DemoCasino/**"]
+touches: [src/demo/DemoCasino/**, tests/demo/DemoCasino.Tests/**, src/frontend/apps/demo-site/**, tests/e2e/demo-site/**, src/backend/AppHost/Program.cs, tests/backend/Architecture.Tests/DemoCasino/**, tools/ci/run-e2e.sh]
 adrs: [ADR-0002, ADR-0003, ADR-0009, ADR-0025, ADR-0027]
 external: []
 size: M
@@ -209,3 +209,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0043`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-13 | `touches` inclui `tools/ci/run-e2e.sh`: o runner do E2E exporta `APOGEU_DEMO_SITE_URL` e espera o demo-site ficar pronto | Test-writer: a porta do demo-site sob o Aspire é dinâmica e o E2E-01 precisa dela | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
