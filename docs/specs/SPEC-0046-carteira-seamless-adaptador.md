@@ -10,7 +10,7 @@ parent: SPEC-0035
 depends_on: [SPEC-0021, SPEC-0024]
 consumes_contract: [SPEC-0021@4]
 contract_version: 1
-touches: ["src/backend/Modules/Wallet/**", "tests/backend/Modules/Wallet.Tests/**", "src/backend/Modules/Operators/Operators.Contracts/**"]
+touches: [src/backend/Modules/Wallet/**, tests/backend/Modules/Wallet.Tests/**, src/backend/Modules/Operators/Operators.Contracts/**, src/backend/Host/Internal/Generated/**]
 adrs: [ADR-0002, ADR-0007, ADR-0009, ADR-0014, ADR-0018, ADR-0027]
 external: []
 size: M
@@ -156,7 +156,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:23.01]     Dado o backend compilado, quando contracts:generate roda, entã) — 4dc45ab | 2026-10-13 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G4 Review | FAIL | Reviewer independente: CHANGES REQUESTED — B1 fila de reenvio própria em vez do outbox do Wolverine (ADR-0002) sem ADR; M2 crédito/estorno pendente apagado quando a configuração falta ou o modo muda; M3 varredura sequencial com lease menor que o lote | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
@@ -208,4 +208,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0046`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/Internal/Generated/**` (codegen do Wolverine, ADR-0028); o reenvio durável de crédito e estorno usa mensagem agendada do Wolverine pelo outbox (ADR-0002/0018), como `CreditCashOut`/`RefundBet`, sem fila própria; pendência sem configuração ou com o modo trocado não é descartada; um operador lento não atrasa os demais | Review G4: a 1ª implementação criou uma fila própria (`wallet.pending_resends` + varredura), desvio do ADR-0002 sem ADR, e podia descartar prêmio pendente | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
 | 1 (inalterado) | 2026-10-13 | Origem provisória de `IOperatorWalletSettings`: implementação no Wallet.Infrastructure lida da configuração (`Wallet:Operators:{op}:Mode`, `WalletUrl`, `KeyId`, `Secret` por variável de ambiente/segredo), operador sem configuração = demo; a SPEC-0038 troca pela coluna `wallet_mode` do cadastro de operadores | Test-writer: o Host precisa de uma implementação e o cadastro do operador (SPEC-0038) ainda não existe nem está no `touches` | SPEC-0038, SPEC-0047 | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
