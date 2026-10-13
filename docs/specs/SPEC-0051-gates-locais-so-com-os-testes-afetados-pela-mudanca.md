@@ -4,7 +4,7 @@ title: Gates locais só com os testes afetados pela mudança
 tier: lite
 type: refactor
 user_facing: false
-status: proposed
+status: approved
 created: 2026-10-12
 parent: SPEC-0001
 depends_on: []
@@ -13,8 +13,8 @@ touches: ["tools/ci/affected-tests", "docs/specs/sdd-config.yml", "tests/ci/Ci.T
 adrs: [ADR-0003]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-13
 ---
 
 # SPEC-0051 — Gates locais só com os testes afetados pela mudança
