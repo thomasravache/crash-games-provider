@@ -71,8 +71,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 238ms); test exit 0 ($ dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:src/frontend/coverage/lcov.info" -targetdir:artifacts/c) — e379289 | 2026-10-13 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.24s (tests 97%, transform 2%, import 1%)) — e379289 | 2026-10-13 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (minor: fonte mínima dos rótulos do placar em telas muito baixas) — e379289 | 2026-10-13 |
-| G5 Integração & CI | FAIL | build exit 0 (✓ built in 170ms); test exit 1 ([xUnit.net 00:00:19.35]     Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do ); test_integration exit 1 ([xUnit.net 00:00:37.68]     Dado o ambiente em execução, quando o recurso postgres é parad); test_e2e exit 1 (at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, Ca); arch_test exit 0 (Duration  810ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 510 files: 0 findings.) — b3a04b0 | 2026-10-13 |
-| H2 Integração aprovada | PENDING | | |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #30 verde (run 38351277297, commit b3a04b0): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox; Firefox E2E-04 da SPEC-0026 instável no 1º attempt, verde no re-run), security e sdd; local em 85dd922: build, arquitetura e segurança PASS; testes do AppHost e E2E locais falham só por conflito de portas 5080/5173 com o AppHost do thomas aberto desde 2026-10-12 08:03 (não encerrado por ser sessão dele) | 2026-10-13 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-13 |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
 
