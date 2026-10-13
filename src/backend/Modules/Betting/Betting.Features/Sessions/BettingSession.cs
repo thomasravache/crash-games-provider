@@ -30,7 +30,8 @@ public sealed record BettingSession(BetOwner Owner, string SalaId, string Mode, 
         return new BettingSession(
             new BetOwner(new OperatorId(Claim(user, "op")), new PlayerId(Claim(user, "sub")), new Currency(Claim(user, "cur"))),
             Claim(user, "sala"),
-            Claim(user, "mode"));
+            Claim(user, "mode"),
+            user.FindFirst(NicknameClaim)?.Value is { Length: > 0 } nickname ? nickname : null);
     }
 
     private static string Claim(ClaimsPrincipal user, string type) =>

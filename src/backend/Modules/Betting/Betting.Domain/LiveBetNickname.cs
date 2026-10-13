@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Apogeu.Betting.Domain;
 
 /// <summary>
@@ -12,12 +14,28 @@ public static class LiveBetNickname
     /// <summary>What is shown for a player without a nickname, before the <see cref="Mask"/>.</summary>
     public const string Fallback = "Jogador";
 
+    /// <summary>How many letters of the nickname are shown.</summary>
+    private const int VisibleLetters = 2;
+
     /// <summary>
     /// The anonymized <paramref name="nickname"/>: <c>"Marcos"</c> → <c>"Ma***"</c>, <c>"A"</c> → <c>"A***"</c>,
     /// absent → <c>"Jogador***"</c>.
     /// </summary>
-    public static string Anonymize(string? nickname) =>
-#pragma warning disable MA0025 // Scaffold of SPEC-0025 (no logic yet): implemented in the green phase.
-        throw new NotImplementedException();
-#pragma warning restore MA0025
+    public static string Anonymize(string? nickname)
+    {
+        var trimmed = nickname?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return Fallback + Mask;
+        }
+
+        // Two text elements, so a letter made of a surrogate pair or combining marks is never split.
+        var length = 0;
+        for (var shown = 0; shown < VisibleLetters && length < trimmed.Length; shown++)
+        {
+            length += StringInfo.GetNextTextElementLength(trimmed, length);
+        }
+
+        return trimmed[..length] + Mask;
+    }
 }

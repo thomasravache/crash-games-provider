@@ -1,6 +1,7 @@
 using Apogeu.Betting.Features.CancelBet;
 using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.MyBets;
 using Apogeu.Betting.Features.PlaceBet;
 using Apogeu.Betting.Features.Reservations;
@@ -58,6 +59,11 @@ public static class BettingModule
         services.AddSignalR();
         services.AddSingleton<IRoundFeed, RoundFeed>();
         services.AddSingleton<BetsNotifier>();
+
+        // SPEC-0025: the read projection of the live bets of each room and its broadcast every 200 ms.
+        services.AddSingleton<LiveBetsBatcher>();
+        services.AddSingleton<LiveBetsFeed>();
+        services.AddHostedService<LiveBetsBroadcaster>();
         services.AddScoped<PlaceBetUseCase>();
         services.AddScoped<CancelBetUseCase>();
         services.AddScoped<CashOutUseCase>();

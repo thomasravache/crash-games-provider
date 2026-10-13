@@ -183,6 +183,10 @@ namespace Apogeu.Betting.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_bets_queued_panel")
                         .HasFilter("status = 'queued' OR (status = 'pending' AND accepted_status = 'queued')");
 
+                    b.HasIndex("OperatorId", "PlayerId", "CreatedAt", "Id")
+                        .IsDescending(false, false, true, true)
+                        .HasDatabaseName("ix_bets_player_history");
+
                     b.HasIndex("OperatorId", "PlayerId", "Panel", "RoundId")
                         .IsUnique()
                         .HasDatabaseName("ux_bets_placed_panel")

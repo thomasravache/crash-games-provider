@@ -1,5 +1,6 @@
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.Wallet;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.BuildingBlocks.Contracts;
@@ -18,13 +19,18 @@ namespace Apogeu.Betting.Features.CashOut;
 /// confirms it, <c>pending</c> otherwise; <see cref="StoreAsync"/> only stores it, with the credit to run at once on its own
 /// queue (the round events never wait for the wallet, M4).
 /// </summary>
+/// <remarks>
+/// The <c>live</c> feed of SPEC-0025 is always registered by the module; it is optional so the use case also runs where the
+/// room's live bets do not matter (the unit scenarios of the earlier specs build it without it).
+/// </remarks>
 public sealed class CashOutSettlement(
     IBetStore store,
     IOperatorLimits limits,
     IOperatorWallet wallet,
     BettingMetrics metrics,
     TimeProvider time,
-    ILogger<CashOutSettlement> logger)
+    ILogger<CashOutSettlement> logger,
+    LiveBetsFeed? live = null)
 {
     /// <summary>When the durable credit runs if the credit tried at once was not confirmed (it then finds nothing to do).</summary>
     public static readonly TimeSpan CreditRetry = TimeSpan.FromSeconds(3);
@@ -85,6 +91,7 @@ public sealed class CashOutSettlement(
         }
 
         metrics.CashedOut(automatic);
+        live?.CashedOut(bet, accepted.Multiplier, accepted.Payout);
         var balance = await CreditAsync(bet, accepted.Payout).ConfigureAwait(false);
         if (balance is { } confirmed && !await ConfirmAsync(bet.Id, confirmed).ConfigureAwait(false))
         {
@@ -116,7 +123,7 @@ public sealed class CashOutSettlement(
     {
         ArgumentNullException.ThrowIfNull(bet);
         (multiplier, automatic) = WithPrecedence(bet, multiplier, automatic);
-        if (bet.Status != BetStatus.Active || CashOut(bet, multiplier) is null)
+        if (bet.Status != BetStatus.Active || CashOut(bet, multiplier) is not { } accepted)
         {
             return false;
         }
@@ -128,6 +135,7 @@ public sealed class CashOutSettlement(
 
         metrics.CashedOut(automatic);
         metrics.CreditPending(1);
+        live?.CashedOut(bet, accepted.Multiplier, accepted.Payout);
         return true;
     }
 

@@ -7,7 +7,7 @@ namespace Apogeu.Operators.Features.Sessions;
 /// <summary>
 /// Issues and describes the validation of player sessions (SPEC-0009 §4): a JWT signed by the provider with HS256, valid for
 /// <see cref="PlayerSessionClaims.Lifetime"/>, with the claims <c>sub</c>, <c>op</c>, <c>sala</c>, <c>cur</c> and
-/// <c>mode</c>. Times come from the injected clock.
+/// <c>mode</c>, and the optional <c>nick</c> (SPEC-0025 Emenda v2). Times come from the injected clock.
 /// </summary>
 internal sealed class PlayerSessionTokens(PlayerSessionSigningKey signingKey, TimeProvider timeProvider)
 {
@@ -26,6 +26,22 @@ internal sealed class PlayerSessionTokens(PlayerSessionSigningKey signingKey, Ti
         ArgumentNullException.ThrowIfNull(subject);
 
         var expiresAt = issuedAt + PlayerSessionClaims.Lifetime;
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            [PlayerSessionClaims.Subject] = subject.PlayerId,
+            [PlayerSessionClaims.Operator] = subject.OperatorId,
+            [PlayerSessionClaims.Sala] = subject.SalaId,
+            [PlayerSessionClaims.Currency] = subject.Currency,
+            [PlayerSessionClaims.Mode] = subject.Mode,
+            [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString("N"),
+        };
+
+        // SPEC-0025 (Emenda v2): the nickname of the launch, only when the operator sent one.
+        if (!string.IsNullOrEmpty(subject.Nickname))
+        {
+            claims[PlayerSessionClaims.Nickname] = subject.Nickname;
+        }
+
         var token = Handler.CreateToken(new SecurityTokenDescriptor
         {
             Issuer = Issuer,
@@ -33,15 +49,7 @@ internal sealed class PlayerSessionTokens(PlayerSessionSigningKey signingKey, Ti
             IssuedAt = issuedAt.UtcDateTime,
             NotBefore = issuedAt.UtcDateTime,
             Expires = expiresAt.UtcDateTime,
-            Claims = new Dictionary<string, object>(StringComparer.Ordinal)
-            {
-                [PlayerSessionClaims.Subject] = subject.PlayerId,
-                [PlayerSessionClaims.Operator] = subject.OperatorId,
-                [PlayerSessionClaims.Sala] = subject.SalaId,
-                [PlayerSessionClaims.Currency] = subject.Currency,
-                [PlayerSessionClaims.Mode] = subject.Mode,
-                [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString("N"),
-            },
+            Claims = claims,
             SigningCredentials = new SigningCredentials(signingKey.Key, SecurityAlgorithms.HmacSha256),
         });
         return (token, expiresAt);

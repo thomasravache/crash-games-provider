@@ -16,6 +16,13 @@ public interface IBetStore
     /// <summary>The accepted bet <paramref name="betId"/> of <paramref name="owner"/>; <see langword="null"/> for a bet of anyone else.</summary>
     Task<AcceptedBet?> FindAsync(BetOwner owner, Guid betId, CancellationToken ct);
 
+    /// <summary>
+    /// The accepted bets of the player of <paramref name="owner"/> at its operator (no pending reservation), by acceptance
+    /// instant descending and then by id descending, strictly after <paramref name="before"/> when given; at most
+    /// <paramref name="limit"/> (SPEC-0025 §6).
+    /// </summary>
+    Task<IReadOnlyList<PlayerBet>> ListPlayerBetsAsync(BetOwner owner, PlayerBetsCursor? before, int limit, CancellationToken ct);
+
     /// <summary>The placed and queued bets and the pending reservations of <paramref name="owner"/> (the ones that hold a panel).</summary>
     Task<IReadOnlyList<Bet>> ListOpenAsync(BetOwner owner, CancellationToken ct);
 
