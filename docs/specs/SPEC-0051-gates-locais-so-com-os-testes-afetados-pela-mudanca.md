@@ -51,6 +51,17 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
+**Fase 1: Seleção por impacto**
+- [ ] Red: escrever UT-01 e IT-01 em `tests/ci/Ci.Tests` com a tag `SPEC-0051:<ID>` e confirmar que falham (script inexistente)
+- [ ] Green: `tools/ci/affected-tests` (Python stdlib) seguindo `tools/ci/check-licenses`; `test`/`coverage` do sdd-config chamam o script
+- [ ] Refactor mantendo tudo verde
+- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy via pipeline (G6: N/A — ferramenta local)
+- [ ] Relatório de Entrega, CLAUDE.md e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -93,6 +104,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [ ] Disponível no ambiente-alvo via pipeline (G6)
 - [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
 - [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 
