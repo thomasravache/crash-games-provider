@@ -22,7 +22,7 @@ namespace Apogeu.Wallet.Tests.Unit;
 /// </summary>
 public sealed class SeamlessWalletMappingTests : IDisposable
 {
-    private static readonly Uri WalletUrl = new("http://operator.test");
+    private static readonly Uri WalletUrl = new("https://operator.test");
 
     private readonly TestApiKey _key = TestApiKey.Generate();
     private readonly LogCapture _logs = new();
