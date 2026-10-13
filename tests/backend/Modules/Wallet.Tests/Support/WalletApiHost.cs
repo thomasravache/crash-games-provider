@@ -22,15 +22,31 @@ internal sealed class WalletApiHost : IAsyncDisposable
     private readonly WebApplicationFactory<Program> _factory;
     private readonly string _signingKey;
 
-    private WalletApiHost(WebApplicationFactory<Program> factory, string signingKey)
+    private WalletApiHost(WebApplicationFactory<Program> factory, string signingKey, string database)
     {
         _factory = factory;
         _signingKey = signingKey;
+        Database = database;
     }
+
+    /// <summary>Connection string of the database of this host (another host can be started on it: a restart, SPEC-0046 IT-04).</summary>
+    public string Database { get; }
+
+    /// <summary>The services of the running host.</summary>
+    public IServiceProvider Services => _factory.Services;
 
     public static async Task<WalletApiHost> StartAsync(string postgresServerConnectionString, string redisConnectionString, CancellationToken cancellationToken)
     {
         var database = await TestDatabase.CreateAsync(postgresServerConnectionString, cancellationToken).ConfigureAwait(false);
+        return await StartOnDatabaseAsync(database, redisConnectionString, configureServices: null).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The Host on the existing <paramref name="database"/>, with <paramref name="configureServices"/> applied over the
+    /// application services (for example the operator wallet settings of SPEC-0046 and a log capture).
+    /// </summary>
+    public static Task<WalletApiHost> StartOnDatabaseAsync(string database, string redisConnectionString, Action<IServiceCollection>? configureServices)
+    {
         var key = TestApiKey.Generate();
         var signingKey = WalletSessions.NewSigningKey();
 
@@ -56,6 +72,8 @@ internal sealed class WalletApiHost : IAsyncDisposable
                 {
                     services.Remove(descriptor);
                 }
+
+                configureServices?.Invoke(services);
             });
         });
 
@@ -66,11 +84,11 @@ internal sealed class WalletApiHost : IAsyncDisposable
         }
         catch
         {
-            await factory.DisposeAsync().ConfigureAwait(false);
+            factory.Dispose();
             throw;
         }
 
-        return new WalletApiHost(factory, signingKey);
+        return Task.FromResult(new WalletApiHost(factory, signingKey, database));
     }
 
     /// <summary>A client with the session of <paramref name="playerId"/> (mode <paramref name="mode"/>, demo by default) as bearer.</summary>
