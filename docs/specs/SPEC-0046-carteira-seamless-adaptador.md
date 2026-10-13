@@ -10,7 +10,7 @@ parent: SPEC-0035
 depends_on: [SPEC-0021, SPEC-0024]
 consumes_contract: [SPEC-0021@4]
 contract_version: 1
-touches: [src/backend/Modules/Wallet/**, tests/backend/Modules/Wallet.Tests/**, src/backend/Modules/Operators/Operators.Contracts/**, src/backend/Host/Internal/Generated/**]
+touches: [src/backend/Modules/Wallet/**, tests/backend/Modules/Wallet.Tests/**, src/backend/Modules/Operators/Operators.Contracts/**, src/backend/Host/Internal/Generated/**, src/backend/Host/Program.cs]
 adrs: [ADR-0002, ADR-0007, ADR-0009, ADR-0014, ADR-0018, ADR-0027]
 external: []
 size: M
@@ -208,5 +208,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0046`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/Program.cs`: descoberta dos handlers da Wallet no Wolverine e fila local do reenvio com paralelismo explícito (só o Host configura o Wolverine, ADR-0028 / `MessagingOwnedByHost`); o host de teste da Wallet passa a manter o `HostedMessaging` do ServiceDefaults | Implementer: os handlers de reenvio não são descobertos sem o Host, e o filtro de hosted services do `WalletApiHost` desligava o Wolverine nos testes | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
 | 1 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/Internal/Generated/**` (codegen do Wolverine, ADR-0028); o reenvio durável de crédito e estorno usa mensagem agendada do Wolverine pelo outbox (ADR-0002/0018), como `CreditCashOut`/`RefundBet`, sem fila própria; pendência sem configuração ou com o modo trocado não é descartada; um operador lento não atrasa os demais | Review G4: a 1ª implementação criou uma fila própria (`wallet.pending_resends` + varredura), desvio do ADR-0002 sem ADR, e podia descartar prêmio pendente | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
 | 1 (inalterado) | 2026-10-13 | Origem provisória de `IOperatorWalletSettings`: implementação no Wallet.Infrastructure lida da configuração (`Wallet:Operators:{op}:Mode`, `WalletUrl`, `KeyId`, `Secret` por variável de ambiente/segredo), operador sem configuração = demo; a SPEC-0038 troca pela coluna `wallet_mode` do cadastro de operadores | Test-writer: o Host precisa de uma implementação e o cadastro do operador (SPEC-0038) ainda não existe nem está no `touches` | SPEC-0038, SPEC-0047 | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
