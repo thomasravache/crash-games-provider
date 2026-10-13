@@ -31,4 +31,10 @@ internal static partial class SeamlessLog
 
     [LoggerMessage(EventId = 2109, Level = LogLevel.Error, Message = "The wallet URL of operator {OperatorId} is plain http to a host that is not the loopback; {Operation} {TransactionId} is refused")]
     public static partial void InsecureWalletUrl(ILogger logger, string operatorId, string operation, string transactionId);
+
+    [LoggerMessage(EventId = 2110, Level = LogLevel.Information, Message = "{Operation} {TransactionId} of operator {OperatorId} is already pending; its resend chain goes on and nothing more is scheduled")]
+    public static partial void ResendAlreadyPending(ILogger logger, string operation, string transactionId, string operatorId);
+
+    [LoggerMessage(EventId = 2111, Level = LogLevel.Warning, Message = "{Operation} {TransactionId} was settled but its resend chain guard could not be removed")]
+    public static partial void ChainNotEnded(ILogger logger, string operation, string transactionId, Exception exception);
 }

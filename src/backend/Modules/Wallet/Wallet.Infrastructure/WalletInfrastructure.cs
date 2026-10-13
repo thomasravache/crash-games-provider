@@ -101,6 +101,7 @@ public static class WalletInfrastructure
         services.AddSingleton(provider => new SeamlessResends(
             provider.GetRequiredService<SeamlessOperatorWallet>(),
             provider.GetRequiredService<IServiceScopeFactory>(),
+            provider.GetRequiredService<TimeProvider>(),
             provider.GetRequiredService<ILogger<SeamlessResends>>(),
             provider.GetRequiredService<WalletMetrics>()));
         services.AddSingleton<OperatorWalletRouter>();

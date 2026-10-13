@@ -15,6 +15,8 @@ internal sealed class WalletDbContext(DbContextOptions<WalletDbContext> options)
 
     public DbSet<LedgerPostingRecord> Postings => Set<LedgerPostingRecord>();
 
+    public DbSet<ResendChainRecord> ResendChains => Set<ResendChainRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
@@ -59,6 +61,18 @@ internal sealed class WalletDbContext(DbContextOptions<WalletDbContext> options)
             entity.HasIndex(p => new { p.OperatorId, p.Currency, p.PlayerId })
                 .HasDatabaseName("ix_ledger_postings_account")
                 .IncludeProperties(p => p.Amount);
+        });
+
+        // One resend chain per transaction of the seamless wallet (SPEC-0046 IT-08): mutable, unlike the ledger.
+        modelBuilder.Entity<ResendChainRecord>(entity =>
+        {
+            entity.ToTable(WalletLedgerTables.ResendChains, table =>
+                table.HasCheckConstraint("ck_resend_chains_kind", "kind IN ('Credit', 'Rollback')"));
+            entity.HasKey(c => c.TransactionId).HasName("pk_resend_chains");
+            entity.Property(c => c.TransactionId).HasColumnName(WalletLedgerTables.TransactionIdColumn).HasMaxLength(128);
+            entity.Property(c => c.Kind).HasColumnName("kind").HasMaxLength(16);
+            entity.Property(c => c.OperatorId).HasColumnName("operator_id").HasMaxLength(64);
+            entity.Property(c => c.CreatedAt).HasColumnName("created_at");
         });
     }
 }

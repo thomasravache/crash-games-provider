@@ -10,6 +10,8 @@ namespace Apogeu.Wallet.Infrastructure.Seamless;
 /// by its <c>walletMode</c> (<see cref="IOperatorWalletSettings"/>, demo by default). In seamless mode the debit is one
 /// attempt; credits and rollbacks go through the durable resend (<see cref="SeamlessResends"/>), which stays on the
 /// operator wallet even if the mode changes while they are pending.
+/// A seamless credit or rollback left pending answers <see cref="WalletUnavailable"/> retryable: the caller must retry it
+/// durably (SPEC-0046 UT-04); the resend chain is one per transaction id however often the caller asks (IT-08).
 /// </summary>
 internal sealed class OperatorWalletRouter(
     IOperatorWalletSettings settings,

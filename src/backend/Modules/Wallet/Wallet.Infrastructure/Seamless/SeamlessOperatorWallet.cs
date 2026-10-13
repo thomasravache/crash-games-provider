@@ -28,6 +28,12 @@ namespace Apogeu.Wallet.Infrastructure.Seamless;
 /// currency or transaction id) is uncertain: <see cref="WalletUnavailable"/> retryable. PLAYER_NOT_FOUND is definitive and
 /// raises an alert. A wallet URL over plain http is refused unless its host is the loopback. The secret of the key signs
 /// the calls and never reaches a log (ADR-0014).
+/// <para>
+/// Callers of the credit and the rollback must retry them durably until a definitive result (as the Betting handlers do with
+/// their scheduled Wolverine commands): through the module's <see cref="IOperatorWallet"/> a pending operation answers
+/// <see cref="WalletUnavailable"/> retryable and its resend chain (<see cref="SeamlessResends"/>) is a safety net, not a
+/// replacement for the caller's own retry — a chain may fail to be stored, and the caller is told only once.
+/// </para>
 /// </remarks>
 public sealed class SeamlessOperatorWallet : IOperatorWallet
 {

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Apogeu.Wallet.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WalletDbContext))]
-    [Migration("20261013074146_SeamlessPendingResends")]
-    partial class SeamlessPendingResends
+    [Migration("20261013130000_SeamlessResendChains")]
+    partial class SeamlessResendChains
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -137,35 +137,16 @@ namespace Apogeu.Wallet.Infrastructure.Persistence.Migrations
                     b.ToTable("ledger_postings", "wallet");
                 });
 
-            modelBuilder.Entity("Apogeu.Wallet.Infrastructure.Persistence.PendingResendRecord", b =>
+            modelBuilder.Entity("Apogeu.Wallet.Infrastructure.Persistence.ResendChainRecord", b =>
                 {
                     b.Property<string>("TransactionId")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)")
                         .HasColumnName("transaction_id");
 
-                    b.Property<decimal?>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasColumnName("amount");
-
-                    b.Property<int>("Attempts")
-                        .HasColumnType("integer")
-                        .HasColumnName("attempts");
-
-                    b.Property<Guid>("BetId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("bet_id");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasColumnName("currency");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -173,40 +154,18 @@ namespace Apogeu.Wallet.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(16)")
                         .HasColumnName("kind");
 
-                    b.Property<DateTimeOffset>("NextAttemptAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("next_attempt_at");
-
                     b.Property<string>("OperatorId")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("operator_id");
 
-                    b.Property<string>("OriginalTransactionId")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("original_transaction_id");
-
-                    b.Property<string>("PlayerId")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)")
-                        .HasColumnName("player_id");
-
-                    b.Property<Guid?>("RoundId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("round_id");
-
                     b.HasKey("TransactionId")
-                        .HasName("pk_pending_resends");
+                        .HasName("pk_resend_chains");
 
-                    b.HasIndex("NextAttemptAt")
-                        .HasDatabaseName("ix_pending_resends_next_attempt_at");
-
-                    b.ToTable("pending_resends", "wallet", t =>
+                    b.ToTable("resend_chains", "wallet", t =>
                         {
-                            t.HasCheckConstraint("ck_pending_resends_kind", "kind IN ('Credit', 'Rollback')");
+                            t.HasCheckConstraint("ck_resend_chains_kind", "kind IN ('Credit', 'Rollback')");
                         });
                 });
 

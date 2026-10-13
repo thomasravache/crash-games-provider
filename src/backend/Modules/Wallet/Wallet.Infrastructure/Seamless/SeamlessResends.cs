@@ -4,8 +4,10 @@ using Apogeu.Wallet.Contracts;
 using Apogeu.Wallet.Infrastructure.Messaging;
 using Apogeu.Wallet.Infrastructure.Observability;
 using Apogeu.Wallet.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 
@@ -15,25 +17,34 @@ namespace Apogeu.Wallet.Infrastructure.Seamless;
 /// Durable resend of the credits and rollbacks of the seamless wallet (SPEC-0046 §6, ADR-0002/0018): an attempt without a
 /// definitive answer of the operator schedules a <see cref="ResendOperatorWallet"/> through the Wolverine outbox of the
 /// module's DbContext, and each resend schedules the next one with exponential backoff (1 s … 5 min) until the operator
-/// settles it. Every message is its own pending operation, so a slow or failing operator holds no other one. A resend always
+/// settles it. One chain per transaction id: the guard row <c>wallet.resend_chains</c> is inserted in the same transaction as
+/// the scheduled message, so asking for a pending operation again (the durable retries of the caller) makes its own direct
+/// attempt but schedules nothing more; the row is deleted when the operator settles it. Every chain is its own message, so a
+/// slow or failing operator holds no other one. A resend always
 /// goes to the operator wallet (never to the demo one), whatever the mode of the operator now: without a usable
 /// configuration, or with its lookup failing, it stays pending and is logged as an error.
 /// </summary>
 public sealed class SeamlessResends
 {
+    private const string UniqueViolation = "23505";
+
     private readonly SeamlessOperatorWallet _wallet;
     private readonly IServiceScopeFactory _scopes;
+    private readonly TimeProvider _clock;
     private readonly ILogger<SeamlessResends> _logger;
     private readonly WalletMetrics? _metrics;
 
-    internal SeamlessResends(SeamlessOperatorWallet wallet, IServiceScopeFactory scopes, ILogger<SeamlessResends> logger, WalletMetrics? metrics = null)
+    internal SeamlessResends(
+        SeamlessOperatorWallet wallet, IServiceScopeFactory scopes, TimeProvider clock, ILogger<SeamlessResends> logger, WalletMetrics? metrics = null)
     {
         ArgumentNullException.ThrowIfNull(wallet);
         ArgumentNullException.ThrowIfNull(scopes);
+        ArgumentNullException.ThrowIfNull(clock);
         ArgumentNullException.ThrowIfNull(logger);
 
         _wallet = wallet;
         _scopes = scopes;
+        _clock = clock;
         _logger = logger;
         _metrics = metrics;
     }
@@ -55,6 +66,7 @@ public sealed class SeamlessResends
                 : await _wallet.AttemptRollbackAsync(RollbackOf(pending), ct).ConfigureAwait(false);
             if (attempt.Settled)
             {
+                await EndChainAsync(pending, operation).ConfigureAwait(false);
                 return null;
             }
         }
@@ -143,11 +155,21 @@ public sealed class SeamlessResends
             return made.Result;
         }
 
-        return await TryScheduleAsync(pending, operation).ConfigureAwait(false) ? made.Result : new WalletUnavailable(Retryable: true);
+        // Pending (scheduled now, or by an earlier call whose chain goes on): uncertain for the caller, who retries it
+        // durably (SPEC-0046 UT-04); never a permanent refusal while the operation is kept.
+        await TryScheduleAsync(pending, operation).ConfigureAwait(false);
+        return new WalletUnavailable(Retryable: true);
     }
 
-    /// <summary>Stores the scheduled resend through the outbox of the module's DbContext (ADR-0002/0018); false when it could not.</summary>
-    private async Task<bool> TryScheduleAsync(ResendOperatorWallet pending, string operation)
+    private static bool IsUniqueViolation(Exception exception) =>
+        exception is PostgresException { SqlState: UniqueViolation } || exception.InnerException is PostgresException { SqlState: UniqueViolation };
+
+    /// <summary>
+    /// Starts the resend chain of <paramref name="pending"/>: its guard row and the scheduled message, in one transaction of the
+    /// module's DbContext through the Wolverine outbox (ADR-0002/0018). A chain already running for the transaction id (the
+    /// guard row exists: primary key violation) rolls this one back, so nothing more is scheduled.
+    /// </summary>
+    private async Task TryScheduleAsync(ResendOperatorWallet pending, string operation)
     {
         var delay = ResendBackoff.After(pending.Attempt);
         try
@@ -156,19 +178,52 @@ public sealed class SeamlessResends
             await using (scope.ConfigureAwait(false))
             {
                 var outbox = scope.ServiceProvider.GetRequiredService<IDbContextOutbox<WalletDbContext>>();
+                outbox.DbContext.ResendChains.Add(new ResendChainRecord
+                {
+                    TransactionId = pending.TransactionId,
+                    Kind = pending.Kind.ToString(),
+                    OperatorId = pending.OperatorId,
+                    CreatedAt = _clock.GetUtcNow(),
+                });
                 await outbox.PublishAsync(pending, new DeliveryOptions { ScheduleDelay = delay }).ConfigureAwait(false);
                 await outbox.SaveChangesAndFlushMessagesAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
-#pragma warning disable CA1031 // Not stored: the caller gets the operation as uncertain and keeps it.
+        catch (Exception error) when (IsUniqueViolation(error))
+        {
+            SeamlessLog.ResendAlreadyPending(_logger, operation, pending.TransactionId, pending.OperatorId);
+            return;
+        }
+#pragma warning disable CA1031 // Not stored: the caller gets the operation as uncertain and keeps it (durable retry).
         catch (Exception error)
 #pragma warning restore CA1031
         {
             SeamlessLog.PendingNotStored(_logger, operation, pending.TransactionId, pending.OperatorId, error);
-            return false;
+            return;
         }
 
         SeamlessLog.ResendScheduled(_logger, operation, pending.TransactionId, pending.OperatorId, pending.Attempt + 1, delay);
-        return true;
+    }
+
+    /// <summary>The operator settled the operation: its chain ends and a later request may start a new one.</summary>
+    private async Task EndChainAsync(ResendOperatorWallet pending, string operation)
+    {
+        try
+        {
+            var scope = _scopes.CreateAsyncScope();
+            await using (scope.ConfigureAwait(false))
+            {
+                var db = scope.ServiceProvider.GetRequiredService<WalletDbContext>();
+                await db.ResendChains.Where(chain => chain.TransactionId == pending.TransactionId)
+                    .ExecuteDeleteAsync(CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+        }
+#pragma warning disable CA1031 // Settled at the operator; a guard left behind only keeps a new chain from starting for it.
+        catch (Exception error)
+#pragma warning restore CA1031
+        {
+            SeamlessLog.ChainNotEnded(_logger, operation, pending.TransactionId, error);
+        }
     }
 }
