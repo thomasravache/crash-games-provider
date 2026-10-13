@@ -22,7 +22,7 @@ approved_at: 2026-10-13
 <!-- Tier lite: bug fix ou mudança pequena, um módulo, sem mudança de contrato público, tamanho S. type: fix | feature | refactor. user_facing: true se o defeito aparece numa jornada do usuário (o teste de regressão deveria ser E2E). Se qualquer condição falhar, use o tier full. Substitua todos os marcadores com chaves duplas. -->
 
 ## 1. Problema
-O teste de rajada de cash-out (`CashOutLatencyTests`, SPEC-0023:IT-05) exige p99 ≤ 75 ms fora da CI. Esse limite foi calibrado na máquina de referência anterior, onde o p99 medido era 52–54 ms.
+O teste de rajada de cash-out (`CashOutLatencyTests`, da SPEC-0023) exige p99 ≤ 75 ms fora da CI. Esse limite foi calibrado na máquina de referência anterior, onde o p99 medido era 52–54 ms.
 - **Ambiente atual:** a VM de desenvolvimento (OpenStack/KVM, 4 vCPU AMD EPYC, 7,8 GB).
 - **Reprodução:** `dotnet test tests/backend/Modules/Betting.Tests -m:1 --filter "FullyQualifiedName~CashOutLatencyTests"` dá p99 de 145–315 ms, inclusive na branch de integração, sem nenhuma mudança nova.
 - **Impacto:** todo G2/G5 local reprova (SPEC-0046 IMP-01, 3 FAILs seguidos) sem que haja regressão, e a onda 1 fica travada.
@@ -56,9 +56,9 @@ Diagnóstico desta VM (2026-10-13):
 
 ## 4. Plano de Testes (TDD)
 <!-- Mínimo: um teste de regressão que reproduz o problema e FALHA antes da correção, no nível em que o defeito aparece (IT para fronteiras de I/O, E2E para jornadas de usuário). Código sem cobertura: primeiro CH-xx fixando o comportamento atual. Tag no código: `SPEC-0052:<ID>`. Categoria sem teste: "N/A — motivo" SEM ID. -->
-- Caracterização: N/A — o IT-05 da SPEC-0023 já cobre o cenário e continua inalterado.
+- Caracterização: N/A — o `CashOutLatencyTests` da SPEC-0023 já cobre o cenário e continua inalterado.
 - **UT-01** — Dado o ambiente com `GITHUB_ACTIONS=true` (com ou sem `APOGEU_CASHOUT_P99_BUDGET_MS=400`), sem nenhuma das duas, com só `APOGEU_CASHOUT_P99_BUDGET_MS=400`, e com o valor `abc`, `0` ou `-5`, quando o limite é resolvido, então dá 3 s, 75 ms, 400 ms, e exceção nomeando a variável (o resolvedor recebe as variáveis por parâmetro, sem ler o ambiente real).
-- Integração/E2E: N/A — o IT-05 (SPEC-0023) passa a usar o resolvedor, e o G2 desta VM o executa com 400 ms.
+- Integração/E2E: N/A — o `CashOutLatencyTests` (SPEC-0023) passa a usar o resolvedor, e o G2 desta VM o executa com 400 ms.
 
 ## 5. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
@@ -86,7 +86,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — c6f9b08 | 2026-10-13 |
-| G1 Red | PENDING | | |
+| G1 Red | FAIL | verify G1: FAIL — testes do plano sem tag no código versionado: SPEC-0052:IT-05 — 3a364df | 2026-10-13 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
