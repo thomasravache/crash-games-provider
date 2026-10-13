@@ -9,7 +9,7 @@ max_parallel: 3
 # --- Build e testes (G2, G5) ---
 # Exemplos: "dotnet build" | "npm run build" | "./gradlew build" | "go build ./..."
 build: "pnpm -C src/frontend install --frozen-lockfile && dotnet build Apogeu.slnx && pnpm -C src/frontend build"
-# Suíte completa. Exemplos: "dotnet test" | "npm test" | "pytest" | "go test ./..."
+# Testes do G1/G2. Exemplos: "dotnet test" | "npm test" | "pytest" | "go test ./..."
 # Gates locais (`test`, `coverage`) rodam só os testes afetados pela mudança (SPEC-0051); a CI e o G5
 # (`test_integration`, `test_e2e`, `arch_test`, `security_scan`, workflow do GitHub) seguem rodando tudo.
 # Outra base para o diff: AFFECTED_BASE=<ref>.
