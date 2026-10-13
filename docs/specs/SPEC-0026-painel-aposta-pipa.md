@@ -8,7 +8,7 @@ status: implemented
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0010, SPEC-0024]
-consumes_contract: [SPEC-0020@2, SPEC-0021@4, SPEC-0022@3, SPEC-0023@2, SPEC-0024@2, SPEC-0025@1]
+consumes_contract: [SPEC-0020@2, SPEC-0021@4, SPEC-0022@3, SPEC-0023@2, SPEC-0024@2, SPEC-0025@2]
 contract_version: 3
 touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "src/frontend/apps/game-pipa/src/main.tsx", "src/frontend/apps/game-pipa/src/test-hook.ts", "src/frontend/apps/game-pipa/src/styles.css", "src/frontend/apps/game-pipa/src/bets/**", "tests/frontend/pipa/bets/**", "tests/frontend/integration/pipa/bets/**", "tests/e2e/pipa/bets/**", "tests/e2e/pipa/round.spec.ts", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/packages/game-ui/src/hud.tsx"]
 adrs: [ADR-0004, ADR-0008, ADR-0019, ADR-0020, ADR-0021]
