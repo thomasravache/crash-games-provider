@@ -18,6 +18,8 @@ pnpm -C src/frontend typecheck
 pnpm -C src/frontend format:check
 ```
 
+Limite local do p99 da rajada de cash-out (`CashOutLatencyTests`): `APOGEU_CASHOUT_P99_BUDGET_MS` em ms, no perfil do shell da máquina; sem ela vale 75 ms (máquina de referência) e na CI é ignorada (3 s) — SPEC-0052.
+
 ## Regras de código
 
 - Avisos de compilação são erros (`TreatWarningsAsErrors`); não suprima regra sem motivo na própria linha.

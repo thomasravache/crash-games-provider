@@ -9,7 +9,7 @@ created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0024]
 consumes_contract: [SPEC-0021@4]
-contract_version: 2
+contract_version: 3
 touches: ["src/backend/Modules/Betting/**", "tests/backend/Modules/Betting.Tests/**", "src/backend/Modules/Operators/Operators.Features/Sessions/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Security.Tests/**", "src/backend/Host/Internal/Generated/**", "src/frontend/packages/contracts/**", "artifacts/openapi/**", "src/backend/Host/OpenApi/ContractScalarSchemaTransformer.cs"]
 adrs: [ADR-0005, ADR-0014, ADR-0019, ADR-0008]
 external: []
@@ -80,7 +80,9 @@ REST (sessão do jogador)
                       status:"placed"|"queued"|"active"|"cashed_out"|"lost"|"cancelled"|"refunded", placedAt }],
             nextCursor? }
       ordem: placedAt decrescente, desempate por betId decrescente; cursor opaco; aposta queued sem rodada → roundId e roundNumber nulos
-    | 400 { code:"INVALID_LIMIT", … } (mesmo envelope de erro dos outros REST) | 401
+      limit ausente → 20 (Emenda v3)
+    | 400 { code:"INVALID_LIMIT", … } (mesmo envelope de erro dos outros REST)
+    | 400 { code:"INVALID_CURSOR", … } quando `before` não é um cursor emitido pela API (Emenda v3) | 401
 Anonimização: 2 primeiras letras do apelido + "***"; apelido ausente → "Jogador***"
 Apelido (Emenda v2): claim opcional `nick` no token de sessão do jogador (SPEC-0009 §4), preenchida pelo Operators com o
   apelido do lançamento; o Betting lê a claim na sessão; o apelido nunca vem do cliente
@@ -99,6 +101,7 @@ Apelido (Emenda v2): claim opcional `nick` no token de sessão do jogador (SPEC-
 | Snapshot e eventos | jogador entra no meio da rodada | snapshot atual + lotes seguintes; sem betId nem apelido completo | IT-01 |
 | Histórico | jogador com apostas em vários estados | página ordenada, cursor funciona; só as próprias | IT-02 |
 | Limite inválido | limit 0 ou 51 | 400 INVALID_LIMIT | IT-02 |
+| Cursor inválido e limite padrão | `before` malformado / limit ausente | 400 INVALID_CURSOR / página de até 20 itens | IT-04 |
 | Banda | 1.000 apostas por rodada | ≤ 5 lotes/s, ≤ 100 itens cada | IT-03 |
 | Contrato | mensagens e respostas reais | conferem com os tipos gerados | CT-01 |
 
@@ -114,6 +117,7 @@ Apelido (Emenda v2): claim opcional `nick` no token de sessão do jogador (SPEC-
 ### 7.3 Testes de Integração
 - **IT-01** — Dado o Host real com dois jogadores de operadores diferentes na mesma sala (segundo operador por dublê de teste), com apelido na claim `nick`, quando um aposta e retira e o outro entra no meio da rodada, então o segundo recebe snapshot e lotes com apelidos anonimizados, `betRef` opaco e sem `betId`.
 - **IT-02** — Dado um jogador com apostas cashed_out, lost, cancelled e refunded, quando pagina `GET /api/v1/me/bets` com limit 2, então recebe as próprias apostas em ordem e o cursor leva à página seguinte; limit 0 e 51 → 400; sem sessão → 401.
+- **IT-04** — Dado um jogador com 25 apostas, quando chama `GET /api/v1/me/bets` sem `limit`, então recebe 20 itens e `nextCursor`; e quando chama com `before` malformado (não base64url ou de tamanho errado), então recebe 400 `INVALID_CURSOR` no envelope de erro (Emenda v3).
 - **IT-03** — Dadas 1.000 apostas numa rodada (vários jogadores em paralelo; fase de apostas ampliada pela configuração da sala), quando a difusão é observada por 5 s, então em cada segundo inteiro contado a partir do primeiro lote há no máximo 5 lotes e cada um com ≤ 100 itens (`Category=Performance`).
 
 ### 7.4 Testes de Contrato
@@ -174,7 +178,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:06:21.38]     Dado o contrato gerado do hub /hubs/bets, quando o snapshot de) — fb28c49 | 2026-10-13 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -230,5 +234,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0025`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 3 (inalterado) | 2026-10-13 | `LiveBetsBatch.cashedOut[]` ganha `reason?:"round_limit"`, definido e implementado pela SPEC-0054 (contrato dela) | Corte de exposição por rodada; a SPEC-0025 está em gates e não muda | SPEC-0026, SPEC-0031 (campo opcional, sem efeito) | thomas (2026-10-13, H1 das SPEC-0053/0054/0055) |
+| 3 | 2026-10-13 | `GET /api/v1/me/bets`: `limit` ausente vale 20; `before` malformado → 400 `INVALID_CURSOR` no mesmo envelope; novo IT-04 | Implementer (G2): o contrato não definia o limite padrão nem a resposta a cursor inválido; mudança aditiva, sem efeito no hub nem nos campos já consumidos | SPEC-0026, SPEC-0031 (repinados em @3, sem mudança) | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
 | 2 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/OpenApi/ContractScalarSchemaTransformer.cs`: `Money`/`Multiplier` anuláveis passam a usar `oneOf` com null na propriedade, sem tornar o componente compartilhado anulável | Scaffold: o primeiro `Multiplier?` (autoCashOut do histórico) deixava `Multiplier` anulável em todo o contrato REST (crashPoint e cap do Rounds) | Nenhuma | thomas (Emenda v2 aprovada, 2026-10-13) |
 | 2 | 2026-10-13 | Claim opcional `nick` no token de sessão (Operators) lida pelo Betting; método do cliente `LiveBetsBatch`; `JoinSalaBets` sem argumento; `cashedOut` ≤ 100 por lote; `totalPlayers` = jogadores distintos; histórico em `placedAt` decrescente com desempate por `betId`, cursor opaco, `roundId`/`roundNumber` nulos em aposta queued; 400 no envelope `code`; IT-03 por segundos inteiros; `touches` com sessões do Operators, testes de Operators/Security, codegen do Wolverine, contratos gerados (ADR-0008) e OpenAPI | Test-writer (IMP-01): o Betting não tinha acesso ao apelido e o contrato deixava detalhes em aberto | SPEC-0026, SPEC-0031 | thomas (2026-10-13) |
