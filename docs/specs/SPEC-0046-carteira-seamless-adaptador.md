@@ -153,7 +153,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 420d3b6 | 2026-10-10 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:23.01]     Dado o backend compilado, quando contracts:generate roda, entã) — 4dc45ab | 2026-10-13 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -208,3 +208,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0046`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-13 | Origem provisória de `IOperatorWalletSettings`: implementação no Wallet.Infrastructure lida da configuração (`Wallet:Operators:{op}:Mode`, `WalletUrl`, `KeyId`, `Secret` por variável de ambiente/segredo), operador sem configuração = demo; a SPEC-0038 troca pela coluna `wallet_mode` do cadastro de operadores | Test-writer: o Host precisa de uma implementação e o cadastro do operador (SPEC-0038) ainda não existe nem está no `touches` | SPEC-0038, SPEC-0047 | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |

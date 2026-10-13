@@ -4,7 +4,7 @@ title: "Apostas ao vivo e histórico pessoal"
 tier: full
 type: feature
 user_facing: false
-status: in-progress
+status: approved
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0024]
@@ -179,6 +179,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-13 | G1 | spec | Betting não tem acesso ao apelido do jogador (token só leva sub/op/sala/cur/mode; apelido só no Operators, sem porta em Operators.Contracts); faltam no touches os contratos gerados (packages/contracts), o código gerado do Wolverine e o scaffold; contrato não fixa nome do método do lote, ordem/cursor do histórico, corpo do INVALID_LIMIT, totalPlayers e teto dos cashedOut | test-writer leu o código (PlayerSessionClaims, BettingSession, LaunchGrantRecord) e parou antes de escrever testes | Architect + thomas |  |  |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
