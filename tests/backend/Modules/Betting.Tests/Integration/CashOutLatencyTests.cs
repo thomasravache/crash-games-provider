@@ -10,15 +10,12 @@ public sealed class CashOutLatencyTests(BettingContainers containers)
 {
     private const int Players = 150;
     private const int CashOuts = Players * 2;
-    // SPEC-0023 §5 targets p99 ≤ 50 ms; since SPEC-0024 records the request before asking the leader (one more write),
-    // the reference machine measures 52–54 ms, so the local guard is 75 ms until SPEC-0048 brings it back to 50 ms. The shared GitHub
-    // runner (2 vCPU, Postgres container on the same host) cannot hold that burst; there (2 vCPU) the test guards against
-    // regressions with 3 s (1,7 s measured after SPEC-0024), and the 50 ms target on real infrastructure belongs to the capacity spec (see Emendas).
-    private static readonly TimeSpan P99Budget = TimeSpan.FromMilliseconds(
-        string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.Ordinal) ? 3000 : 75);
+    // The local budget (75 ms on the reference machine, 3 s on the CI runner, or the machine's own APOGEU_CASHOUT_P99_BUDGET_MS)
+    // and why it is so are in CashOutLatencyBudget (SPEC-0052).
+    private static readonly (TimeSpan Budget, string Source) P99Budget = CashOutLatencyBudget.ResolveWithSource(Environment.GetEnvironmentVariable);
     private static readonly TimeSpan Burst = TimeSpan.FromSeconds(1);
 
-    [Fact(DisplayName = "Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do envio à resposta, então todos decididos e p99 ≤ 75 ms local (meta 50 ms na SPEC-0048; ≤ 3 s no runner da CI)")]
+    [Fact(DisplayName = "Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do envio à resposta, então todos decididos e p99 ≤ limite local (75 ms na máquina de referência; meta 50 ms na SPEC-0048; ≤ 3 s no runner da CI)")]
     [Trait("Spec", "SPEC-0023:IT-05")]
     [Trait("Category", "Integration")]
     [Trait("Category", "Performance")]
@@ -57,8 +54,8 @@ public sealed class CashOutLatencyTests(BettingContainers containers)
             var sorted = measured.Select(m => m.Latency).Order().ToList();
             var p99 = sorted[(int)Math.Ceiling(0.99 * sorted.Count) - 1];
             Assert.True(
-                p99 <= P99Budget,
-                string.Create(CultureInfo.InvariantCulture, $"p99 of CashOut = {p99.TotalMilliseconds:0.0} ms (budget {P99Budget.TotalMilliseconds} ms); p50 {sorted[sorted.Count / 2].TotalMilliseconds:0.0} ms, max {sorted[^1].TotalMilliseconds:0.0} ms"));
+                p99 <= P99Budget.Budget,
+                string.Create(CultureInfo.InvariantCulture, $"p99 of CashOut = {p99.TotalMilliseconds:0.0} ms (budget {P99Budget.Budget.TotalMilliseconds} ms from {P99Budget.Source}); p50 {sorted[sorted.Count / 2].TotalMilliseconds:0.0} ms, max {sorted[^1].TotalMilliseconds:0.0} ms"));
         }
         finally
         {
