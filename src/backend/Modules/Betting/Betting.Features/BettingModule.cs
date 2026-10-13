@@ -1,6 +1,7 @@
 using Apogeu.Betting.Features.CancelBet;
 using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.MyBets;
 using Apogeu.Betting.Features.PlaceBet;
 using Apogeu.Betting.Features.Reservations;
 using Apogeu.Betting.Features.RoundEvents;
@@ -72,6 +73,7 @@ public static class BettingModule
 
         // SPEC-0009 (ADR-0015): denied by default, so the hub declares the player-session policy.
         endpoints.MapHub<BetsHub>(BetsHub.Path).RequireAuthorization(SecurityPolicies.PlayerSession);
+        endpoints.MapGetMyBets();
 
         return endpoints;
     }

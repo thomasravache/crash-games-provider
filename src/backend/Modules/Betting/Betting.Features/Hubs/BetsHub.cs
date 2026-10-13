@@ -54,6 +54,14 @@ public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet
         return Task.FromResult(new BetLimitsResponse(betLimits.Currency.Code, betLimits.MinBet, betLimits.MaxBet, betLimits.MaxWin));
     }
 
+    /// <summary>
+    /// Joins the group of the session's room for <c>LiveBetsBatch</c> and answers the bets of its current round (SPEC-0025
+    /// §6); takes no argument: the room is the session's.
+    /// </summary>
+#pragma warning disable CA1822 // Scaffold of SPEC-0025 (no logic yet): reads the session in the green phase.
+    public Task<LiveBetsSnapshot> JoinSalaBets() => throw new HubException("NOT_IMPLEMENTED");
+#pragma warning restore CA1822
+
     private BettingSession Session => BettingSession.From(Context.User);
 
     private static T Answer<T>(BettingOutcome<T> outcome)

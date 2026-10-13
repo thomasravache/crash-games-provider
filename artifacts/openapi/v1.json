@@ -25,6 +25,64 @@
         }
       }
     },
+    "/api/v1/me/bets": {
+      "get": {
+        "tags": [
+          "Betting"
+        ],
+        "summary": "The bets of the session player, most recent first, paged by an opaque cursor.",
+        "operationId": "GetMyBets",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyBetsPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/operator/launch": {
       "post": {
         "tags": [
@@ -619,6 +677,121 @@
         "type": "string",
         "format": "multiplier"
       },
+      "MyBetItem": {
+        "required": [
+          "betId",
+          "roundId",
+          "roundNumber",
+          "panel",
+          "amount",
+          "currency",
+          "autoCashOut",
+          "multiplier",
+          "payout",
+          "status",
+          "placedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "betId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roundId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "roundNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "panel": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "autoCashOut": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Multiplier"
+              }
+            ]
+          },
+          "multiplier": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Multiplier"
+              }
+            ]
+          },
+          "payout": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Money"
+              }
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/MyBetStatus"
+          },
+          "placedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "MyBetsPage": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyBetItem"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MyBetStatus": {
+        "enum": [
+          "placed",
+          "queued",
+          "active",
+          "cashed_out",
+          "lost",
+          "cancelled",
+          "refunded"
+        ]
+      },
       "ProblemDetails": {
         "type": "object",
         "properties": {
@@ -782,6 +955,9 @@
   "tags": [
     {
       "name": "Meta"
+    },
+    {
+      "name": "Betting"
     },
     {
       "name": "Operator"

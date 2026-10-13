@@ -27,6 +27,20 @@ export interface BetsHubServer {
     pending: { betId: string } | null;
   }>;
   GetBetLimits(): Promise<{ currency: string; minBet: Money; maxBet: Money; maxWin: Money }>;
+  JoinSalaBets(): Promise<{
+    roundId: string;
+    totalBets: number;
+    totalPlayers: number;
+    totalWagered: Money;
+    bets: {
+      betRef: string;
+      nickname: string;
+      amount: Money;
+      currency: string;
+      multiplier: Multiplier | null;
+      payout: Money | null;
+    }[];
+  }>;
   PlaceBet(request: {
     clientBetId: string;
     panel: number;
@@ -66,6 +80,21 @@ export interface BetsHubClient {
     creditStatus: "credited" | "pending";
     balance: Money | null;
     auto: boolean;
+  }): void;
+  LiveBetsBatch(batch: {
+    roundId: string;
+    placed: {
+      betRef: string;
+      nickname: string;
+      amount: Money;
+      currency: string;
+      multiplier: Multiplier | null;
+      payout: Money | null;
+    }[];
+    cashedOut: { betRef: string; multiplier: Multiplier; payout: Money }[];
+    totalBets: number;
+    totalPlayers: number;
+    totalWagered: Money;
   }): void;
 }
 

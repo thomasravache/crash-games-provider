@@ -44,4 +44,7 @@ public static class BettingErrorCodes
 
     /// <summary>The bet is not in flight (placed, queued or cancelled), so it cannot be cashed out (SPEC-0023 §6).</summary>
     public const string BetNotActive = "BET_NOT_ACTIVE";
+
+    /// <summary>The <c>limit</c> of <c>GET /api/v1/me/bets</c> is outside 1..50 (SPEC-0025 §6): the <c>code</c> of the REST error body.</summary>
+    public const string InvalidLimit = "INVALID_LIMIT";
 }
