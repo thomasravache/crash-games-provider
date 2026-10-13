@@ -61,5 +61,6 @@
     <Project Path="tests/backend/TestKit/TestKit.csproj" />
     <Project Path="tests/backend/TestKit/Tests/TestKit.Tests.csproj" />
     <Project Path="tests/ci/Ci.Tests/Ci.Tests.csproj" />
+    <Project Path="tests/demo/DemoCasino.Tests/DemoCasino.Tests.csproj" />
   </Folder>
 </Solution>
