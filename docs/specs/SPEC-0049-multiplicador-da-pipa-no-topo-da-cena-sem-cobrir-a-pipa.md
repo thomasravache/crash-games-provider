@@ -68,9 +68,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 7c323ee | 2026-10-12 |
 | G1 Red | PASS | MANUAL: verify G1: PASS (red antes do green, tag SPEC-0049:E2E-01 no código); teste de regressão é E2E: tools/ci/run-e2e.sh --project=chromium pipa/layout/ falha em d815910 — borda de baixo do placar a 59–60% da altura da cena (limite 35%), centro da cena sob o placar e fundo com alfa 0,85 (limite 0,3); a suíte do test do sdd-config não roda E2E | 2026-10-12 |
-| G2 Green | FAIL | build exit 0 (✓ built in 508ms); test exit 0 (at least ~474ms faster with isolate: false — reuses workers across files instead of one pe); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:03:49.10]     Dada uma aposta X cujo débito fica retido até depois da varred) — e379289 | 2026-10-12 |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 238ms); test exit 0 ($ dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:src/frontend/coverage/lcov.info" -targetdir:artifacts/c) — e379289 | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.24s (tests 97%, transform 2%, import 1%)) — e379289 | 2026-10-13 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (minor: fonte mínima dos rótulos do placar em telas muito baixas) — e379289 | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
