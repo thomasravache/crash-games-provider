@@ -1066,7 +1066,8 @@
           "Apogeu.Wallet.Contracts": "[1.0.0, )",
           "Apogeu.Wallet.Domain": "[1.0.0, )",
           "Apogeu.Wallet.Infrastructure": "[1.0.0, )",
-          "OpenTelemetry.Extensions.Hosting": "[1.19.1, )"
+          "OpenTelemetry.Extensions.Hosting": "[1.19.1, )",
+          "WolverineFx": "[6.48.1, )"
         }
       },
       "Apogeu.Wallet.Infrastructure": {
@@ -1076,7 +1077,8 @@
           "Apogeu.Wallet.Contracts": "[1.0.0, )",
           "Apogeu.Wallet.Domain": "[1.0.0, )",
           "Microsoft.EntityFrameworkCore": "[10.0.12, )",
-          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )"
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
+          "WolverineFx.EntityFrameworkCore": "[6.48.1, )"
         }
       },
       "Microsoft.AspNetCore.Authentication.JwtBearer": {

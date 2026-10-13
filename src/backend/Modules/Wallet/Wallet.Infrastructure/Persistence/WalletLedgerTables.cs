@@ -15,9 +15,6 @@ public static class WalletLedgerTables
     /// <summary>Postings of the entries, at least two per entry.</summary>
     public const string Postings = "ledger_postings";
 
-    /// <summary>Credits and rollbacks of the seamless wallet still to confirm (SPEC-0046), resent until confirmed.</summary>
-    public const string PendingResends = "pending_resends";
-
     /// <summary>Transaction id column, in both tables (the postings reference their entry by it).</summary>
     public const string TransactionIdColumn = "transaction_id";
 

@@ -25,6 +25,9 @@ public sealed class WalletMetrics
     /// <summary>Resends of credits and rollbacks to the operator wallet (SPEC-0046).</summary>
     public const string Retries = "wallet.retries";
 
+    /// <summary>Rollbacks confirmed by the operator whose debit was never mirrored here (SPEC-0046): to reconcile.</summary>
+    public const string UnmirroredRollbacks = "wallet.unmirrored_rollbacks";
+
     /// <summary>Activities of the wallet operations, tagged with <c>wallet.transaction_id</c>.</summary>
     public static readonly ActivitySource ActivitySource = new(MeterName);
 
@@ -38,6 +41,7 @@ public sealed class WalletMetrics
     private readonly Counter<long> _demoRecharges;
     private readonly Counter<long> _remoteCalls;
     private readonly Counter<long> _retries;
+    private readonly Counter<long> _unmirroredRollbacks;
 
     public WalletMetrics(IMeterFactory meterFactory)
     {
@@ -54,6 +58,8 @@ public sealed class WalletMetrics
             RemoteCalls, unit: "{call}", description: "Calls to the operator wallet (seamless), by operation and answer status.");
         _retries = meter.CreateCounter<long>(
             Retries, unit: "{call}", description: "Resends of credits and rollbacks to the operator wallet, by operation.");
+        _unmirroredRollbacks = meter.CreateCounter<long>(
+            UnmirroredRollbacks, unit: "{rollback}", description: "Rollbacks confirmed by the operator wallet whose debit was never mirrored in the ledger.");
     }
 
     /// <summary>An operation of <paramref name="type"/> finished with <paramref name="result"/> (a duplicate also counts in <c>wallet.duplicates</c>).</summary>
@@ -74,4 +80,7 @@ public sealed class WalletMetrics
 
     /// <summary>A pending <paramref name="operation"/> was resent to the operator wallet.</summary>
     public void Retried(string operation) => _retries.Add(1, new KeyValuePair<string, object?>(OperationTag, operation));
+
+    /// <summary>A rollback was confirmed by the operator wallet but its debit was never mirrored here.</summary>
+    public void RollbackUnmirrored() => _unmirroredRollbacks.Add(1);
 }

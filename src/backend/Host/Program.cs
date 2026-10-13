@@ -13,6 +13,7 @@ using Apogeu.Rounds.Features;
 using Apogeu.ServiceDefaults;
 using Apogeu.ServiceDefaults.Messaging;
 using Apogeu.Wallet.Features;
+using Apogeu.Wallet.Infrastructure.Messaging;
 using JasperFx;
 using JasperFx.CodeGeneration;
 using JasperFx.CodeGeneration.Model;
@@ -56,6 +57,7 @@ builder.UseWolverine(options =>
     options.UseEntityFrameworkCoreTransactions();
     options.AutoBuildMessageStorageOnStartup = builder.Environment.IsDevelopment() ? AutoCreate.CreateOrUpdate : AutoCreate.None;
     options.Discovery.IncludeAssembly(typeof(BettingModule).Assembly);
+    options.Discovery.IncludeAssembly(typeof(WalletModule).Assembly);
 
     // Every local queue is durable (the reversals of debits, ADR-0007); the round events of Rounds reach Betting through one
     // sequential queue, in the order the conductor published them (SPEC-0022 IT-05).
@@ -68,6 +70,11 @@ builder.UseWolverine(options =>
     // SPEC-0023: an automatic cash-out reaches Betting in order with the round events (after RoundFlying, before RoundCrashed).
     options.PublishMessage<AutoCashOutExecuted>().ToLocalQueue(BettingModule.RoundEventsQueue);
     options.LocalQueue(BettingModule.RoundEventsQueue).Sequential();
+
+    // SPEC-0046: the resends of seamless credits and rollbacks to the operator wallets, one message per pending operation on a
+    // wide queue of their own, so an operator that does not answer holds no other operator's pending operations.
+    options.PublishMessage<ResendOperatorWallet>().ToLocalQueue(WalletModule.ResendQueue);
+    options.LocalQueue(WalletModule.ResendQueue).MaximumParallelMessages(WalletModule.ResendParallelism);
 
     // A handler whose database is briefly unreachable retries before its message is given up.
     options.OnException<NpgsqlException>()

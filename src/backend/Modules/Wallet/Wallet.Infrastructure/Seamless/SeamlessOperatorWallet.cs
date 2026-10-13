@@ -23,9 +23,11 @@ namespace Apogeu.Wallet.Infrastructure.Seamless;
 /// </summary>
 /// <remarks>
 /// One attempt per call: a debit has a deadline of 2 s and is never resent; the resends of credits and rollbacks until they
-/// are confirmed live outside this class (pending table and sweep). Any answer that is not a 200 with a status of the
-/// contract (HTTP error, timeout, network) is uncertain: <see cref="WalletUnavailable"/> retryable. PLAYER_NOT_FOUND is
-/// definitive and raises an alert. The secret of the key signs the calls and never reaches a log (ADR-0014).
+/// are confirmed live outside this class (<see cref="SeamlessResends"/>, scheduled Wolverine messages). Any answer that is
+/// not a 200 with a status of the contract for this very request (HTTP error or redirect, timeout, network, another
+/// currency or transaction id) is uncertain: <see cref="WalletUnavailable"/> retryable. PLAYER_NOT_FOUND is definitive and
+/// raises an alert. A wallet URL over plain http is refused unless its host is the loopback. The secret of the key signs
+/// the calls and never reaches a log (ADR-0014).
 /// </remarks>
 public sealed class SeamlessOperatorWallet : IOperatorWallet
 {
@@ -47,6 +49,8 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
     private const int MaxMirrorAttempts = 32;
 
     private static readonly MediaTypeHeaderValue JsonContentType = new("application/json") { CharSet = "utf-8" };
+
+    private static readonly RemoteAnswer NotConfigured = new(NotConfiguredStatus, Balance: null, Currency: null, TransactionId: null);
 
     private readonly HttpClient _http;
     private readonly IOperatorWalletSettings _settings;
@@ -83,7 +87,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
         RequireCents(op.Amount.Value, nameof(op));
 
         using var activity = StartActivity(DebitOperation, op.TransactionId);
-        var answer = await CallAsync(op.Player, DebitOperation, op.TransactionId, OperationBody(op), DebitDeadline, ct).ConfigureAwait(false);
+        var answer = await CallAsync(op.Player, DebitOperation, op.TransactionId, op.Currency, OperationBody(op), DebitDeadline, ct).ConfigureAwait(false);
         var result = answer.Status switch
         {
             "OK" or "DUPLICATE" => await ConfirmedAsync(answer, MirrorOf(op, LedgerEntryKind.Debit, -op.Amount.Value, answer.Balance!), ct).ConfigureAwait(false),
@@ -93,34 +97,42 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
         return Traced(activity, DebitOperation, result);
     }
 
-    public async Task<WalletResult> CreditAsync(WalletOperation op, CancellationToken ct)
+    public async Task<WalletResult> CreditAsync(WalletOperation op, CancellationToken ct) =>
+        (await AttemptCreditAsync(op, ct).ConfigureAwait(false)).Result;
+
+    public async Task<WalletResult> RollbackAsync(WalletRollback op, CancellationToken ct) =>
+        (await AttemptRollbackAsync(op, ct).ConfigureAwait(false)).Result;
+
+    /// <summary>One attempt of a credit, telling whether the operator settled it (only then it is not resent).</summary>
+    internal async Task<SeamlessAttempt> AttemptCreditAsync(WalletOperation op, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(op);
         RequireCents(op.Amount.Value, nameof(op));
 
         using var activity = StartActivity(CreditOperation, op.TransactionId);
-        var answer = await CallAsync(op.Player, CreditOperation, op.TransactionId, OperationBody(op), AttemptDeadline, ct).ConfigureAwait(false);
+        var answer = await CallAsync(op.Player, CreditOperation, op.TransactionId, op.Currency, OperationBody(op), AttemptDeadline, ct).ConfigureAwait(false);
         var result = answer.Status switch
         {
             "OK" or "DUPLICATE" => await ConfirmedAsync(answer, MirrorOf(op, LedgerEntryKind.Credit, op.Amount.Value, answer.Balance!), ct).ConfigureAwait(false),
             _ => Unconfirmed(answer, op.Player, CreditOperation, op.TransactionId),
         };
-        return Traced(activity, CreditOperation, result);
+        return new SeamlessAttempt(Traced(activity, CreditOperation, result), IsSettled(answer, result));
     }
 
-    public async Task<WalletResult> RollbackAsync(WalletRollback op, CancellationToken ct)
+    /// <summary>One attempt of a rollback, telling whether the operator settled it (only then it is not resent).</summary>
+    internal async Task<SeamlessAttempt> AttemptRollbackAsync(WalletRollback op, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(op);
 
         using var activity = StartActivity(RollbackOperation, op.TransactionId);
-        var answer = await CallAsync(op.Player, RollbackOperation, op.TransactionId, RollbackBody(op), AttemptDeadline, ct).ConfigureAwait(false);
+        var answer = await CallAsync(op.Player, RollbackOperation, op.TransactionId, op.Currency, RollbackBody(op), AttemptDeadline, ct).ConfigureAwait(false);
         var result = answer.Status switch
         {
             "OK" or "DUPLICATE" => await ConfirmedRollbackAsync(answer, op, ct).ConfigureAwait(false),
             "TRANSACTION_NOT_FOUND" => new WalletTransactionNotFound(op.OriginalTransactionId),
             _ => Unconfirmed(answer, op.Player, RollbackOperation, op.TransactionId),
         };
-        return Traced(activity, RollbackOperation, result);
+        return new SeamlessAttempt(Traced(activity, RollbackOperation, result), IsSettled(answer, result));
     }
 
     public async Task<Balance> GetBalanceAsync(PlayerRef player, Currency currency, CancellationToken ct)
@@ -132,7 +144,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
             writer.WriteString("playerId", player.PlayerId.Value);
             writer.WriteString("currency", currency.Code);
         });
-        var answer = await CallAsync(player, BalanceOperation, transactionId: null, body, AttemptDeadline, ct).ConfigureAwait(false);
+        var answer = await CallAsync(player, BalanceOperation, transactionId: null, currency, body, AttemptDeadline, ct).ConfigureAwait(false);
         return answer is { Status: "OK", Balance: { } balance }
             ? balance
             : throw new HttpRequestException("The operator wallet gave no balance.", inner: null, HttpStatusCode.ServiceUnavailable);
@@ -225,16 +237,36 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
             return null;
         }
 
+        var currency = StringOf(root, "currency");
         Balance? balance = null;
-        if (root.TryGetProperty("balance", out var amount) && amount.ValueKind == JsonValueKind.String
-            && root.TryGetProperty("currency", out var currency) && currency.ValueKind == JsonValueKind.String
+        if (root.TryGetProperty("balance", out var amount) && amount.ValueKind == JsonValueKind.String && currency is not null
             && decimal.TryParse(amount.GetString(), NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var value))
         {
-            balance = new Balance(new Money(value), new Currency(currency.GetString()!));
+            balance = new Balance(new Money(value), new Currency(currency));
         }
 
-        return new RemoteAnswer(status.GetString()!, balance);
+        return new RemoteAnswer(status.GetString()!, balance, currency, StringOf(root, "transactionId"));
     }
+
+    private static string? StringOf(JsonElement root, string name) =>
+        root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    /// <summary>
+    /// Whether the answer is about this very request: a currency or a transaction id the operator reports must be the ones
+    /// sent, or the answer is uncertain (SPEC-0046 G4).
+    /// </summary>
+    private static bool Matches(RemoteAnswer answer, TransactionId? transactionId, Currency currency) =>
+        (answer.Currency is null || string.Equals(answer.Currency, currency.Code, StringComparison.Ordinal))
+        && (answer.TransactionId is null || transactionId is null || string.Equals(answer.TransactionId, transactionId.Value.Value, StringComparison.Ordinal));
+
+    /// <summary>A definitive answer of the operator: the operation is settled and not resent (any other is, until it is).</summary>
+    private static bool IsSettled(RemoteAnswer answer, WalletResult result) =>
+        result is not WalletUnavailable || string.Equals(answer.Status, "PLAYER_NOT_FOUND", StringComparison.Ordinal);
+
+    /// <summary>Plain http only to the loopback (a local operator wallet in development); anywhere else https.</summary>
+    private static bool IsAllowed(Uri walletUrl) =>
+        string.Equals(walletUrl.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+        || (string.Equals(walletUrl.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) && walletUrl.IsLoopback);
 
     private WalletResult Traced(Activity? activity, string type, WalletResult result)
     {
@@ -265,19 +297,39 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
     }
 
     /// <summary>
+    /// The seamless settings of <paramref name="op"/> when they can be used (seamless mode, a key and a wallet URL over https,
+    /// or plain http to the loopback); <see langword="null"/>, logged as an error, otherwise. A failing lookup propagates.
+    /// </summary>
+    private async Task<OperatorWalletSettings?> UsableSettingsAsync(OperatorId op, string operation, string transactionId, CancellationToken ct)
+    {
+        var settings = await _settings.GetAsync(op, ct).ConfigureAwait(false);
+        if (settings is not { Mode: WalletMode.Seamless, WalletUrl: { } walletUrl, Key: not null })
+        {
+            SeamlessLog.NotConfigured(_logger, op.Value, operation, transactionId);
+            return null;
+        }
+
+        if (!IsAllowed(walletUrl))
+        {
+            SeamlessLog.InsecureWalletUrl(_logger, op.Value, operation, transactionId);
+            return null;
+        }
+
+        return settings;
+    }
+
+    /// <summary>
     /// One signed call to the operator wallet. Returns the answer, or <see cref="UncertainStatus"/> for anything without a
     /// definitive one (non-200, unreadable body, network failure, deadline).
     /// </summary>
     private async Task<RemoteAnswer> CallAsync(
-        PlayerRef player, string operation, TransactionId? transactionId, byte[] body, TimeSpan deadline, CancellationToken ct)
+        PlayerRef player, string operation, TransactionId? transactionId, Currency currency, byte[] body, TimeSpan deadline, CancellationToken ct)
     {
         var id = transactionId?.Value ?? string.Empty;
-        var settings = await _settings.GetAsync(player.OperatorId, ct).ConfigureAwait(false);
-        if (settings is not { Mode: WalletMode.Seamless, WalletUrl: { } walletUrl, Key: { } key })
+        if (await UsableSettingsAsync(player.OperatorId, operation, id, ct).ConfigureAwait(false) is not { WalletUrl: { } walletUrl, Key: { } key })
         {
-            SeamlessLog.NotConfigured(_logger, player.OperatorId.Value, operation, id);
             _metrics?.RemoteCall(operation, NotConfiguredStatus);
-            return new RemoteAnswer(NotConfiguredStatus, Balance: null);
+            return NotConfigured;
         }
 
         var endpoint = EndpointOf(walletUrl, operation);
@@ -300,7 +352,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 var json = await response.Content.ReadAsStringAsync(linked.Token).ConfigureAwait(false);
-                if (Parse(json) is { } answer && IsDefinitive(answer, operation))
+                if (Parse(json) is { } answer && IsDefinitive(answer, operation) && Matches(answer, transactionId, currency))
                 {
                     _metrics?.RemoteCall(operation, answer.Status.ToLowerInvariant());
                     return answer;
@@ -310,6 +362,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
             }
             else
             {
+                // Redirects are not followed (AllowAutoRedirect off): a 3xx is uncertain like any other non-200.
                 reason = "HTTP " + ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture);
             }
         }
@@ -324,7 +377,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
 
         SeamlessLog.Uncertain(_logger, player.OperatorId.Value, operation, id, reason);
         _metrics?.RemoteCall(operation, UncertainStatus);
-        return new RemoteAnswer(UncertainStatus, Balance: null);
+        return new RemoteAnswer(UncertainStatus, Balance: null, Currency: null, TransactionId: null);
     }
 
     /// <summary>A status of the contract table that carries what its mapping needs (the balance, when it reports one).</summary>
@@ -403,6 +456,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
         {
             // The debit was never confirmed here (uncertain): neither it nor its refund is in the mirror, which stays even.
             SeamlessLog.RollbackWithoutMirroredDebit(_logger, op.TransactionId.Value, op.OriginalTransactionId.Value);
+            _metrics?.RollbackUnmirrored();
             return confirmed;
         }
 
@@ -439,5 +493,5 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
     }
 
     /// <summary>A definitive answer of the operator (or <see cref="UncertainStatus"/>/<see cref="NotConfiguredStatus"/>).</summary>
-    private sealed record RemoteAnswer(string Status, Balance? Balance);
+    private sealed record RemoteAnswer(string Status, Balance? Balance, string? Currency, string? TransactionId);
 }

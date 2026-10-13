@@ -9,7 +9,7 @@ namespace Internal.Generated.WolverineHandlers
     {
         public override System.Type[] HandlerTypes()
         {
-            return new System.Type[] { typeof(Apogeu.Betting.Features.CashOut.AutoCashOutHandler), typeof(Apogeu.Betting.Features.CashOut.CreditCashOutHandler), typeof(Apogeu.Betting.Features.CashOut.DecideCashOutHandler), typeof(Apogeu.Betting.Features.RoundEvents.RoundEventsHandler), typeof(Apogeu.Betting.Features.Settlement.RefundBetHandler), typeof(Apogeu.Betting.Features.Wallet.ReverseBetDebitHandler) };
+            return new System.Type[] { typeof(Apogeu.Betting.Features.CashOut.AutoCashOutHandler), typeof(Apogeu.Betting.Features.CashOut.CreditCashOutHandler), typeof(Apogeu.Betting.Features.CashOut.DecideCashOutHandler), typeof(Apogeu.Betting.Features.RoundEvents.RoundEventsHandler), typeof(Apogeu.Betting.Features.Settlement.RefundBetHandler), typeof(Apogeu.Betting.Features.Wallet.ReverseBetDebitHandler), typeof(Apogeu.Wallet.Features.Seamless.ResendOperatorWalletHandler) };
         }
 
         public override System.Type[] MessageTypes()
@@ -32,6 +32,7 @@ namespace Internal.Generated.WolverineHandlers
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Internal.Generated.WolverineHandlers.CreditCashOutHandler690330595))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Internal.Generated.WolverineHandlers.DecideCashOutHandler1278911890))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Internal.Generated.WolverineHandlers.RefundBetHandler1088490790))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Internal.Generated.WolverineHandlers.ResendOperatorWalletHandler1479089543))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Internal.Generated.WolverineHandlers.ReverseBetDebitHandler917902102))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Internal.Generated.WolverineHandlers.RoundAnnulledHandler145902194))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Internal.Generated.WolverineHandlers.RoundBettingOpenedHandler1207545563))]
@@ -43,6 +44,7 @@ namespace Internal.Generated.WolverineHandlers
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Betting.Features.RoundEvents.RoundEventsHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Betting.Features.Settlement.RefundBetHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Betting.Features.Wallet.ReverseBetDebitHandler))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Wallet.Features.Seamless.ResendOperatorWalletHandler))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Betting.Infrastructure.Messaging.CreditCashOut))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Betting.Infrastructure.Messaging.DecideCashOut))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Betting.Infrastructure.Messaging.RefundBet))]
@@ -52,6 +54,7 @@ namespace Internal.Generated.WolverineHandlers
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Rounds.Contracts.RoundBettingOpened))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Rounds.Contracts.RoundCrashed))]
         [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Rounds.Contracts.RoundFlying))]
+        [global::System.Diagnostics.CodeAnalysis.DynamicDependency(global::System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All, typeof(global::Apogeu.Wallet.Infrastructure.Messaging.ResendOperatorWallet))]
         public static void Pin()
         {
             // Intentionally empty. The [DynamicDependency] attributes above are the payload: they root the generated types for Native AOT, and [ModuleInitializer] guarantees this method is itself an ILC root.
