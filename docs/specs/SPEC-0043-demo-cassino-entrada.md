@@ -155,9 +155,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 8e78b2d | 2026-10-10 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:32.46]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — c4f0154 | 2026-10-13 |
-| G2 Green | FAIL | build exit 0 (✓ built in 148ms); test exit 1 ([xUnit.net 00:01:30.85]     Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do ); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 6cfb8eb | 2026-10-13 |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 146ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 6cfb8eb | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  760ms (tests 97%, transform 2%, import 1%)) — 6cfb8eb | 2026-10-13 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (6cfb8eb; minors: regex do apelido aceita \n final, assinatura usa caminho codificado vs verificador decodificado, Secure atrás de proxy, chaves do Data Protection sem persistência, foco no erro/lobby, logout ignora falha, --no-build do AddProject) — 6cfb8eb | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
