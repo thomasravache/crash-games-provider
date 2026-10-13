@@ -26,6 +26,13 @@ internal sealed class FixedOperatorWalletSettings : IOperatorWalletSettings
         return this;
     }
 
+    /// <summary>Turns <paramref name="op"/> seamless without a wallet URL nor key (a misconfigured operator: <c>not_configured</c>).</summary>
+    public FixedOperatorWalletSettings UseSeamlessWithoutWallet(OperatorId op)
+    {
+        _settings[op] = new OperatorWalletSettings(WalletMode.Seamless, WalletUrl: null, Key: null);
+        return this;
+    }
+
     /// <summary>Turns <paramref name="op"/> back to demo explicitly (the mode switched while operations are pending).</summary>
     public FixedOperatorWalletSettings UseDemo(OperatorId op)
     {
