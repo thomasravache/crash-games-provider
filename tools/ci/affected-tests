@@ -1,27 +1,33 @@
 #!/usr/bin/env python3
-"""Runs only the tests affected by the current change (SPEC-0051): the `test` and `coverage` gates of
-docs/specs/sdd-config.yml. Stdlib only. CI and the G5 gates (test_integration, test_e2e, arch_test, security_scan)
-still run the whole suite.
+"""Runs only the tests affected by the current change (SPEC-0051, Emenda v2): the `test` and `coverage` gates (G1, G2)
+of docs/specs/sdd-config.yml. Stdlib only. G5 runs the whole suite locally (`test_integration`, `test_e2e`,
+`arch_test`, `security_scan`) and in GitHub CI.
 
 Usage: python3 tools/ci/affected-tests [--base REF] [--files F ...] [--list | --dry-run] [--mode test|coverage]
 
-Changed files: --files when given; otherwise `git diff --name-only <base>...HEAD` plus staged, unstaged and untracked
-files of the git repository of the current directory. Base: --base, else a non-empty AFFECTED_BASE, else
-sdd/SPEC-0001 (main when that branch does not exist).
+Changed files: --files when given; otherwise `git diff --name-only --no-renames <base>...HEAD` plus the staged,
+unstaged and untracked files of the git repository of the current directory (--no-renames: a rename counts both the
+old and the new path). Base: --base, else a non-empty AFFECTED_BASE, else sdd/SPEC-0001, else origin/sdd/SPEC-0001,
+else main.
 
 Mapping (in doubt, the whole solution; when the solution is selected, it is the only target):
-  src/backend/Modules/<X>/<X>.Contracts/**            -> solution
-  src/backend/Modules/<X>/** (X with a test project)  -> tests/backend/Modules/<X>.Tests + Architecture.Tests
-  src/backend/(BuildingBlocks|ServiceDefaults|Host|AppHost)/**, Directory.*.props, *.slnx, global.json,
-  packages.lock.json, src/frontend/pnpm-lock.yaml, tests/backend/TestKit/**  -> solution
-  src/frontend/**, tests/frontend/**, tests/e2e/**    -> frontend (pnpm -C src/frontend test)
-  tests/backend/Modules/<P>/**, tests/backend/<P>/**  -> that test project
-  tests/ci/**, tools/**, .github/**                   -> tests/ci/Ci.Tests
-  docs/**, root *.md                                  -> nothing
-  anything else, or no changed file at all            -> solution
+  docs/**, root *.md                                   -> nothing
+  tests/**/Support/**, tests/backend/TestKit/**        -> solution (linked into other test projects via <Compile Link>)
+  src/backend/**                                       -> solution (the Host references every module, and several test
+                                                          projects boot the Host or use other modules' internals)
+  Directory.*.props, *.slnx, global.json, packages.lock.json, src/frontend/pnpm-lock.yaml  -> solution
+  tools/contracts/**                                   -> solution (ADR-0008 contract generators)
+  src/frontend/ config (tsconfig*.json, eslint.config.*, package.json, pnpm-workspace.yaml, .prettierrc*,
+  .dependency-cruiser.*)                               -> frontend + tests/backend/Repository.Tests
+  src/frontend/**, tests/frontend/**, tests/e2e/**     -> frontend (pnpm -C src/frontend test; the E2E journey itself
+                                                          runs in G5 and in CI)
+  tests/backend/Modules/<P>/**, tests/backend/<P>/**   -> that test project
+  tests/ci/**, tools/ci/**, tools/sdd/**, .github/**   -> tests/ci/Ci.Tests
+  other tools/**, anything else, or no changed file    -> solution
 
 --list prints the targets, --dry-run the commands; by default the commands run one after the other from the
-repository root and the first failure stops the run with its exit code.
+repository root and the first failure stops the run with its exit code. In coverage mode a warning goes to stderr when
+a selected .NET project references coverlet.collector but no Cobertura report was produced.
 
 Performance pass: `dotnet test --filter Category=Performance` on a project without such tests exits with 0 under
 this repository's runner (VSTest prints "No test matches the given testcase filter"), so the command runs as is.
@@ -29,102 +35,117 @@ this repository's runner (VSTest prints "No test matches the given testcase filt
 from __future__ import annotations
 
 import argparse
-import glob
 import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 SOLUTION = "solution"
 FRONTEND = "frontend"
 SOLUTION_FILE = "Apogeu.slnx"
-ARCHITECTURE_TESTS = "tests/backend/Architecture.Tests/Architecture.Tests.csproj"
+REPOSITORY_TESTS = "tests/backend/Repository.Tests/Repository.Tests.csproj"
 CI_TESTS = "tests/ci/Ci.Tests/Ci.Tests.csproj"
-# Modules with a project in tests/backend/Modules; any other module (Backoffice) runs the whole solution.
-MODULES_WITH_TESTS = {"Betting", "Fairness", "Operators", "Rounds", "Wallet"}
-DEFAULT_BASE = "sdd/SPEC-0001"
+BASES = ["sdd/SPEC-0001", "origin/sdd/SPEC-0001"]
 FALLBACK_BASE = "main"
 
 TEST_FILTER = '"Category!=Nightly&Category!=CiLive&Category!=Performance"'
-COVERAGE_REPORTS = ["artifacts/coverage/raw/**/coverage.cobertura.xml", "src/frontend/coverage/lcov.info"]
+COBERTURA_REPORTS = "artifacts/coverage/raw/**/coverage.cobertura.xml"
+COVERAGE_REPORTS = [COBERTURA_REPORTS, "src/frontend/coverage/lcov.info"]
+COVERLET = "coverlet.collector"
 REPORTGENERATOR = (
     'dotnet reportgenerator "-reports:{reports}" -targetdir:artifacts/coverage "-reporttypes:Cobertura;TextSummary;Html" '
     '"-assemblyfilters:-Apogeu.TestKit*;-Apogeu.Architecture.*;-Apogeu.Repository.*;-*.Tests;-*.StandIn"'
 )
 
+NOTHING_PATTERNS = [re.compile(r"^docs/"), re.compile(r"^[^/]*\.md$")]
 SOLUTION_PATTERNS = [
-    re.compile(r"^src/backend/(BuildingBlocks|ServiceDefaults|Host|AppHost)/"),
+    re.compile(r"^tests/(.*/)?Support/"),
+    re.compile(r"^tests/backend/TestKit/"),
+    re.compile(r"^src/backend/"),
     re.compile(r"^Directory\.[^/]*\.props$"),
     re.compile(r"^[^/]*\.slnx$"),
     re.compile(r"^global\.json$"),
     re.compile(r"(^|/)packages\.lock\.json$"),
     re.compile(r"^src/frontend/pnpm-lock\.yaml$"),
-    re.compile(r"^tests/backend/TestKit/"),
+    re.compile(r"^tools/contracts/"),
 ]
-MODULE = re.compile(r"^src/backend/Modules/([^/]+)/(?:([^/]+)/)?")
+FRONTEND_CONFIG_PATTERNS = [
+    re.compile(r"^src/frontend/(.*/)?tsconfig[^/]*\.json$"),
+    re.compile(r"^src/frontend/eslint\.config\.[^/]+$"),
+    re.compile(r"^src/frontend/(.*/)?package\.json$"),
+    re.compile(r"^src/frontend/pnpm-workspace\.yaml$"),
+    re.compile(r"^src/frontend/\.prettierrc[^/]*$"),
+    re.compile(r"^src/frontend/\.dependency-cruiser\.[^/]+$"),
+]
+FRONTEND_PREFIXES = ("src/frontend/", "tests/frontend/", "tests/e2e/")
+CI_PREFIXES = ("tests/ci/", "tools/ci/", "tools/sdd/", ".github/")
 MODULE_TESTS = re.compile(r"^tests/backend/Modules/([^/]+)/")
 BACKEND_TESTS = re.compile(r"^tests/backend/([^/]+)/")
 
 
+def matches(path: str, patterns: list[re.Pattern[str]]) -> bool:
+    return any(pattern.search(path) for pattern in patterns)
+
+
 def targets_for(path: str) -> set[str]:
     """The test targets of one changed file (repository-relative, forward slashes)."""
-    if path.startswith("docs/") or ("/" not in path and path.endswith(".md")):
+    if matches(path, NOTHING_PATTERNS):
         return set()
-    if any(pattern.search(path) for pattern in SOLUTION_PATTERNS):
+    if matches(path, SOLUTION_PATTERNS):
         return {SOLUTION}
-    if match := MODULE.match(path):
-        module, project = match.group(1), match.group(2)
-        if project == f"{module}.Contracts" or module not in MODULES_WITH_TESTS:
-            return {SOLUTION}
-        return {f"tests/backend/Modules/{module}.Tests/{module}.Tests.csproj", ARCHITECTURE_TESTS}
-    if path.startswith(("src/frontend/", "tests/frontend/", "tests/e2e/")):
+    if matches(path, FRONTEND_CONFIG_PATTERNS):
+        return {FRONTEND, REPOSITORY_TESTS}
+    if path.startswith(FRONTEND_PREFIXES):
         return {FRONTEND}
     if match := MODULE_TESTS.match(path):
         project = match.group(1)
         return {f"tests/backend/Modules/{project}/{project}.csproj"}
-    if match := BACKEND_TESTS.match(path):
+    if (match := BACKEND_TESTS.match(path)) and match.group(1) != "Modules":
         project = match.group(1)
-        if project != "Modules":
-            return {f"tests/backend/{project}/{project}.csproj"}
-    if path.startswith(("tests/ci/", "tools/", ".github/")):
+        return {f"tests/backend/{project}/{project}.csproj"}
+    if path.startswith(CI_PREFIXES):
         return {CI_TESTS}
     return {SOLUTION}
 
 
 def select(files: list[str]) -> list[str]:
-    """The sorted targets of the changed files; the solution alone when it is selected or nothing changed."""
+    """The targets of the changed files in ordinal order; the solution alone when it is selected or nothing changed."""
     if not files:
         return [SOLUTION]
     targets: set[str] = set()
     for file in files:
-        targets |= targets_for(file.strip().replace("\\", "/").removeprefix("./"))
-    return [SOLUTION] if SOLUTION in targets else sorted(targets)
+        targets |= targets_for(file.replace("\\", "/").removeprefix("./"))
+    return [SOLUTION] if SOLUTION in targets else sorted(targets, key=lambda target: target.encode())
 
 
-def git(root: str, *arguments: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["git", *arguments], cwd=root, capture_output=True, text=True, check=False)
+def git(root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-c", "core.quotePath=false", *arguments], cwd=root, capture_output=True, text=True, check=False)
 
 
-def git_lines(root: str, *arguments: str) -> list[str]:
+def git_lines(root: Path, *arguments: str) -> list[str]:
     result = git(root, *arguments)
     if result.returncode != 0:
         sys.exit(f"affected-tests: git {' '.join(arguments)} failed: {result.stderr.strip()}")
-    return [line for line in result.stdout.splitlines() if line.strip()]
+    return [line for line in result.stdout.splitlines() if line]
 
 
-def resolve_base(root: str, requested: str | None) -> str:
+def resolve_base(root: Path, requested: str | None) -> str:
     if requested:
         return requested
     if environment := os.environ.get("AFFECTED_BASE", "").strip():
         return environment
-    exists = git(root, "rev-parse", "--verify", "--quiet", DEFAULT_BASE + "^{commit}").returncode == 0
-    return DEFAULT_BASE if exists else FALLBACK_BASE
+    for base in BASES:
+        if git(root, "rev-parse", "--verify", "--quiet", base + "^{commit}").returncode == 0:
+            return base
+    return FALLBACK_BASE
 
 
-def changed_files(root: str, base: str) -> list[str]:
-    files = set(git_lines(root, "diff", "--name-only", f"{base}...HEAD"))
-    files |= set(git_lines(root, "diff", "--name-only", "--cached"))
-    files |= set(git_lines(root, "diff", "--name-only"))
+def changed_files(root: Path, base: str) -> list[str]:
+    files = set(git_lines(root, "diff", "--name-only", "--no-renames", f"{base}...HEAD"))
+    files |= set(git_lines(root, "diff", "--name-only", "--no-renames", "--cached"))
+    files |= set(git_lines(root, "diff", "--name-only", "--no-renames"))
     files |= set(git_lines(root, "ls-files", "--others", "--exclude-standard"))
     return sorted(files)
 
@@ -155,14 +176,35 @@ def commands_for(targets: list[str], mode: str) -> list[str]:
     return commands
 
 
-def run(command: str, root: str) -> int:
+def run(command: str, root: Path) -> int:
     print(f"$ {command}", file=sys.stderr, flush=True)
     return subprocess.run(command, shell=True, cwd=root, check=False).returncode
 
 
-def report_coverage(root: str) -> int:
+def references_coverlet(project: Path) -> bool:
+    try:
+        return COVERLET in project.read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
+def coverlet_projects(root: Path, targets: list[str]) -> list[str]:
+    """The selected .NET projects that collect coverage (every test project when the solution is selected)."""
+    if SOLUTION in targets:
+        projects = sorted((root / "tests").rglob("*.csproj"))
+    else:
+        projects = [root / target for target in targets if target != FRONTEND]
+    return [project.relative_to(root).as_posix() for project in projects if references_coverlet(project)]
+
+
+def report_coverage(root: Path, targets: list[str]) -> int:
     """Merges the coverage reports that exist (ReportGenerator fails on a missing file)."""
-    reports = [pattern for pattern in COVERAGE_REPORTS if glob.glob(os.path.join(root, pattern), recursive=True)]
+    if not any(root.glob(COBERTURA_REPORTS)) and (projects := coverlet_projects(root, targets)):
+        print(
+            "affected-tests: WARNING no Cobertura report was produced although these selected projects reference "
+            f"{COVERLET}: {', '.join(projects)}",
+            file=sys.stderr)
+    reports = [pattern for pattern in COVERAGE_REPORTS if any(root.glob(pattern))]
     if not reports:
         print("affected-tests: no coverage report produced", file=sys.stderr)
         return 0
@@ -174,7 +216,9 @@ def report_coverage(root: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Runs only the tests affected by the current change (SPEC-0051).")
-    parser.add_argument("--base", help="git ref to diff against (default: AFFECTED_BASE, else sdd/SPEC-0001, else main)")
+    parser.add_argument(
+        "--base",
+        help="git ref to diff against (default: AFFECTED_BASE, else sdd/SPEC-0001, else origin/sdd/SPEC-0001, else main)")
     parser.add_argument("--files", nargs="+", help="changed files to map instead of asking git")
     output = parser.add_mutually_exclusive_group()
     output.add_argument("--list", action="store_true", help="print the selected targets and exit")
@@ -182,12 +226,12 @@ def main() -> int:
     parser.add_argument("--mode", choices=["test", "coverage"], default="test")
     arguments = parser.parse_args()
 
-    root = git_lines(os.getcwd(), "rev-parse", "--show-toplevel")[0]
+    root = Path(git_lines(Path.cwd(), "rev-parse", "--show-toplevel")[0])
     files = arguments.files if arguments.files is not None else changed_files(root, resolve_base(root, arguments.base))
     targets = select(files)
 
     if arguments.list:
-        print("\n".join(sorted(targets, key=lambda target: target.encode())))
+        print("\n".join(targets))
         return 0
 
     commands = commands_for(targets, arguments.mode)
@@ -200,7 +244,7 @@ def main() -> int:
         if code := run(command, root):
             return code
     if arguments.mode == "coverage" and targets:
-        return report_coverage(root)
+        return report_coverage(root, targets)
     return 0
 
 

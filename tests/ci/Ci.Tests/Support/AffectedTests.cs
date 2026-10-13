@@ -13,9 +13,7 @@ public static class AffectedTests
 
     public const string Solution = "solution";
     public const string Frontend = "frontend";
-    public const string ArchitectureTests = "tests/backend/Architecture.Tests/Architecture.Tests.csproj";
-    public const string BettingTests = "tests/backend/Modules/Betting.Tests/Betting.Tests.csproj";
-    public const string RoundsTests = "tests/backend/Modules/Rounds.Tests/Rounds.Tests.csproj";
+    public const string RepositoryTests = "tests/backend/Repository.Tests/Repository.Tests.csproj";
     public const string WalletTests = "tests/backend/Modules/Wallet.Tests/Wallet.Tests.csproj";
     public const string CiTests = "tests/ci/Ci.Tests/Ci.Tests.csproj";
 
@@ -28,10 +26,27 @@ public static class AffectedTests
         string workingDirectory,
         string script,
         IEnumerable<string> arguments,
+        CancellationToken cancellationToken) =>
+        RunAsync(workingDirectory, script, arguments, new Dictionary<string, string>(StringComparer.Ordinal), cancellationToken);
+
+    /// <summary>
+    /// Runs the script with <paramref name="extraEnvironment"/> on top of an empty <c>AFFECTED_BASE</c> (a test that
+    /// sets <c>AFFECTED_BASE</c> there overrides it).
+    /// </summary>
+    public static Task<ProcessResult> RunAsync(
+        string workingDirectory,
+        string script,
+        IEnumerable<string> arguments,
+        IReadOnlyDictionary<string, string> extraEnvironment,
         CancellationToken cancellationToken)
     {
         // An inherited AFFECTED_BASE must not change the base the tests choose.
         var environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["AFFECTED_BASE"] = string.Empty };
+        foreach (var (key, value) in extraEnvironment)
+        {
+            environment[key] = value;
+        }
+
         return ProcessRunner.RunAsync("python3", [script, .. arguments], workingDirectory, ProcessRunner.ShortTimeout, environment, cancellationToken);
     }
 
