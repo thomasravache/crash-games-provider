@@ -68,7 +68,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 0ca62a9 | 2026-10-12 |
 | G1 Red | PASS | verify G1: PASS; `dotnet test Apogeu.slnx --filter "Category!=Nightly&Category!=CiLive&Category!=Performance" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test` exit 1 (red: [xUnit.net 00:00:03.29]     Dado o modelo do AppHost com a porta fixa do jogo e os endereç) — e0d39b1 | 2026-10-12 |
-| G2 Green | FAIL | build exit 0 (✓ built in 548ms); test exit 1 ([xUnit.net 00:07:10.02]     Dados dois CashOut concorrentes para a mesma aposta com o líde); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 (2026-10-12T23:13:17: Report generation took 1,1 seconds) — 6049d8d | 2026-10-12 |
+| G2 Green | FAIL | build exit 0 (✓ built in 158ms); test exit 0 (learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:04:18.25]     Dado o backend compilado, quando contracts:generate roda, entã) — 6049d8d | 2026-10-13 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
