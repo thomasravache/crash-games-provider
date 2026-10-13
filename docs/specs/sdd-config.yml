@@ -9,8 +9,11 @@ max_parallel: 3
 # --- Build e testes (G2, G5) ---
 # Exemplos: "dotnet build" | "npm run build" | "./gradlew build" | "go build ./..."
 build: "pnpm -C src/frontend install --frozen-lockfile && dotnet build Apogeu.slnx && pnpm -C src/frontend build"
-# Suíte completa. Exemplos: "dotnet test" | "npm test" | "pytest" | "go test ./..."
-test: "dotnet test Apogeu.slnx --filter \"Category!=Nightly&Category!=CiLive&Category!=Performance\" && dotnet test Apogeu.slnx --filter Category=Performance -m:1 && pnpm -C src/frontend test"
+# Testes do G1/G2. Exemplos: "dotnet test" | "npm test" | "pytest" | "go test ./..."
+# Gates locais (`test`, `coverage`) rodam só os testes afetados pela mudança (SPEC-0051); a CI e o G5
+# (`test_integration`, `test_e2e`, `arch_test`, `security_scan`, workflow do GitHub) seguem rodando tudo.
+# Outra base para o diff: AFFECTED_BASE=<ref>.
+test: "python3 tools/ci/affected-tests"
 test_integration: "dotnet test Apogeu.slnx --filter Category=Integration"
 # E2E da jornada do usuário. Exemplos: "npx playwright test" | "npx cypress run" | "maestro test flows/"
 test_e2e: "tools/ci/run-e2e.sh"
@@ -18,7 +21,7 @@ test_e2e: "tools/ci/run-e2e.sh"
 smoke_test: ""
 lint: "dotnet format Apogeu.slnx --verify-no-changes && pnpm -C src/frontend lint && pnpm -C src/frontend format:check"
 # G2 — cobertura das linhas alteradas (ex: diff-cover, coverlet + reportgenerator). Opcional.
-coverage: "rm -rf artifacts/coverage src/frontend/coverage && dotnet test Apogeu.slnx --filter \"Category!=Nightly&Category!=CiLive&Category!=Performance\" --collect \"XPlat Code Coverage\" --results-directory artifacts/coverage/raw && pnpm -C src/frontend test:coverage && dotnet tool restore && dotnet reportgenerator \"-reports:artifacts/coverage/raw/**/coverage.cobertura.xml;src/frontend/coverage/lcov.info\" -targetdir:artifacts/coverage \"-reporttypes:Cobertura;TextSummary;Html\" \"-assemblyfilters:-Apogeu.TestKit*;-Apogeu.Architecture.*;-Apogeu.Repository.*;-*.Tests;-*.StandIn\""
+coverage: "python3 tools/ci/affected-tests --mode coverage"
 coverage_min_changed_lines: 80
 # Opcional: mutation testing em código de domínio crítico (Stryker, PIT, mutmut).
 mutation: "PATH=/usr/local/share/dotnet:$PATH STRYKER_MUTANT_ID_CONTROL_VAR=ACTIVE_MUTATION_0 dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj --filter Category=Mutation"
