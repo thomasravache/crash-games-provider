@@ -44,6 +44,10 @@ function bundleBudget(limitBytes: number): Plugin {
   };
 }
 
-export default defineConfig({
+/** SPEC-0050: hosts of the cloudflared quick tunnels, so the dev server opens on a phone through the tunnel. */
+const devTunnelHosts = [".trycloudflare.com"];
+
+export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss(), bundleBudget(initialBundleBudgetBytes)],
-});
+  ...(command === "serve" ? { server: { allowedHosts: devTunnelHosts } } : {}),
+}));

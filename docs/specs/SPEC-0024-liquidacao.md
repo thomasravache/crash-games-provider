@@ -4,7 +4,7 @@ title: "Liquidação da rodada e estorno"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: implemented
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0023]
@@ -193,9 +193,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  766ms (tests 97%, transform 2%, import 1%)) — c186b3d | 2026-10-11 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (2ª revisão, c186b3d; minors n1–n6: revive × fechamento do resumo sem lock, alerta falso de cash-out tardio com líder lento, p99 do cash-out no limite, segundo chamador fica em pending, carência na fila sequencial, resumo de anulada × TransactionNotFound tardio) — c186b3d | 2026-10-11 |
 | G5 Integração & CI | PASS | build exit 0 (✓ built in 155ms); test exit 0 (at least ~402ms faster with isolate: false — reuses workers across files instead of one pe); test_integration exit 0 (Passed!  - Failed:     0, Passed:    43, Skipped:     0, Total:    43, Duration: 9 m 2 s -); test_e2e exit 0 ([run-e2e] stopping the AppHost); arch_test exit 0 (Duration  770ms (tests 97%, transform 2%, import 1%)); security_scan exit 0 (Ran 8 rules on 510 files: 0 findings.) — 21ac3da | 2026-10-12 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-12 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #26, merge 89b1b79) | 2026-10-12 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 9cf936c | 2026-10-12 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->

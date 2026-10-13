@@ -49,3 +49,49 @@
     animation: none;
   }
 }
+
+/* Scoreboard of the scene (SPEC-0049): at the top, centred, compact (≤ 20% of the scene height, ≤ 40% of its width)
+   and without a box, so the kite in the centre stays visible; a soft shadow keeps the texts legible over the sky.
+   Sizes follow the scene height (container query units), so the mobile scene (~300 px) gets a smaller scoreboard. */
+.hud-scene {
+  container-type: size;
+}
+
+.hud-scoreboard-area {
+  padding-top: clamp(0.25rem, 3cqh, 1.25rem);
+}
+
+.hud-scoreboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  max-width: 40cqw;
+  background: transparent;
+  text-align: center;
+  /* Crisp 1 px black halo (no blur) around every glyph, so the small coloured labels reach WCAG 2.2 AA over the sky
+     and the white clouds (ADR-0020): the label is read against the halo, the halo against the sky. Then a soft glow. */
+  text-shadow:
+    1px 0 0 #000,
+    -1px 0 0 #000,
+    0 1px 0 #000,
+    0 -1px 0 #000,
+    1px 1px 0 #000,
+    -1px 1px 0 #000,
+    1px -1px 0 #000,
+    -1px -1px 0 #000,
+    0 0 8px rgb(0 0 0 / 0.5);
+}
+
+/* Bounded by the scene height and width, so a long multiplier ("10.000,00x", ~6 em) stays inside 40cqw. */
+.hud-scoreboard-value {
+  font-size: clamp(1.25rem, min(10cqh, 6cqw), 3.75rem);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hud-scoreboard-label {
+  font-size: clamp(0.625rem, min(3.5cqh, 2.4cqw), 0.875rem);
+  line-height: 1.2;
+  white-space: nowrap;
+}

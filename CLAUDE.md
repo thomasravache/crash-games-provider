@@ -9,6 +9,7 @@ Provedor B2B de crash games: monólito modular .NET 10 (`src/backend`) + workspa
 ```bash
 dotnet build Apogeu.slnx                        # 0 avisos, 0 erros
 dotnet test Apogeu.slnx                         # suíte .NET (integração lenta: git, dotnet e pnpm reais)
+python3 tools/ci/affected-tests                 # só os testes afetados pela mudança (--dry-run lista os comandos)
 dotnet format Apogeu.slnx --verify-no-changes   # formatação C#
 pnpm -C src/frontend install --frozen-lockfile
 pnpm -C src/frontend build
