@@ -4,7 +4,7 @@ title: Apostas ao vivo com várias instâncias
 tier: full
 type: feature
 user_facing: "false"
-status: proposed
+status: approved
 created: 2026-10-13
 parent: SPEC-0019
 depends_on: [SPEC-0025]
@@ -14,8 +14,8 @@ touches: [src/backend/Modules/Betting/**, tests/backend/Modules/Betting.Tests/**
 adrs: [ADR-0005, ADR-0014, ADR-0019]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-13
 ---
 
 # SPEC-0056 — Apostas ao vivo com várias instâncias
@@ -162,6 +162,22 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 11. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
+
+**Fase 1: Domínio (apelido, removidas, moeda, trava por sala)**
+- [ ] Red: UT-01, UT-02, UT-03 e UT-04 com a tag `SPEC-0056:<ID>`, falhando pelo motivo certo
+- [ ] Green: implementar seguindo o padrão da SPEC-0025
+
+**Fase 2: Líder da sala e várias instâncias**
+- [ ] Red: IT-01, IT-02, IT-03 e CT-01 com duas instâncias reais, falhando pelo motivo certo
+- [ ] Green: projeção e emissor no líder, encaminhamento pelo canal do árbitro, reconstrução na troca de líder
+- [ ] Refactor mantendo tudo verde
+- [ ] Validar: build + suíte afetada + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->

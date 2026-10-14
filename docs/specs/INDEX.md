@@ -5,7 +5,7 @@
 ## Saúde
 
 - Validação (G0): **2 erro(s), 19 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 3, approved 24, in-progress 4, implemented 21
+- Specs: proposed 2, approved 25, in-progress 4, implemented 21
 - Impedimentos: **1 aberto(s)**, 19 resolvido(s)
 
 ## Impedimentos Abertos
@@ -68,7 +68,7 @@ Perfil: **rigoroso**
 | 5 | SPEC-0033 | Acabamento técnico da cena da Pipa | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029 |
 | 6 | SPEC-0036 | Backoffice: shell, login, papéis e trilha de auditoria | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029; saiu da onda 5: arquivos em comum com SPEC-0031 |
 | 6 | SPEC-0044 | Cassino demo: lobby com o catálogo da Apogeu | full/M | approved | ⛔ aguarda implementação de SPEC-0043 | saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0028; saiu da onda 4: arquivos em comum com SPEC-0032; saiu da onda 5: max_parallel=3 |
-| 6 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3 |
+| 6 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | approved | ⛔ aguarda implementação de SPEC-0025 | saiu da onda 2: arquivos em comum com SPEC-0046, SPEC-0052; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3 |
 | 7 | SPEC-0037 | Backoffice: painel de desempenho | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec |  |
 | 7 | SPEC-0045 | Cassino demo: página do jogo com lançamento assinado | full/M | approved | ⛔ aguarda implementação de SPEC-0044 |  |
 | 7 | SPEC-0053 | Teto de ganho por rodada nos limites do operador | full/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: arquivos em comum com SPEC-0028; saiu da onda 4: arquivos em comum com SPEC-0032; saiu da onda 5: max_parallel=3; saiu da onda 6: arquivos em comum com SPEC-0044 |
@@ -77,11 +77,11 @@ Perfil: **rigoroso**
 | 8 | SPEC-0054 | Corte de exposição por rodada com retirada automática | full/M | approved | ⛔ aguarda implementação de SPEC-0053; aguarda implementação de SPEC-0025 |  |
 | 9 | SPEC-0039 | Backoffice: catálogo e limites por operador | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 7: arquivos em comum com SPEC-0037; saiu da onda 8: arquivos em comum com SPEC-0038 |
 | 9 | SPEC-0055 | Aviso de limite da rodada e regras na Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0054 |  |
-| 9 | SPEC-0048 | Capacidade do cash-out em rajada na infraestrutura real | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046, SPEC-0052; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 8: arquivos em comum com SPEC-0054 |
+| 9 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: max_parallel=3; saiu da onda 8: max_parallel=3 |
 | 10 | SPEC-0040 | Backoffice: rodadas e auditoria provably fair | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 7: arquivos em comum com SPEC-0037; saiu da onda 8: arquivos em comum com SPEC-0038; saiu da onda 9: arquivos em comum com SPEC-0039 |
 | 11 | SPEC-0041 | Backoffice: busca de apostas | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 7: arquivos em comum com SPEC-0037; saiu da onda 8: arquivos em comum com SPEC-0038; saiu da onda 9: arquivos em comum com SPEC-0039; saiu da onda 10: arquivos em comum com SPEC-0040 |
 | 12 | SPEC-0042 | Backoffice: relatórios e fechamento mensal | full/M | approved | ⛔ aguarda implementação de SPEC-0036; aguarda implementação de SPEC-0038; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 9: arquivos em comum com SPEC-0039; saiu da onda 10: arquivos em comum com SPEC-0040; saiu da onda 11: arquivos em comum com SPEC-0041 |
-| 13 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 2: arquivos em comum com SPEC-0046, SPEC-0052; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 8: arquivos em comum com SPEC-0054; saiu da onda 9: arquivos em comum com SPEC-0048; saiu da onda 10: arquivos em comum com SPEC-0040; saiu da onda 11: arquivos em comum com SPEC-0041; saiu da onda 12: arquivos em comum com SPEC-0042 |
+| 13 | SPEC-0048 | Capacidade do cash-out em rajada na infraestrutura real | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046, SPEC-0052; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: arquivos em comum com SPEC-0056; saiu da onda 7: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 8: arquivos em comum com SPEC-0054; saiu da onda 9: max_parallel=3; saiu da onda 10: arquivos em comum com SPEC-0040; saiu da onda 11: arquivos em comum com SPEC-0041; saiu da onda 12: arquivos em comum com SPEC-0042 |
 
 ## Épicos
 
@@ -128,7 +128,7 @@ flowchart LR
     S0053["SPEC-0053<br/>Teto de ganho por rodada nos limites do…"]:::approved
     S0054["SPEC-0054<br/>Corte de exposição por rodada com retir…"]:::approved
     S0055["SPEC-0055<br/>Aviso de limite da rodada e regras na P…"]:::approved
-    S0056["SPEC-0056<br/>Apostas ao vivo com várias instâncias"]:::proposed
+    S0056["SPEC-0056<br/>Apostas ao vivo com várias instâncias"]:::approved
   end
   subgraph E0034["SPEC-0034 · Backoffice B2B da Apogeu"]
     S0036["SPEC-0036<br/>Backoffice: shell, login, papéis e tril…"]:::approved
@@ -282,7 +282,7 @@ flowchart LR
 | [SPEC-0053](SPEC-0053-teto-de-ganho-por-rodada-nos-limites-do-operador.md) | Teto de ganho por rodada nos limites do operador | full | feature | approved | 2026-10-13 | SPEC-0019 | — | — |
 | [SPEC-0054](SPEC-0054-corte-de-exposicao-por-rodada-com-retirada-automatica.md) | Corte de exposição por rodada com retirada automática | full | feature | approved | 2026-10-13 | SPEC-0019 | SPEC-0053, SPEC-0025 | SPEC-0053@1, SPEC-0023@3, SPEC-0025@4 |
 | [SPEC-0055](SPEC-0055-aviso-de-limite-da-rodada-e-regras-na-pipa.md) | Aviso de limite da rodada e regras na Pipa | lite | feature | approved | 2026-10-13 | SPEC-0019 | SPEC-0054 | SPEC-0054@1 |
-| [SPEC-0056](SPEC-0056-apostas-ao-vivo-com-varias-instancias.md) | Apostas ao vivo com várias instâncias | full | feature | proposed | 2026-10-13 | SPEC-0019 | SPEC-0025 | SPEC-0025@4, SPEC-0023@3 |
+| [SPEC-0056](SPEC-0056-apostas-ao-vivo-com-varias-instancias.md) | Apostas ao vivo com várias instâncias | full | feature | approved | 2026-10-13 | SPEC-0019 | SPEC-0025 | SPEC-0025@4, SPEC-0023@3 |
 
 ## ADRs
 
