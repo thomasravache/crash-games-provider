@@ -18,7 +18,7 @@ pnpm -C src/frontend typecheck
 pnpm -C src/frontend format:check
 ```
 
-Limite local do p99 da rajada de cash-out (`CashOutLatencyTests`): `APOGEU_CASHOUT_P99_BUDGET_MS` em ms, no perfil do shell da máquina; sem ela vale 75 ms (máquina de referência) e na CI é ignorada (3 s) — SPEC-0052.
+Limites locais dos testes de desempenho (`Category=Performance`): `APOGEU_PERF_BUDGET_SCALE` é o fator da máquina (decimal > 0, ex.: `5` ou `1.5`), no perfil do shell; sem ela vale 1 (máquina de referência) e na CI é ignorada (cada teste mantém o limite de CI) — SPEC-0052.
 
 ## Regras de código
 

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Apogeu.Betting.Tests.Support;
+using Apogeu.TestKit.Performance;
 using Xunit;
 
 namespace Apogeu.Betting.Tests.Integration;
@@ -10,9 +11,12 @@ public sealed class CashOutLatencyTests(BettingContainers containers)
 {
     private const int Players = 150;
     private const int CashOuts = Players * 2;
-    // The local budget (75 ms on the reference machine, 3 s on the CI runner, or the machine's own APOGEU_CASHOUT_P99_BUDGET_MS)
-    // and why it is so are in CashOutLatencyBudget (SPEC-0052).
-    private static readonly (TimeSpan Budget, string Source) P99Budget = CashOutLatencyBudget.ResolveWithSource(Environment.GetEnvironmentVariable);
+    // SPEC-0023 §5 targets p99 ≤ 50 ms; since SPEC-0024 records the request before asking the leader (one more write), the
+    // reference machine measures 52–54 ms, so its local budget is 75 ms (× the machine factor, SPEC-0052) until SPEC-0048 brings
+    // it back to 50 ms. The shared GitHub runner (2 vCPU, Postgres container on the same host) cannot hold that burst; there the
+    // test guards against regressions with 3 s (1,7 s measured after SPEC-0024).
+    private static readonly (TimeSpan Budget, string Source) P99Budget =
+        PerformanceBudget.Resolve(TimeSpan.FromMilliseconds(75), TimeSpan.FromSeconds(3), Environment.GetEnvironmentVariable);
     private static readonly TimeSpan Burst = TimeSpan.FromSeconds(1);
 
     [Fact(DisplayName = "Dados 300 cash-outs na mesma rodada em 1 s, quando medidos do envio à resposta, então todos decididos e p99 ≤ limite local (75 ms na máquina de referência; meta 50 ms na SPEC-0048; ≤ 3 s no runner da CI)")]

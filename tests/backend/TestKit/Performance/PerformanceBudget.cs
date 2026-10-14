@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Apogeu.TestKit.Performance;
 
 /// <summary>
@@ -5,9 +7,16 @@ namespace Apogeu.TestKit.Performance;
 /// receives, never from the real environment.
 /// </summary>
 /// <remarks>
-/// On CI (<c>GITHUB_ACTIONS=true</c>) each test keeps its own CI budget, whatever else the environment says, so no variable
-/// loosens the CI. Elsewhere the local budget is multiplied by <see cref="ScaleVariable"/> (1, the reference machine, when
-/// absent).
+/// <para>
+/// Each local budget is calibrated on the reference machine (factor 1). On CI (<c>GITHUB_ACTIONS=true</c>) each test keeps its
+/// own CI budget, whatever else the environment says, so no variable loosens the CI. Any other machine declares in
+/// <see cref="ScaleVariable"/> the single factor by which it is slower than the reference one, in its shell profile, outside
+/// the repository (the 4 vCPU development VM uses 5: its worst cash-out burst measured 315 ms, 4.2× the 75 ms budget).
+/// </para>
+/// <para>
+/// These budgets guard against regressions on the machine running the tests; the real latency targets on production
+/// infrastructure belong to the capacity spec (SPEC-0048).
+/// </para>
 /// </remarks>
 public static class PerformanceBudget
 {
@@ -20,15 +29,32 @@ public static class PerformanceBudget
     /// "<see cref="ScaleVariable"/>=value"), for the failure message.
     /// </summary>
     /// <exception cref="InvalidOperationException">The variable is set but is not a number greater than zero.</exception>
-    public static (TimeSpan Budget, string Source) Resolve(TimeSpan local, TimeSpan ci, Func<string, string?> environment) =>
-#pragma warning disable MA0025 // Scaffold of SPEC-0052 Emenda v2 (no logic yet): implemented in the green phase.
-        throw new NotImplementedException();
-#pragma warning restore MA0025
+    public static (TimeSpan Budget, string Source) Resolve(TimeSpan local, TimeSpan ci, Func<string, string?> environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+
+        if (string.Equals(environment("GITHUB_ACTIONS"), "true", StringComparison.Ordinal))
+        {
+            return (ci, "CI");
+        }
+
+        var value = environment(ScaleVariable);
+        if (string.IsNullOrEmpty(value))
+        {
+            return (local, "reference machine");
+        }
+
+        if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var scale) || !double.IsFinite(scale) || scale <= 0)
+        {
+            throw new InvalidOperationException(
+                $"{ScaleVariable} must be a number greater than zero in the invariant culture (e.g. 5 or 1.5), but was '{value}'.");
+        }
+
+        return (local * scale, $"{ScaleVariable}={value}");
+    }
 
     /// <summary>The same as <see cref="Resolve(TimeSpan, TimeSpan, Func{string, string?})"/> for a test whose CI budget is its local one.</summary>
     /// <exception cref="InvalidOperationException">The variable is set but is not a number greater than zero.</exception>
     public static (TimeSpan Budget, string Source) Resolve(TimeSpan local, Func<string, string?> environment) =>
-#pragma warning disable MA0025 // Scaffold of SPEC-0052 Emenda v2 (no logic yet): implemented in the green phase.
-        throw new NotImplementedException();
-#pragma warning restore MA0025
+        Resolve(local, local, environment);
 }

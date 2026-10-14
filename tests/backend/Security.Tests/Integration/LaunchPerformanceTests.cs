@@ -4,6 +4,7 @@ using System.Net;
 using System.Text.Json;
 using Apogeu.Security.Tests.Support;
 using Apogeu.TestKit.Containers;
+using Apogeu.TestKit.Performance;
 using Xunit;
 
 namespace Apogeu.Security.Tests.Integration;
@@ -21,7 +22,10 @@ public sealed class LaunchPerformanceTests(PostgreSqlContainerFixture postgres, 
     // The launch rate limit is 60 per minute per key (IT-08). Its window follows the injected clock (ADR-0009), so the
     // test moves the fake clock one full window forward after every batch, outside the measured region.
     private const int BatchPerWindow = 50;
-    private static readonly TimeSpan Budget = TimeSpan.FromMilliseconds(100);
+
+    // 100 ms on the reference machine, × the machine factor elsewhere (SPEC-0052).
+    private static readonly (TimeSpan Budget, string Source) Budget =
+        PerformanceBudget.Resolve(TimeSpan.FromMilliseconds(100), Environment.GetEnvironmentVariable);
 
     [Fact(DisplayName = "Dado o operador demo e Postgres/Redis reais, quando o lançamento é assinado corretamente, então 200 com launchUrl")]
     [Trait("Spec", "SPEC-0009:IT-01")]
@@ -47,7 +51,7 @@ public sealed class LaunchPerformanceTests(PostgreSqlContainerFixture postgres, 
         Assert.Equal(JsonValueKind.String, json.RootElement.GetProperty("expiresAt").ValueKind);
     }
 
-    [Fact(DisplayName = "Dado o operador demo e Postgres/Redis reais, quando 200 lançamentos assinados são medidos após aquecimento, então p99 ≤ 100 ms")]
+    [Fact(DisplayName = "Dado o operador demo e Postgres/Redis reais, quando 200 lançamentos assinados são medidos após aquecimento, então p99 ≤ 100 ms na máquina de referência")]
     [Trait("Spec", "SPEC-0009:IT-01")]
     [Trait("Category", "Integration")]
     [Trait("Category", "Performance")]
@@ -78,10 +82,10 @@ public sealed class LaunchPerformanceTests(PostgreSqlContainerFixture postgres, 
         var median = sorted[Samples / 2];
         var all = string.Join(", ", samples.Select(s => s.ToString("F2", CultureInfo.InvariantCulture)));
         Assert.True(
-            p99 <= Budget.TotalMilliseconds,
+            p99 <= Budget.Budget.TotalMilliseconds,
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"Launch p99 was {p99:F2} ms (median {median:F2} ms), above {Budget.TotalMilliseconds} ms over {Samples} calls. Samples (ms): {all}"));
+                $"Launch p99 was {p99:F2} ms (median {median:F2} ms), above the budget of {Budget.Budget.TotalMilliseconds} ms from {Budget.Source} over {Samples} calls. Samples (ms): {all}"));
     }
 
     private static async Task<TimeSpan> TimedLaunchAsync(HttpClient client, SecurityHost host, HashSet<string> tokens, CancellationToken ct)
