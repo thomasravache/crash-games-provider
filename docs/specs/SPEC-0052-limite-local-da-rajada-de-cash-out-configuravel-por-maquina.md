@@ -70,11 +70,11 @@ Diagnóstico desta VM (2026-10-13):
 <!-- Tag no código: `SPEC-0052:<ID>`. -->
 - Caracterização: N/A — os testes de desempenho existentes cobrem os cenários e continuam inalterados.
 - **UT-01** (Emenda v2; substitui o UT-01 da v1, da variável do cash-out) — Dado o ambiente com `GITHUB_ACTIONS=true` (com ou sem `APOGEU_PERF_BUDGET_SCALE=5`), sem nenhuma das duas, com só `APOGEU_PERF_BUDGET_SCALE=5`, com `1.5`, e com `abc`, `0` ou `-1`, quando o limite local de 75 ms é resolvido (com CI de 3 s), então 3 s, 75 ms, 375 ms, 112,5 ms, e exceção nomeando a variável e o valor. A origem informada é `CI`, `reference machine` ou `APOGEU_PERF_BUDGET_SCALE=5`. O ambiente é passado por parâmetro.
-- Integração/E2E: N/A — os oito testes de desempenho listados passam a usar o resolvedor; o G2 desta VM os executa com o fator 5.
+- Integração/E2E: N/A — os oito testes de desempenho listados passam a usar o resolvedor; o G2 desta VM os executa com o fator 1 (máquina ociosa; ver Correção do diagnóstico).
 
 ## 5. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
-- [x] Seguir como, depois de 3 FAILs do G2 da SPEC-0046? — Limite local configurável por variável de ambiente; esta VM usa 400 ms; CI e SPEC-0048 inalteradas (thomas, 2026-10-13)
+- [x] Seguir como, depois de 3 FAILs do G2 da SPEC-0046? — Limite local configurável por variável de ambiente; esta VM usa 400 ms; CI e SPEC-0048 inalteradas (thomas, 2026-10-13). Superada pela Emenda v2 e pela correção do diagnóstico de 2026-10-14: fator único, 1 nesta VM
 
 ## 6. Aprovação (H1)
 Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado".
@@ -84,10 +84,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 **Fase 1: Regressão**
 - [x] Red: UT-01 com a tag `SPEC-0052:UT-01` falhando pelo motivo certo (resolvedor ainda sem a variável)
-- [ ] Emenda v2 — Red: UT-01 reescrito para o fator, com a tag `SPEC-0052:UT-01`, falhando pelo motivo certo
-- [ ] Emenda v2 — Green: resolvedor no TestKit e os oito testes usando o fator; `CLAUDE.md`
+- [x] Emenda v2 — Red: UT-01 reescrito para o fator, com a tag `SPEC-0052:UT-01`, falhando pelo motivo certo
+- [x] Emenda v2 — Green: resolvedor no TestKit e os oito testes usando o fator; `CLAUDE.md`
 - [ ] Green: resolvedor + `CashOutLatencyTests` usando-o; `CLAUDE.md` documenta a variável
-- [ ] Validar: build + suíte afetada com `APOGEU_CASHOUT_P99_BUDGET_MS=400` + arquitetura (G2/G3)
+- [x] Validar: build + suíte afetada + arquitetura (G2/G3), com a máquina ociosa e fator 1
 
 **Fase final: Integração, entrega e documentação**
 - [ ] Review independente (G4)
@@ -100,10 +100,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — c6f9b08 | 2026-10-13 |
-| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:23.25]     Dado um DTO com string?, quando o esquema é gerado, então a pr) — 3a364df | 2026-10-13 |
-| G2 Green | PASS | build exit 0 (✓ built in 295ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 58546c6 | 2026-10-13 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.16s (tests 96%, transform 3%, import 1%)) — 58546c6 | 2026-10-13 |
-| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (58546c6; minors: Assert.Throws<InvalidOperationException> e teste do Source; casos de borda de espaços/decimais; TypeInitializationException no static readonly; evidência do G1 cita teste de outra suíte — red confirmado no 3a364df com 7/7 NotImplementedException). Testes fora de commit red justificados: o Support é o próprio resolvedor e o IT só passou a consumi-lo. — a212b5a | 2026-10-13 |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:00.72]     Dado um ambiente sem GITHUB_ACTIONS nem APOGEU_PERF_BUDGET_SCA) — 3a5f57f | 2026-10-14 |
+| G2 Green | PASS | build exit 0 (✓ built in 254ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — b2ccf8b | 2026-10-14 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.00s (tests 95%, transform 3%, import 1%)) — b2ccf8b | 2026-10-14 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (Emenda v2, b2ccf8b). Minors: fator enorme (1e300) gera OverflowException sem nomear a variável e faltam NaN/Infinity/1,5 no UT-01; GITHUB_ACTIONS com distinção de caixa; static readonly embrulha erro de configuração (TypeInitializationException); prazo (b) do IT-10 sem fator; docstring do PerformanceBudget cita fator 5; UT-01 com nome de cash-out. Testes alterados fora de commit red justificados: só passaram a ler o limite pelo resolvedor. Minor de spec (texto desatualizado) corrigido pelo Architect. — b2ccf8b | 2026-10-14 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
