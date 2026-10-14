@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Globalization;
 using Apogeu.Betting.Contracts;
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Sessions;
@@ -14,7 +15,7 @@ namespace Apogeu.Betting.Features.MyBets;
 
 /// <summary>
 /// <c>GET /api/v1/me/bets?limit=1..50&amp;before=&lt;cursor&gt;</c> (player session): the personal history of the session's
-/// player (SPEC-0025 §6); <c>400 INVALID_LIMIT</c> for a limit outside 1..50, <c>401</c> without a session.
+/// player (SPEC-0025 §6); <c>400 INVALID_LIMIT</c> for a limit that is not a number in 1..50, <c>401</c> without a session.
 /// </summary>
 internal static class GetMyBetsEndpoint
 {
@@ -48,10 +49,12 @@ internal static class GetMyBetsEndpoint
     }
 
     private static async Task<Results<Ok<MyBetsPage>, JsonHttpResult<ErrorResponse>>> Handle(
-        HttpContext http, IBetStore store, int? limit, string? before, CancellationToken ct)
+        HttpContext http, IBetStore store, string? limit, string? before, CancellationToken ct)
     {
-        var size = limit ?? DefaultLimit;
-        if (size is < MinLimit or > MaxLimit)
+        // Parsed here, not bound as a number, so a limit that is not one is INVALID_LIMIT in the error envelope (Emenda v4).
+        var size = DefaultLimit;
+        if (limit is not null
+            && (!int.TryParse(limit, NumberStyles.None, CultureInfo.InvariantCulture, out size) || size is < MinLimit or > MaxLimit))
         {
             return BadRequest(BettingErrorCodes.InvalidLimit, $"limit must be between {MinLimit} and {MaxLimit}.");
         }

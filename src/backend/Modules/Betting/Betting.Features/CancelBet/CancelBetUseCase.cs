@@ -19,10 +19,6 @@ namespace Apogeu.Betting.Features.CancelBet;
 /// answer says <c>refunded</c> when the wallet confirms it in time, <c>pending</c> otherwise (the durable reversal goes on).
 /// A new <c>CancelBet</c> of a cancelled bet answers the same result; <c>WALLET_UNAVAILABLE</c> is never an answer.
 /// </summary>
-/// <remarks>
-/// The <c>live</c> feed of SPEC-0025 is always registered by the module; it is optional so the use case also runs where the
-/// room's live bets do not matter (the unit scenarios of the earlier specs build it without it).
-/// </remarks>
 public sealed class CancelBetUseCase(
     IBetStore store,
     IRoundFeed feed,
@@ -30,7 +26,7 @@ public sealed class CancelBetUseCase(
     BettingMetrics metrics,
     TimeProvider time,
     ILogger<CancelBetUseCase> logger,
-    LiveBetsFeed? live = null)
+    LiveBetsFeed live)
 {
     /// <summary>Attempts when the bet changes (a round event) between reading and cancelling it.</summary>
     private const int Attempts = 3;
@@ -68,7 +64,7 @@ public sealed class CancelBetUseCase(
             if (await store.TransitionAsync(bet, previous, ct).ConfigureAwait(false))
             {
                 metrics.BetReached("cancelled");
-                live?.Cancelled(found.SalaId, bet);
+                live.Cancelled(found.SalaId, bet);
                 var refund = await RefundAsync(bet, ct).ConfigureAwait(false);
                 return Answer(bet, await RecordAsync(bet, refund).ConfigureAwait(false));
             }

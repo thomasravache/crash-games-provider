@@ -75,12 +75,12 @@ public sealed class BetsHub(
         // Joined before the snapshot is read, so no batch falls between the two (a repeated bet in both is the same betRef).
         await Groups.AddToGroupAsync(Context.ConnectionId, LiveBetsFeed.GroupOf(salaId)).ConfigureAwait(false);
         var current = await feed.CurrentAsync(salaId, Context.ConnectionAborted).ConfigureAwait(false);
-        if (liveBets.SnapshotOf(salaId) is { } snapshot && (current is null || current.RoundId.Value == snapshot.RoundId))
+        if (current is not null && liveBets.SnapshotOf(salaId) is { } snapshot && current.RoundId.Value == snapshot.RoundId)
         {
             return snapshot;
         }
 
-        // A round without bets yet (or none open): empty, of the current round.
+        // A round without bets yet: empty, of the current round; no current round: empty, never the previous round's bets.
         return new LiveBetsSnapshot(current?.RoundId.Value ?? Guid.Empty, 0, 0, new Money(0.00m), []);
     }
 
