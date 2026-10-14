@@ -11,7 +11,8 @@ namespace Apogeu.Betting.Tests.Integration;
 /// <summary>
 /// IT-02 (SPEC-0025 §6): <c>GET /api/v1/me/bets</c> on the real Host with bets in every final state reached through the real
 /// flows — a cash-out and a loss in a round that crashes at 2,00x, a cancellation and a refund in a round annulled by the
-/// reveal mismatch (SPEC-0008), and a queued bet without a round, seen before it is cancelled.
+/// reveal mismatch (SPEC-0008), and a queued bet without a round, seen before it is cancelled. IT-06 (Emenda v4): a limit
+/// that is not a number is <c>400 INVALID_LIMIT</c> in the error envelope.
 /// </summary>
 [Collection(BettingIntegration.Name)]
 public sealed class MyBetsTests(BettingContainers containers)
@@ -84,6 +85,21 @@ public sealed class MyBetsTests(BettingContainers containers)
         using var client = host.CreatePlayerHttpClient("player-" + Guid.NewGuid().ToString("N"));
 
         using var response = await client.GetAsync(MyBetsApi.PageUri(limit), ct);
+
+        await ErrorBodies.AssertErrorAsync(response, HttpStatusCode.BadRequest, "INVALID_LIMIT", ct);
+    }
+
+    [Fact(DisplayName = "Dado um jogador com sessão, quando GET /api/v1/me/bets?limit=abc, então 400 INVALID_LIMIT no envelope de erro")]
+    [Trait("Spec", "SPEC-0025:IT-06")]
+    [Trait("Category", "Integration")]
+    public async Task GivenNonNumericLimitWhenGettingMyBetsThenInvalidLimitInEnvelope()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var host = await BettingHost.StartAsync(containers, ct);
+        using var client = host.CreatePlayerHttpClient("player-" + Guid.NewGuid().ToString("N"));
+
+        // Emenda v4: a limit that is not a number is INVALID_LIMIT, in the same envelope as a limit out of range.
+        using var response = await client.GetAsync(new Uri(MyBetsApi.Path + "?limit=abc", UriKind.Relative), ct);
 
         await ErrorBodies.AssertErrorAsync(response, HttpStatusCode.BadRequest, "INVALID_LIMIT", ct);
     }

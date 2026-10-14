@@ -2,6 +2,7 @@ using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features;
 using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.Betting.Tests.Support;
 using Apogeu.BuildingBlocks.Contracts;
@@ -80,6 +81,10 @@ public sealed class CashOutSettlementTests
             services.AddSingleton(store);
             services.AddSingleton<IOperatorWallet>(wallet);
             services.AddSingleton<IOperatorLimits, BrlLimits>();
+
+            // The live bets of the room are a required dependency of the settlement (SPEC-0025 Emenda v4).
+            services.AddSingleton<LiveBetsBatcher>();
+            services.AddSingleton<LiveBetsFeed>();
             return new Scenario(services.BuildServiceProvider(), state, wallet);
         }
 
