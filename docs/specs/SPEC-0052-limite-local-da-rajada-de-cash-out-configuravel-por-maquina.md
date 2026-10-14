@@ -101,8 +101,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — c6f9b08 | 2026-10-13 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:00.72]     Dado um ambiente sem GITHUB_ACTIONS nem APOGEU_PERF_BUDGET_SCA) — 3a5f57f | 2026-10-14 |
-| G2 Green | PASS | build exit 0 (✓ built in 295ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 58546c6 | 2026-10-13 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.16s (tests 96%, transform 3%, import 1%)) — 58546c6 | 2026-10-13 |
+| G2 Green | PASS | build exit 0 (✓ built in 254ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — b2ccf8b | 2026-10-14 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.00s (tests 95%, transform 3%, import 1%)) — b2ccf8b | 2026-10-14 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (58546c6; minors: Assert.Throws<InvalidOperationException> e teste do Source; casos de borda de espaços/decimais; TypeInitializationException no static readonly; evidência do G1 cita teste de outra suíte — red confirmado no 3a364df com 7/7 NotImplementedException). Testes fora de commit red justificados: o Support é o próprio resolvedor e o IT só passou a consumi-lo. — a212b5a | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
