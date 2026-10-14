@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-13
 parent: SPEC-0019
 depends_on: [SPEC-0053, SPEC-0025]
-consumes_contract: [SPEC-0053@1, SPEC-0023@3, SPEC-0025@3]
+consumes_contract: [SPEC-0053@1, SPEC-0023@3, SPEC-0025@4]
 contract_version: 1
 touches: [src/backend/Modules/Betting/**, tests/backend/Modules/Betting.Tests/**, src/backend/Modules/Rounds/**, tests/backend/Modules/Rounds.Tests/**, src/backend/Host/Internal/Generated/**, src/frontend/packages/contracts/**, artifacts/openapi/**]
 adrs: [ADR-0001, ADR-0005, ADR-0007, ADR-0014, ADR-0019]
