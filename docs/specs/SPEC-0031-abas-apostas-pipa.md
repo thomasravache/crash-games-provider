@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-09
 parent: SPEC-0019
 depends_on: [SPEC-0025, SPEC-0026]
-consumes_contract: [SPEC-0025@3]
+consumes_contract: [SPEC-0025@4]
 touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "tests/frontend/pipa/bets-tabs/**", "tests/e2e/pipa/bets-tabs/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019]
 external: []
