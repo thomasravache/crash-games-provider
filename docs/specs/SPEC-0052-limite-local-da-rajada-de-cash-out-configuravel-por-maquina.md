@@ -1,6 +1,6 @@
 ---
 id: SPEC-0052
-title: Limite local da rajada de cash-out configurável por máquina
+title: Limites locais dos testes de desempenho configuráveis por máquina
 tier: lite
 type: fix
 user_facing: false
@@ -9,7 +9,7 @@ created: 2026-10-13
 parent: SPEC-0019
 depends_on: []
 consumes_contract: []
-touches: ["tests/backend/Modules/Betting.Tests/Integration/CashOutLatencyTests.cs", "tests/backend/Modules/Betting.Tests/Support/CashOutLatencyBudget.cs", "tests/backend/Modules/Betting.Tests/Unit/CashOutLatencyBudgetTests.cs", "CLAUDE.md"]
+touches: ["tests/backend/TestKit/Performance/**", "tests/backend/TestKit/TestKit.csproj", "tests/backend/Modules/Betting.Tests/Integration/CashOutLatencyTests.cs", "tests/backend/Modules/Betting.Tests/Integration/PlaceBetLatencyTests.cs", "tests/backend/Modules/Betting.Tests/Integration/CashOutResilienceTests.cs", "tests/backend/Modules/Betting.Tests/Support/CashOutLatencyBudget.cs", "tests/backend/Modules/Betting.Tests/Unit/CashOutLatencyBudgetTests.cs", "tests/backend/Modules/Rounds.Tests/Integration/LeadershipTests.cs", "tests/backend/Modules/Rounds.Tests/Integration/ResumeTests.cs", "tests/backend/Modules/Fairness.Tests/Integration/FairnessRestartTimingTests.cs", "tests/backend/Modules/Wallet.Tests/Integration/DebitPerformanceTests.cs", "tests/backend/Security.Tests/Integration/LaunchPerformanceTests.cs", "CLAUDE.md"]
 adrs: []
 external: []
 size: S
@@ -39,26 +39,36 @@ Diagnóstico desta VM (2026-10-13):
 É falta de fôlego: Host, Postgres, Redis e 150 clientes SignalR disputam 4 vCPUs no segundo da rajada. A meta real de 50 ms em infraestrutura própria continua com a SPEC-0048.
 
 ## 3. Mudança Proposta
-- **Muda:** o limite sai de um resolvedor pequeno (`CashOutLatencyBudget`, no `Support` do Betting.Tests), com estas regras:
-  1. `GITHUB_ACTIONS=true` → 3 s, ignorando qualquer outra variável, para que ninguém afrouxe a CI por ambiente;
-  2. fora da CI, `APOGEU_CASHOUT_P99_BUDGET_MS` com um inteiro > 0 → esse valor em ms;
-  3. sem a variável → 75 ms (máquina de referência);
-  4. valor inválido (não inteiro, ≤ 0) → exceção com mensagem clara, nunca um limite silencioso.
-- A mensagem de falha do teste passa a dizer de onde veio o limite.
-- O `CLAUDE.md` documenta a variável. Esta VM usa 400 ms (pior p99 medido: 315 ms), configurado no perfil do shell da máquina e fora do repositório.
-- **Não muda:** o cenário do teste (300 cash-outs em 1 s), o limite da CI, a meta de 50 ms da SPEC-0048 e o código de produção.
+**Emenda v2 (2026-10-13):** em vez de uma variável só para o cash-out, um **fator único por máquina**. A linha de base desta VM mostrou mais 4 testes de tempo reprovando sem mudança nova: aposta p99, resiliência do automático, semente do Fairness e troca de líder.
+- **Muda:** um resolvedor compartilhado em `tests/backend/TestKit/Performance/` lê `APOGEU_PERF_BUDGET_SCALE` com estas regras:
+  1. `GITHUB_ACTIONS=true` → fator 1, ignorando a variável; cada teste mantém o próprio limite de CI, e ninguém afrouxa a CI por ambiente;
+  2. fora da CI, sem a variável → 1, a máquina de referência;
+  3. número decimal > 0 em cultura invariante (ex.: `5`, `1.5`) → esse fator;
+  4. valor inválido (não numérico, ≤ 0) → exceção que nomeia a variável e o valor recebido, nunca um limite silencioso.
+- **Testes que passam a usar o fator** (limite local × fator, com a origem na mensagem de falha):
+  - `CashOutLatencyTests` (75 ms; continua com 3 s na CI);
+  - `PlaceBetLatencyTests` (100 ms);
+  - `CashOutResilienceTests` (o prazo de tempo que reprova nesta VM);
+  - `LeadershipTests` (6 s);
+  - `FairnessRestartTimingTests` (20 ms);
+  - `DebitPerformanceTests` (20 ms);
+  - `LaunchPerformanceTests` (100 ms);
+  - `ResumeTests` (tolerância de 250 ms).
+- **Sai** a variável `APOGEU_CASHOUT_P99_BUDGET_MS` da v1 (ainda não mergeada); o resolvedor do cash-out passa a usar o fator.
+- O `CLAUDE.md` documenta `APOGEU_PERF_BUDGET_SCALE`. Esta VM usa **5**, configurado no perfil do shell da máquina, fora do repositório (pior medição: cash-out 315 ms, 4,2× o limite).
+- **Não muda:** o cenário de nenhum teste, os limites da CI, as metas reais de produção (SPEC-0048) e o código de produção.
 
-**Padrão seguido:** `CashOutLatencyTests` (escolha atual por `GITHUB_ACTIONS`); helpers de teste em `tests/backend/Modules/Betting.Tests/Support/`.
+**Padrão seguido:** o resolvedor da v1 (`CashOutLatencyBudget`), generalizado; os helpers compartilhados de `tests/backend/TestKit/`.
 
 **Rollback:** revert do merge commit; tirar a variável do perfil da máquina.
 
-**Outras ocorrências:** Nenhuma. É o único teste com limite local fixo em ms; os demais testes `Category=Performance` medem proporções ou contagens.
+**Outras ocorrências:** todas as ocorrências conhecidas de limite local fixo em testes `Category=Performance` estão listadas acima. Os limites de minutos (subida do AppHost, rajada de entrada) passam nesta VM e ficam como estão.
 
 ## 4. Plano de Testes (TDD)
-<!-- Mínimo: um teste de regressão que reproduz o problema e FALHA antes da correção, no nível em que o defeito aparece (IT para fronteiras de I/O, E2E para jornadas de usuário). Código sem cobertura: primeiro CH-xx fixando o comportamento atual. Tag no código: `SPEC-0052:<ID>`. Categoria sem teste: "N/A — motivo" SEM ID. -->
-- Caracterização: N/A — o `CashOutLatencyTests` da SPEC-0023 já cobre o cenário e continua inalterado.
-- **UT-01** — Dado o ambiente com `GITHUB_ACTIONS=true` (com ou sem `APOGEU_CASHOUT_P99_BUDGET_MS=400`), sem nenhuma das duas, com só `APOGEU_CASHOUT_P99_BUDGET_MS=400`, e com o valor `abc`, `0` ou `-5`, quando o limite é resolvido, então dá 3 s, 75 ms, 400 ms, e exceção nomeando a variável (o resolvedor recebe as variáveis por parâmetro, sem ler o ambiente real).
-- Integração/E2E: N/A — o `CashOutLatencyTests` (SPEC-0023) passa a usar o resolvedor, e o G2 desta VM o executa com 400 ms.
+<!-- Tag no código: `SPEC-0052:<ID>`. -->
+- Caracterização: N/A — os testes de desempenho existentes cobrem os cenários e continuam inalterados.
+- **UT-01** (Emenda v2; substitui o UT-01 da v1, da variável do cash-out) — Dado o ambiente com `GITHUB_ACTIONS=true` (com ou sem `APOGEU_PERF_BUDGET_SCALE=5`), sem nenhuma das duas, com só `APOGEU_PERF_BUDGET_SCALE=5`, com `1.5`, e com `abc`, `0` ou `-1`, quando o limite local de 75 ms é resolvido (com CI de 3 s), então 3 s, 75 ms, 375 ms, 112,5 ms, e exceção nomeando a variável e o valor. A origem informada é `CI`, `reference machine` ou `APOGEU_PERF_BUDGET_SCALE=5`. O ambiente é passado por parâmetro.
+- Integração/E2E: N/A — os oito testes de desempenho listados passam a usar o resolvedor; o G2 desta VM os executa com o fator 5.
 
 ## 5. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
@@ -71,7 +81,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN, após a aprovação. -->
 
 **Fase 1: Regressão**
-- [ ] Red: UT-01 com a tag `SPEC-0052:UT-01` falhando pelo motivo certo (resolvedor ainda sem a variável)
+- [x] Red: UT-01 com a tag `SPEC-0052:UT-01` falhando pelo motivo certo (resolvedor ainda sem a variável)
+- [ ] Emenda v2 — Red: UT-01 reescrito para o fator, com a tag `SPEC-0052:UT-01`, falhando pelo motivo certo
+- [ ] Emenda v2 — Green: resolvedor no TestKit e os oito testes usando o fator; `CLAUDE.md`
 - [ ] Green: resolvedor + `CashOutLatencyTests` usando-o; `CLAUDE.md` documenta a variável
 - [ ] Validar: build + suíte afetada com `APOGEU_CASHOUT_P99_BUDGET_MS=400` + arquitetura (G2/G3)
 
@@ -131,3 +143,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 | 2026-10-13 | Fator único `APOGEU_PERF_BUDGET_SCALE` para os limites locais de oito testes de desempenho, no lugar de `APOGEU_CASHOUT_P99_BUDGET_MS`; UT-01 redefinido para o fator; esta VM usa 5 | Linha de base desta VM: mais 4 testes de tempo reprovam sem mudança nova (aposta, resiliência, semente, troca de líder); G2 da SPEC-0025 caiu por eles | SPEC-0025, SPEC-0046 (recebem por merge) | thomas (opção "fator único por máquina", 2026-10-13) |
