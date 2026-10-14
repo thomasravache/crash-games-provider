@@ -38,6 +38,8 @@ Diagnóstico desta VM (2026-10-13):
 
 É falta de fôlego: Host, Postgres, Redis e 150 clientes SignalR disputam 4 vCPUs no segundo da rajada. A meta real de 50 ms em infraestrutura própria continua com a SPEC-0048.
 
+**Correção do diagnóstico (2026-10-14):** a hipótese de "falta de fôlego da VM" estava errada. As medições de 2026-10-13 aconteceram com outros projetos rodando na mesma VM, com load de 23 a 79 em 4 vCPU. Medida com a máquina ociosa (load < 3, 4f9a124), a suíte `Category=Performance` inteira passa com o fator 1: cash-out p99 45,8 ms / 75; aposta 5,7 / 100; semente 5,4 / 20; troca de líder 4,58 s / 6. O fator continua útil para máquinas compartilhadas, mas o valor desta VM é **1** (sem a variável), e os gates pesados passam a rodar só com load < 3.
+
 ## 3. Mudança Proposta
 **Emenda v2 (2026-10-13):** em vez de uma variável só para o cash-out, um **fator único por máquina**. A linha de base desta VM mostrou mais 4 testes de tempo reprovando sem mudança nova: aposta p99, resiliência do automático, semente do Fairness e troca de líder.
 - **Muda:** um resolvedor compartilhado em `tests/backend/TestKit/Performance/` lê `APOGEU_PERF_BUDGET_SCALE` com estas regras:
@@ -55,7 +57,7 @@ Diagnóstico desta VM (2026-10-13):
   - `LaunchPerformanceTests` (100 ms);
   - `ResumeTests` (tolerância de 250 ms).
 - **Sai** a variável `APOGEU_CASHOUT_P99_BUDGET_MS` da v1 (ainda não mergeada); o resolvedor do cash-out passa a usar o fator.
-- O `CLAUDE.md` documenta `APOGEU_PERF_BUDGET_SCALE`. Esta VM usa **5**, configurado no perfil do shell da máquina, fora do repositório (pior medição: cash-out 315 ms, 4,2× o limite).
+- O `CLAUDE.md` documenta `APOGEU_PERF_BUDGET_SCALE`. Esta VM usa o fator 1 (sem a variável), conforme a correção do diagnóstico acima.
 - **Não muda:** o cenário de nenhum teste, os limites da CI, as metas reais de produção (SPEC-0048) e o código de produção.
 
 **Padrão seguido:** o resolvedor da v1 (`CashOutLatencyBudget`), generalizado; os helpers compartilhados de `tests/backend/TestKit/`.
@@ -143,4 +145,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 (inalterado) | 2026-10-14 | Diagnóstico corrigido: a lentidão vinha de outros projetos na mesma VM; com a máquina ociosa tudo passa com fator 1; gates pesados só com load < 3 | Linha de base com a máquina ociosa (4f9a124) | SPEC-0046 (IMP-01: causa real registrada) | thomas (opção "esperar a máquina livre", 2026-10-14) |
 | 2 | 2026-10-13 | Fator único `APOGEU_PERF_BUDGET_SCALE` para os limites locais de oito testes de desempenho, no lugar de `APOGEU_CASHOUT_P99_BUDGET_MS`; UT-01 redefinido para o fator; esta VM usa 5 | Linha de base desta VM: mais 4 testes de tempo reprovam sem mudança nova (aposta, resiliência, semente, troca de líder); G2 da SPEC-0025 caiu por eles | SPEC-0025, SPEC-0046 (recebem por merge) | thomas (opção "fator único por máquina", 2026-10-13) |
