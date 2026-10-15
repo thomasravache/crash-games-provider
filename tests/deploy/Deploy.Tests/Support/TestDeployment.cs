@@ -4,7 +4,7 @@ namespace Apogeu.Deploy.Tests.Support;
 
 /// <summary>
 /// A test deployment on this machine (SPEC-0066 IT-01, CT-01): a git repository with fake releases (the compose of the
-/// contract SPEC-0065@2 with light images, the real infra/caddy, infra/vps and tools/deploy of the working tree), a
+/// contract SPEC-0065@3 with light images, the real infra/caddy, infra/vps and tools/deploy of the working tree), a
 /// deployment directory, a compose project of its own and free test ports for the proxy. Disposing removes the
 /// containers, volumes, networks and images of the project and the directories.
 /// </summary>

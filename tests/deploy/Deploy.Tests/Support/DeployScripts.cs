@@ -50,6 +50,12 @@ internal static class DeployScripts
     /// <summary>Backup: container of the PostgreSQL (default: the postgres service of the compose project).</summary>
     public const string PostgresContainerVariable = "APOGEU_POSTGRES_CONTAINER";
 
+    /// <summary>
+    /// Backup and restore: Docker volume of the Data Protection keys (default: the dataprotection-keys volume of the compose
+    /// project, <c>{project}_dataprotection-keys</c>). SPEC-0066 Emenda v3.
+    /// </summary>
+    public const string KeysVolumeVariable = "APOGEU_KEYS_VOLUME";
+
     /// <summary>Backup: directory of the dumps (default: backups/ under the deployment directory).</summary>
     public const string BackupDirVariable = "APOGEU_BACKUP_DIR";
 

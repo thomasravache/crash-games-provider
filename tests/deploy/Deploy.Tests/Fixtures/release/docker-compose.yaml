@@ -1,4 +1,4 @@
-# SPEC-0066 test fixture: the compose of the contract SPEC-0065@2 (what `aspire publish` writes to
+# SPEC-0066 test fixture: the compose of the contract SPEC-0065@3 (what `aspire publish` writes to
 # infra/compose/out/docker-compose.yaml), with light images in the roles of api and demo-casino (busybox httpd on 8080)
 # and the real postgres and redis. Services, volumes, the single network and the variables are the ones of the contract;
 # no service publishes ports on the host. Every value comes from the .env of the deployment or from the environment.
@@ -28,10 +28,22 @@ services:
       retries: 3
       start_period: 2s
     depends_on:
+      keys-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_started
       redis:
         condition: service_started
+    networks:
+      - aspire
+  keys-init:
+    # SPEC-0065@3 (Emenda v3): short-lived, no ports; hands the dataprotection-keys volume to the api user (UID 1654).
+    image: "busybox:1.37.0"
+    command: ["chown", "-R", "1654:1654", "/keys"]
+    volumes:
+      - type: volume
+        source: dataprotection-keys
+        target: /keys
     networks:
       - aspire
   demo-casino:

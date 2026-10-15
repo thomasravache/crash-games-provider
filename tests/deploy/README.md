@@ -2,11 +2,11 @@
 
 | Test | What | Runs in |
 |---|---|---|
-| `Unit/CaddyfileTests` (UT-01) | `infra/caddy/Caddyfile` under `caddy validate` and `caddy adapt` of `caddy:2.11.7` (Docker): only the three sites, `/casino/*` → `demo-casino:8080`, api → `api:8080`, static files with SPA fallback, automatic HTTPS with the redirect on, HSTS / `X-Content-Type-Options` / `Referrer-Policy` | normal suite |
+| `Unit/CaddyfileTests` (UT-01) | `infra/caddy/Caddyfile` under `caddy validate` and `caddy adapt` of `caddy:2.11.7` (Docker): only the three sites, `/casino/*` → `demo-casino:8080`, api → `api:8080`, static files with SPA fallback, automatic HTTPS with the redirect on, HSTS / `X-Content-Type-Options` / `Referrer-Policy`; no `trusted_proxies`, and forged `X-Forwarded-For/Host/Proto` from the client reach an echo backend (as `api` and `demo-casino`) replaced by the proxy's values (Emenda v3) | normal suite |
 | `Unit/EnvFileTests` (UT-02) | `tools/deploy/vps-deploy --prepare`: `.env` with random secrets, mode 600, nothing printed, same values on a second run | normal suite |
 | `Integration/DeployRollbackTests` (IT-01) | a compose project of its own (test ports, Caddy internal certificates for `*.localhost`): release A, B without health (goes back to A by itself), B, `vps-rollback` (back to A) | normal suite (Docker) |
-| `Integration/BackupRestoreTests` (IT-02) | `backup` of a PostgreSQL with data (Testcontainers) and `restore` into a clean one: same row counts; 7-day retention | normal suite (Docker) |
-| `Contract/ComposeContractTests` (CT-01) | the compose of SPEC-0065@2 (fixture with light images) read by `vps-deploy`: services, single network, volumes, variables; the proxy reaches `api` and `demo-casino` by name; a compose without a contract service is refused | normal suite (Docker) |
+| `Integration/BackupRestoreTests` (IT-02) | `backup` of a PostgreSQL with data (Testcontainers) and of a `dataprotection-keys` volume with keys, `restore` into a clean PostgreSQL and a clean volume: same row counts, identical keys (content, owner 1654, mode); 7-day retention (Emenda v3) | normal suite (Docker) |
+| `Contract/ComposeContractTests` (CT-01) | the compose of SPEC-0065@3 (fixture with light images, plus the short-lived `keys-init`) read by `vps-deploy`: services, single network, volumes, variables; `keys-init` exited 0 without ports and left the keys volume to 1654:1654; the proxy reaches `api` and `demo-casino` by name; a compose without a contract service is refused | normal suite (Docker) |
 | `e2e/carteira-publica.spec.ts` (E2E-01) | the wallet journey of SPEC-0047 against `https://cassino.143-95-218-240.sslip.io`, without the test hook (production build) | only with `APOGEU_E2E_PUBLISHED=1`, at G6 |
 
 ```bash
@@ -34,6 +34,7 @@ All scripts read their configuration from the environment; without it they use t
 | `APOGEU_DEPLOY_HEALTH_TIMEOUT` | seconds to wait for the health of a version before going back | chosen by the scripts |
 | `APOGEU_POSTGRES_CONTAINER` | `backup`/`restore`: container of the PostgreSQL | the `postgres` service of the project |
 | `APOGEU_BACKUP_DIR` | `backup`: directory of the dumps | `backups/` under the deployment directory |
+| `APOGEU_KEYS_VOLUME` | `backup`/`restore`: Docker volume of the Data Protection keys | `<project>_dataprotection-keys` |
 
 - `vps-deploy [ref]` (default `main`): fetches the ref from `APOGEU_DEPLOY_REPO` into the deployment directory, creates the
   `.env` the first time, runs the build (the hook gets `APOGEU_VERSION`, `API_IMAGE`, `DEMO_CASINO_IMAGE` and `PROXY_IMAGE`,
@@ -45,6 +46,10 @@ All scripts read their configuration from the environment; without it they use t
   `OPERATORS_DEMO_KEY_SECRET`, `PLAYER_SESSION_SIGNING_KEY`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`; `BACKOFFICE_AUTHORITY`,
   `PUBLIC_API_URL=https://api.$APOGEU_DOMAIN`, `PUBLIC_GAME_URL=https://jogo.$APOGEU_DOMAIN`), keeping an existing one.
 - `vps-rollback`: the previous version back on the air (its images and compose, no rebuild).
-- `backup`: dumps the database `apogeu` into `APOGEU_BACKUP_DIR` as `apogeu-*`, prints the path of the file as the last
-  line, and removes the `apogeu-*` files older than 7 days of that directory. `restore <file>`: loads it into the
-  PostgreSQL of `APOGEU_POSTGRES_CONTAINER`, creating the database when it does not exist.
+- `backup` (Emenda v3): writes two files with the same UTC stamp into `APOGEU_BACKUP_DIR`: the dump of the database
+  `apogeu` as `apogeu-<stamp>.dump` and the files of the keys volume (`APOGEU_KEYS_VOLUME`, owners and modes kept) as
+  `apogeu-keys-<stamp>.tar.gz`; prints the path of the dump as the last line; removes the `apogeu-*` files (dumps and
+  keys archives) older than 7 days of that directory, never other files.
+- `restore <dump>`: loads the dump into the PostgreSQL of `APOGEU_POSTGRES_CONTAINER` (creating the database when it does
+  not exist) and the `apogeu-keys-<stamp>.tar.gz` beside it into `APOGEU_KEYS_VOLUME`, with the same contents, owners
+  (1654) and modes; a dump without its keys archive is refused (without the keys the unrevealed seeds are unreadable).

@@ -4,8 +4,8 @@ using Xunit;
 namespace Apogeu.Deploy.Tests.Contract;
 
 /// <summary>
-/// SPEC-0066 CT-01, consumer side of SPEC-0065@2: the compose of the contract (fixture with light images in the roles of
-/// api and demo-casino; services api, demo-casino, postgres and redis, volumes postgres-data and dataprotection-keys, a
+/// SPEC-0066 CT-01, consumer side of SPEC-0065@3: the compose of the contract (fixture with light images in the roles of
+/// api and demo-casino; services api, demo-casino, postgres, redis and the short-lived keys-init, volumes postgres-data and dataprotection-keys, a
 /// single network, api and demo-casino on 8080, the variables of the .env) is read by vps-deploy: the services, the
 /// network and the variables exist in the running project, and the proxy reaches api and demo-casino by name. A compose
 /// without a service of the contract is refused before anything goes up.
@@ -14,7 +14,7 @@ public sealed class ComposeContractTests
 {
     private static readonly string[] ContractServices = ["api", "demo-casino", "postgres", "redis"];
 
-    [Fact(DisplayName = "Dado o compose da SPEC-0065@2, quando o vps-deploy o lê, então serviços, rede e variáveis existem e o proxy alcança api e demo-casino pelo nome")]
+    [Fact(DisplayName = "Dado o compose da SPEC-0065@3, quando o vps-deploy o lê, então serviços, rede e variáveis existem e o proxy alcança api e demo-casino pelo nome")]
     [Trait("Category", "Contract")]
     [Trait("Spec", "SPEC-0066:CT-01")]
     public async Task GivenTheContractComposeWhenDeployedThenServicesNetworkAndVariablesExistAndTheProxyReachesThemByName()
@@ -62,11 +62,12 @@ public sealed class ComposeContractTests
         var casino = await DockerCli.RunAsync(["exec", containers["proxy"], "wget", "-q", "-O", "-", "http://demo-casino:8080/casino/version"], cancellationToken);
         Assert.True(casino.Succeeded && string.Equals(casino.StandardOutput.Trim(), "A", StringComparison.Ordinal), "the proxy does not reach demo-casino:8080 by name. " + casino.Describe());
 
+        await AssertKeysInitCompletedAsync(deployment, cancellationToken);
         await AssertVariablesReachTheServicesAsync(deployment, containers, cancellationToken);
         await AssertContractVolumesExistAsync(deployment, cancellationToken);
     }
 
-    [Fact(DisplayName = "Dado um compose sem um serviço do contrato SPEC-0065@2, quando o vps-deploy o lê, então recusa antes de subir e aponta o serviço")]
+    [Fact(DisplayName = "Dado um compose sem um serviço do contrato SPEC-0065@3, quando o vps-deploy o lê, então recusa antes de subir e aponta o serviço")]
     [Trait("Category", "Contract")]
     [Trait("Spec", "SPEC-0066:CT-01")]
     public async Task GivenAComposeWithoutAContractServiceWhenDeployedThenItIsRefusedBeforeAnythingGoesUp()
@@ -82,6 +83,31 @@ public sealed class ComposeContractTests
         Assert.Contains("demo-casino", deploy.Output, StringComparison.Ordinal);
         var containers = await DockerCli.ServiceContainersAsync(deployment.Project, cancellationToken);
         Assert.Empty(containers);
+    }
+
+    /// <summary>
+    /// SPEC-0065@3: the short-lived keys-init ran to completion (exit 0) before the api, published no port and left the
+    /// dataprotection-keys volume to the api user (UID 1654).
+    /// </summary>
+    private static async Task AssertKeysInitCompletedAsync(TestDeployment deployment, CancellationToken cancellationToken)
+    {
+        var listed = await DockerCli.RunAsync(
+            [
+                "ps", "--all", "--quiet",
+                "--filter", "label=com.docker.compose.project=" + deployment.Project,
+                "--filter", "label=com.docker.compose.service=keys-init",
+            ],
+            cancellationToken).ConfigureAwait(false);
+        var id = listed.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+        Assert.False(id is null, $"no keys-init container in {deployment.Project} (SPEC-0065@3)");
+        var state = await DockerCli.RunAsync(
+            ["inspect", "--format", "{{.State.Status}} {{.State.ExitCode}} {{len .HostConfig.PortBindings}}", id],
+            cancellationToken).ConfigureAwait(false);
+        Assert.Equal("exited 0 0", state.StandardOutput.Trim());
+        var owner = await DockerCli.RunAsync(
+            ["run", "--rm", "--volume", $"{deployment.Project}_dataprotection-keys:/keys:ro", "busybox:1.37.0", "stat", "-c", "%u:%g", "/keys"],
+            cancellationToken).ConfigureAwait(false);
+        Assert.Equal("1654:1654", owner.StandardOutput.Trim());
     }
 
     /// <summary>The variables of the .env reach the services as the compose of the contract maps them.</summary>

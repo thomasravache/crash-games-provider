@@ -7,10 +7,14 @@ using Xunit;
 namespace Apogeu.Deploy.Tests.Integration;
 
 /// <summary>
-/// SPEC-0066 IT-02: <c>tools/deploy/backup</c> dumps the database <c>apogeu</c> of a PostgreSQL with data in the schemas
-/// of the modules (Testcontainers, pointed by APOGEU_POSTGRES_CONTAINER) into APOGEU_BACKUP_DIR and prints the path of
-/// the file; <c>tools/deploy/restore &lt;file&gt;</c> loads it into a clean PostgreSQL and the row counts of every table
-/// match. The backup keeps 7 days: older dumps of the directory go, newer ones and other files stay.
+/// SPEC-0066 IT-02 (Emenda v3): <c>tools/deploy/backup</c> dumps the database <c>apogeu</c> of a PostgreSQL with data in
+/// the schemas of the modules (Testcontainers, pointed by APOGEU_POSTGRES_CONTAINER) and archives the Data Protection
+/// keys of the volume of APOGEU_KEYS_VOLUME into APOGEU_BACKUP_DIR, as <c>apogeu-&lt;stamp&gt;.dump</c> and
+/// <c>apogeu-keys-&lt;stamp&gt;.tar.gz</c> with the same stamp, and prints the path of the dump;
+/// <c>tools/deploy/restore &lt;dump&gt;</c> loads the dump into a clean PostgreSQL and the keys archive beside it into a
+/// clean volume: the row counts of every table match and the keys are identical (content and owner, the api user 1654).
+/// Without the keys the unrevealed seeds stay unreadable. The backup keeps 7 days: older files of the directory go,
+/// newer ones and other files stay.
 /// </summary>
 public sealed class BackupRestoreTests : IAsyncLifetime
 {
@@ -25,6 +29,8 @@ public sealed class BackupRestoreTests : IAsyncLifetime
     private readonly PostgreSqlContainer _source = new PostgreSqlBuilder(DockerCli.PostgreSqlImage).Build();
     private readonly PostgreSqlContainer _target = new PostgreSqlBuilder(DockerCli.PostgreSqlImage).Build();
     private readonly string _root = Path.Combine(Path.GetTempPath(), "apogeu-test-it02-" + Guid.NewGuid().ToString("N"));
+    private readonly string _sourceKeys = "apogeu-test-it02-keys-" + Guid.NewGuid().ToString("N");
+    private readonly string _targetKeys = "apogeu-test-it02-keys-" + Guid.NewGuid().ToString("N");
 
     private string BackupDir => Path.Combine(_root, "backups");
 
@@ -33,19 +39,22 @@ public sealed class BackupRestoreTests : IAsyncLifetime
         await Task.WhenAll(_source.StartAsync(), _target.StartAsync()).ConfigureAwait(false);
         Directory.CreateDirectory(BackupDir);
         await SeedAsync(_source.GetConnectionString()).ConfigureAwait(false);
+        await SeedKeysAsync(_sourceKeys).ConfigureAwait(false);
+        await RunCheckedAsync(["volume", "create", _targetKeys]).ConfigureAwait(false);
     }
 
     public async ValueTask DisposeAsync()
     {
         await _source.DisposeAsync().ConfigureAwait(false);
         await _target.DisposeAsync().ConfigureAwait(false);
+        await DockerCli.RunAsync(["volume", "rm", "--force", _sourceKeys, _targetKeys], CancellationToken.None).ConfigureAwait(false);
         if (Directory.Exists(_root))
         {
             Directory.Delete(_root, recursive: true);
         }
     }
 
-    [Fact(DisplayName = "Dado um Postgres com dados, quando o backup roda e o restore carrega o arquivo num Postgres limpo, então as contagens das tabelas coincidem")]
+    [Fact(DisplayName = "Dado um Postgres com dados e o volume de chaves, quando o backup roda e o restore carrega num Postgres e num volume limpos, então as contagens coincidem e as chaves são idênticas")]
     [Trait("Category", "Integration")]
     [Trait("Spec", "SPEC-0066:IT-02")]
     public async Task GivenAPostgresWithDataWhenBackedUpAndRestoredIntoACleanOneThenTheCountsMatch()
@@ -54,21 +63,29 @@ public sealed class BackupRestoreTests : IAsyncLifetime
         var expected = await CountsAsync(WithDatabase(_source.GetConnectionString()), cancellationToken);
         Assert.Equal(ModuleTables.Length, expected.Count);
         Assert.False(await DatabaseExistsAsync(_target.GetConnectionString(), cancellationToken), "the target PostgreSQL is not clean");
+        var expectedKeys = await KeysOfAsync(_sourceKeys);
+        Assert.Equal(3, expectedKeys.Count);
+        Assert.Empty(await KeysOfAsync(_targetKeys));
 
-        var backup = await RunAsync(DeployScripts.Backup, [], _source, cancellationToken);
+        var backup = await RunAsync(DeployScripts.Backup, [], _source, _sourceKeys, cancellationToken);
 
         Assert.True(backup.Succeeded, "backup failed. " + backup.Describe());
         var dump = DumpPathOf(backup);
         Assert.True(File.Exists(dump), $"backup printed '{dump}', which is not a file. " + backup.Describe());
         Assert.Equal(Path.GetFullPath(BackupDir), Path.GetDirectoryName(Path.GetFullPath(dump)));
         Assert.StartsWith("apogeu-", Path.GetFileName(dump), StringComparison.Ordinal);
+        Assert.False(Path.GetFileName(dump).StartsWith("apogeu-keys-", StringComparison.Ordinal), "backup printed the keys archive, not the dump");
         Assert.True(new FileInfo(dump).Length > 0, "empty dump");
+        var keysArchive = KeysArchiveOf(dump);
+        Assert.True(File.Exists(keysArchive), $"no keys archive {Path.GetFileName(keysArchive)} beside the dump. " + backup.Describe());
+        Assert.True(new FileInfo(keysArchive).Length > 0, "empty keys archive");
 
-        var restore = await RunAsync(DeployScripts.Restore, [dump], _target, cancellationToken);
+        var restore = await RunAsync(DeployScripts.Restore, [dump], _target, _targetKeys, cancellationToken);
 
         Assert.True(restore.Succeeded, "restore failed. " + restore.Describe());
         var restored = await CountsAsync(WithDatabase(_target.GetConnectionString()), cancellationToken);
         Assert.Equal(expected, restored);
+        Assert.Equal(expectedKeys, await KeysOfAsync(_targetKeys));
     }
 
     [Fact(DisplayName = "Dados dumps com mais e menos de 7 dias, quando o backup roda, então só os mais antigos que 7 dias são apagados")]
@@ -89,10 +106,11 @@ public sealed class BackupRestoreTests : IAsyncLifetime
         File.SetLastWriteTimeUtc(unrelated, DateTime.UtcNow.AddDays(-8));
         File.SetLastWriteTimeUtc(recent, DateTime.UtcNow.AddDays(-6));
 
-        var backup = await RunAsync(DeployScripts.Backup, [], _source, cancellationToken);
+        var backup = await RunAsync(DeployScripts.Backup, [], _source, _sourceKeys, cancellationToken);
 
         Assert.True(backup.Succeeded, "backup failed. " + backup.Describe());
         Assert.True(File.Exists(DumpPathOf(backup)), "the new dump is missing. " + backup.Describe());
+        Assert.True(File.Exists(KeysArchiveOf(DumpPathOf(backup))), "the new keys archive is missing. " + backup.Describe());
         Assert.False(File.Exists(old), "a dump older than 7 days was kept");
         Assert.True(File.Exists(recent), "a dump newer than 7 days was removed");
         Assert.True(File.Exists(unrelated), "a file that is not a dump was removed");
@@ -188,7 +206,56 @@ public sealed class BackupRestoreTests : IAsyncLifetime
         }
     }
 
-    private Task<ProcessResult> RunAsync(string script, IEnumerable<string> arguments, PostgreSqlContainer container, CancellationToken cancellationToken) =>
+    /// <summary>The keys archive of a dump: <c>apogeu-keys-&lt;stamp&gt;.tar.gz</c> beside <c>apogeu-&lt;stamp&gt;.dump</c>.</summary>
+    private static string KeysArchiveOf(string dump)
+    {
+        var name = Path.GetFileName(dump);
+        var stamp = name["apogeu-".Length..].Split('.')[0];
+        return Path.Combine(Path.GetDirectoryName(dump) ?? string.Empty, $"apogeu-keys-{stamp}.tar.gz");
+    }
+
+    /// <summary>Data Protection key ring of the api in a volume: three XML keys owned by the api user (1654), as the api writes them.</summary>
+    private static async Task SeedKeysAsync(string volume)
+    {
+        await RunCheckedAsync(["volume", "create", volume]).ConfigureAwait(false);
+        const string script =
+            """
+            set -e
+            for n in 1 2 3; do
+              id="$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+              printf '<?xml version="1.0" encoding="utf-8"?><key id="%s" version="1"><descriptor>%s</descriptor></key>' \
+                "$id" "$(head -c 64 /dev/urandom | base64 | tr -d '\n')" > "/keys/key-$id.xml"
+            done
+            chown -R 1654:1654 /keys
+            chmod 600 /keys/*.xml
+            """;
+        await RunCheckedAsync(["run", "--rm", "--volume", $"{volume}:/keys", "busybox:1.37.0", "sh", "-c", script]).ConfigureAwait(false);
+    }
+
+    /// <summary>Every file of a volume: "path sha256 uid:gid mode", sorted.</summary>
+    private static async Task<List<string>> KeysOfAsync(string volume)
+    {
+        var result = await RunCheckedAsync(
+            [
+                "run", "--rm", "--volume", $"{volume}:/keys:ro", "busybox:1.37.0", "sh", "-c",
+                "cd /keys && find . -type f | sort | while read -r f; do echo \"$f $(sha256sum \"$f\" | cut -d' ' -f1) $(stat -c '%u:%g %a' \"$f\")\"; done",
+            ]).ConfigureAwait(false);
+        return [.. result.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)];
+    }
+
+    private static async Task<ProcessResult> RunCheckedAsync(IEnumerable<string> arguments)
+    {
+        var result = await DockerCli.RunAsync(arguments, CancellationToken.None).ConfigureAwait(false);
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException("docker: " + result.Describe());
+        }
+
+        return result;
+    }
+
+    private Task<ProcessResult> RunAsync(
+        string script, IEnumerable<string> arguments, PostgreSqlContainer container, string keysVolume, CancellationToken cancellationToken) =>
         DeployScripts.RunAsync(
             script,
             arguments,
@@ -197,6 +264,7 @@ public sealed class BackupRestoreTests : IAsyncLifetime
                 [DeployScripts.DeployDirVariable] = _root,
                 [DeployScripts.BackupDirVariable] = BackupDir,
                 [DeployScripts.PostgresContainerVariable] = container.Id,
+                [DeployScripts.KeysVolumeVariable] = keysVolume,
                 [DeployScripts.ProjectVariable] = "apogeu-test-it02",
             },
             cancellationToken);

@@ -10,7 +10,9 @@ namespace Apogeu.Deploy.Tests.Unit;
 /// <c>caddy adapt</c> (the JSON Caddy really runs): the three sites of the contract on the base domain of
 /// <c>APOGEU_DOMAIN</c> (default 143-95-218-240.sslip.io), <c>/casino/*</c> of the casino to demo-casino:8080, the api
 /// to api:8080, static files with SPA fallback for the casino and the game, automatic HTTPS with the HTTP redirect on,
-/// and the security headers on every site.
+/// and the security headers on every site. Emenda v3: the X-Forwarded-* headers that come from the internet are dropped
+/// and rewritten by the proxy (no trusted_proxies; the api trusts X-Forwarded-*), shown through the real Caddyfile in
+/// front of an echo backend.
 /// </summary>
 public sealed class CaddyfileTests
 {
@@ -81,6 +83,30 @@ public sealed class CaddyfileTests
         foreach (var (host, site) in new[] { ("cassino", casino), ("jogo", game), ("api", api) })
         {
             AssertSecurityHeaders(site, host);
+        }
+    }
+
+    [Fact(DisplayName = "Dado X-Forwarded-* enviados pelo cliente, quando passam pelo proxy, então chegam à api e ao demo-casino descartados e reescritos")]
+    [Trait("Category", "Unit")]
+    [Trait("Spec", "SPEC-0066:UT-01")]
+    public async Task GivenForwardedHeadersFromTheClientWhenProxiedThenTheBackendGetsTheProxyValues()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var config = await AdaptAsync(TestDomain);
+        Assert.DoesNotContain(Nodes(config), node => node.ContainsKey("trusted_proxies"));
+
+        await using var proxy = await ForwardedHeadersProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
+        foreach (var (site, path) in new[] { ("api", "/echo.cgi"), ("cassino", "/casino/echo.cgi") })
+        {
+            var host = $"{site}.{TestDomain}";
+            var seen = await proxy.EchoAsync(host, path, cancellationToken);
+
+            Assert.True(seen.TryGetValue("XFF", out var forwardedFor) && forwardedFor.Length > 0, $"{host}: no X-Forwarded-For at the backend");
+            Assert.DoesNotContain(ForwardedHeadersProbe.ForgedFor, forwardedFor, StringComparison.Ordinal);
+            Assert.True(
+                seen.TryGetValue("XFH", out var forwardedHost) && forwardedHost.StartsWith(host, StringComparison.Ordinal),
+                $"{host}: X-Forwarded-Host at the backend is '{forwardedHost}', not the host of the request");
+            Assert.Equal("https", seen.GetValueOrDefault("XFP"));
         }
     }
 
