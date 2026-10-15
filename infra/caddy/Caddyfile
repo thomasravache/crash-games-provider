@@ -22,8 +22,18 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
-	# Access log on stderr (docker logs); Caddy redacts the Cookie and Authorization headers by default.
-	log
+	# Access log on stderr (docker logs, rotated by the compose). Caddy redacts the Cookie and Authorization headers by
+	# default; the tokens that travel in a URL are erased too (ADR-0014): the launch token lt of the game and the
+	# access_token of the SignalR hubs, in the logged query and in the Referer (the game page URL carries lt).
+	log {
+		format filter {
+			request>uri query {
+				delete lt
+				delete access_token
+			}
+			request>headers>Referer delete
+		}
+	}
 }
 
 # Static single-page app from a directory of the image: unknown paths fall back to index.html; hashed assets are
