@@ -4,7 +4,7 @@ title: "Cassino demo: carteira própria (seamless)"
 tier: full
 type: feature
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0045, SPEC-0046]
