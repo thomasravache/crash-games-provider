@@ -45,6 +45,48 @@ export const pipaHud = {
   phase: /PREPARE SUA PIPA|EM VOO|PIPA CORTADA!/u,
 } as const;
 
+/**
+ * The casino wallet (SPEC-0047 §6): the balance in the top bar of the casino (lobby and game page, Stitch "Cassino Demo —
+ * Lobby" and "Cassino Demo — Pipa (Refinado)"), read by the demo-site from GET /casino/balance, refreshed on the way back
+ * from the game and every 5 s.
+ */
+export const casinoWallet = {
+  balancePath: "/casino/balance",
+  openingBalance: "3000.00",
+  /** Back from the game or one 5 s refresh, with room for the shared runner. */
+  refreshTimeoutMs: 15_000,
+} as const;
+
+/** Test ids of the Pipa bet panel inside the iframe (packages/game-ui/src/bets, SPEC-0026 §6). */
+export const pipaBets = {
+  amount: "bet-amount-1",
+  action: "bet-action-1",
+  result: "bet-result-1",
+  balance: "hud-balance",
+  bet: /^APOSTAR R\$/u,
+  cashOut: /^RETIRAR R\$/u,
+  won: /^Ganhou R\$/u,
+  lost: "Perdeu",
+} as const;
+
+/** Integer cents of a decimal string ("2990.5" → 299050). */
+export function cents(value: string): number {
+  const [units = "0", fraction = ""] = value.split(".");
+  return Number(units) * 100 + Number(fraction.padEnd(2, "0").slice(0, 2));
+}
+
+/** Decimal string of integer cents (299050 → "2990.50"). */
+export function fromCents(value: number): string {
+  return `${String(Math.trunc(value / 100))}.${String(value % 100).padStart(2, "0")}`;
+}
+
+/** "2990.5" → "R$ 2.990,50" (pt-BR, as the casino and the game show money). */
+export function formatBrl(value: string): string {
+  const [units = "0", fraction = ""] = value.split(".");
+  const grouped = units.replace(/\B(?=(\d{3})+(?!\d))/gu, ".");
+  return `R$ ${grouped},${fraction.padEnd(2, "0").slice(0, 2)}`;
+}
+
 /** Kit art of the Pipa, served by the game front (SPEC-0044 §6 Emenda v1: {GameBaseUrl}/kit/{code}/…). */
 export const pipaKit = {
   thumbnail: "/kit/pipa/thumb.png",
