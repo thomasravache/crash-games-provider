@@ -167,7 +167,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — af14212 (árvore suja) | 2026-10-15 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:05.73]     Dado o Host com DataProtection:KeysPath num diretório, quando ) — f8683df | 2026-10-15 |
-| G2 Green | PENDING | | |
+| G2 Green | FAIL | build exit 0 (✓ built in 283ms); test exit 1 ([xUnit.net 00:05:09.54]     Dado um evento de crash entregue duas vezes, quando processado); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:00:02.29]     Dado o Directory.Packages.props, quando a família ASP.NET Core) — 02cddb2 | 2026-10-15 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
