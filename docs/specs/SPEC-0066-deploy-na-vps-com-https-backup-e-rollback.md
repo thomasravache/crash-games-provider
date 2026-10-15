@@ -4,10 +4,10 @@ title: Deploy na VPS com HTTPS, backup e rollback
 tier: full
 type: foundation
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-15
 parent: SPEC-0012
-depends_on: [SPEC-0065]
+depends_on: [SPEC-0047]
 consumes_contract: [SPEC-0065@2]
 contract_version: 1
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
