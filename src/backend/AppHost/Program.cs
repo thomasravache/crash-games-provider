@@ -220,7 +220,8 @@ if (frontendInstall is not null)
 
 // SPEC-0065 (ADR-0029): the production compose. The api and the DemoCasino run in Production; the api migrates every module
 // and ensures the demo operator on its start; the demo operator is seamless with its wallet in the DemoCasino, over plain
-// http on the internal network (the only listed host); the Data Protection keys live in a volume; every service has a memory
+// http on the internal network (the only listed host); the Data Protection keys live in a volume, handed to the api user by
+// keys-init before the api starts (Emenda v3); every service has a memory
 // limit and none publishes a port on the host (only the proxy of SPEC-0066 does). The secrets and the addresses are
 // ${VARIABLE} references filled by the .env of the host.
 if (isPublishMode)
@@ -229,7 +230,11 @@ if (isPublishMode)
 
     builder.AddDockerComposeEnvironment("compose")
         .WithDashboard(false)
-        .ConfigureComposeFile(file => file.AddVolume(ProductionCompose.KeysVolumeDeclaration()))
+        .ConfigureComposeFile(file =>
+        {
+            file.AddVolume(ProductionCompose.KeysVolumeDeclaration());
+            file.AddService(ProductionCompose.KeysInit());
+        })
 
         // PUBLIC_API_URL is read by the proxy and the static build of the game (SPEC-0066), not by a service of the compose.
         .ConfigureEnvFile(variables => variables[ProductionCompose.PublicApiUrlVariable] = new CapturedEnvironmentVariable
@@ -252,6 +257,7 @@ if (isPublishMode)
         {
             ProductionCompose.LimitMemory(service, "768M");
             service.AddVolume(ProductionCompose.KeysVolumeMount());
+            ProductionCompose.AfterKeysInit(service);
         });
 
     demoCasino.WithEnvironment("ASPNETCORE_ENVIRONMENT", "Production")
