@@ -4,7 +4,7 @@ title: "Cassino demo: lobby com o catálogo da Apogeu"
 tier: full
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0043, SPEC-0020]
