@@ -144,6 +144,7 @@ export function App() {
           launchUrl={launch?.code === route.code ? launch.launchUrl : undefined}
           onLaunch={launchGame}
           onBack={toLobby}
+          onLeave={leave}
         />
       ) : (
         <LobbyScreen
