@@ -5,8 +5,8 @@
 ## Saúde
 
 - Validação (G0): **2 erro(s), 31 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 2, approved 23, in-progress 2, implemented 28
-- Impedimentos: **1 aberto(s)**, 25 resolvido(s)
+- Specs: proposed 2, approved 24, in-progress 2, implemented 28
+- Impedimentos: **1 aberto(s)**, 26 resolvido(s)
 
 ## Impedimentos Abertos
 
@@ -71,6 +71,7 @@ Perfil: **rigoroso**
 | 6 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0059; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3 |
 | 7 | SPEC-0038 | Backoffice: operadores, chaves e comissão | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 6: arquivos em comum com SPEC-0037 |
 | 7 | SPEC-0054 | Corte de exposição por rodada com retirada automática | full/M | approved | ⛔ aguarda implementação de SPEC-0053 | saiu da onda 6: arquivos em comum com SPEC-0037 |
+| 7 | SPEC-0060 | CI roda os testes do cassino demo | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0059; saiu da onda 2: arquivos em comum com SPEC-0015; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: arquivos em comum com SPEC-0030; saiu da onda 5: max_parallel=3; saiu da onda 6: arquivos em comum com SPEC-0057 |
 | 8 | SPEC-0039 | Backoffice: catálogo e limites por operador | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0038 |
 | 8 | SPEC-0055 | Aviso de limite da rodada e regras na Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0054 |  |
 | 8 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0053; saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0054 |
@@ -86,7 +87,7 @@ Perfil: **rigoroso**
 | SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 15/19 implementadas |
 | SPEC-0019 | Apostas e cash-out em demo | approved | 10/15 implementadas |
 | SPEC-0034 | Backoffice B2B da Apogeu | approved | 0/7 implementadas |
-| SPEC-0035 | Site demo de cassino | approved | 3/5 implementadas |
+| SPEC-0035 | Site demo de cassino | approved | 3/6 implementadas |
 
 ## Grafo de Dependências
 
@@ -136,10 +137,12 @@ flowchart LR
     S0042["SPEC-0042<br/>Backoffice: relatórios e fechamento men…"]:::approved
   end
   subgraph E0035["SPEC-0035 · Site demo de cassino"]
+    S0043["SPEC-0043<br/>Cassino demo: backend do cassino e entr…"]:::implemented
     S0044["SPEC-0044<br/>Cassino demo: lobby com o catálogo da A…"]:::implemented
     S0045["SPEC-0045<br/>Cassino demo: página do jogo com lançam…"]:::inprogress
     S0046["SPEC-0046<br/>Carteira seamless: adaptador HTTP da ca…"]:::implemented
     S0047["SPEC-0047<br/>Cassino demo: carteira própria (seamles…"]:::approved
+    S0060["SPEC-0060<br/>CI roda os testes do cassino demo"]:::approved
   end
   S0009 -. contrato v1 .-> S0010
   S0010 --> S0011
@@ -178,6 +181,9 @@ flowchart LR
   S0038 --> S0042
   S0024 --> S0042
   S0024 -. contrato v1 .-> S0042
+  S0009 --> S0043
+  S0009 -. contrato v1 .-> S0043
+  S0043 --> S0044
   S0020 --> S0044
   S0020 -. contrato v3 .-> S0044
   S0044 --> S0045
@@ -199,6 +205,8 @@ flowchart LR
   S0025 -. contrato v4 .-> S0056
   S0023 -. contrato v3 .-> S0056
   S0051 --> S0057
+  S0004 --> S0060
+  S0043 --> S0060
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -269,6 +277,7 @@ flowchart LR
 | [SPEC-0057](SPEC-0057-g2-roda-os-testes-afetados-uma-vez-so.md) | G2 roda os testes afetados uma vez só | lite | refactor | approved | 2026-10-14 | SPEC-0001 | SPEC-0051 | — |
 | [SPEC-0058](SPEC-0058-atualizar-asp-net-core-para-10-0-13-cve-2026-70159.md) | Atualizar ASP.NET Core para 10.0.13 (CVE-2026-70159) | lite | fix | implemented | 2026-10-14 | SPEC-0001 | — | — |
 | [SPEC-0059](SPEC-0059-ci-em-runner-configuravel-self-hosted-na-vm.md) | CI em runner configurável (self-hosted na VM) | lite | fix | in-progress | 2026-10-15 | SPEC-0001 | — | — |
+| [SPEC-0060](SPEC-0060-ci-roda-os-testes-do-cassino-demo.md) | CI roda os testes do cassino demo | lite | fix | approved | 2026-10-15 | SPEC-0035 | SPEC-0004, SPEC-0043 | — |
 
 ## ADRs
 
