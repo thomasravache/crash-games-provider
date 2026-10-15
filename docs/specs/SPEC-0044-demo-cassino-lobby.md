@@ -159,7 +159,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.08s (tests 95%, transform 3%, import 2%)) — 62a4c0f | 2026-10-15 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: N1 URLs das artes string? no BFF x string no front (artes ausentes escondem a lista); N2 contador democasino.apogeu.failures sem exporter (só log); N3 sem timeout curto no cliente Apogeu (semáforo espera até 100 s); N4 gradiente do banner com rgb fixo em vez de token; N5 cartões Em breve não-crash na aba Crash; desvios visuais declarados (acento dourado em vez de #5B7FD6, aba inicial Todos, sem saldo/Jogar agora, rodapé ausente, artes PNG pesadas e banner de 512 px esticado) ficam para a aprovação visual do thomas — 62a4c0f | 2026-10-15 |
 | G5 Integração & CI | PASS | MANUAL: MANUAL: CI do PR #34 verde (run 38717248741, commit 197fa3e): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; e2e verde na 2ª tentativa após 2 falhas de tempo no webkit-mobile em testes da SPEC-0026 (E2E-02 aposta perdida, E2E-04 aposta dupla: a aposta volta a APOSTAR antes de virar RETIRAR), o mesmo padrão intermitente já visto no Firefox na onda 1; local em 197fa3e: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
-| H2 Integração aprovada | PENDING | | |
+| H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #34, run 38717248741); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
 
