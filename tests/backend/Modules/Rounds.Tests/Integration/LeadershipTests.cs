@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Apogeu.Rounds.Tests.Support;
+using Apogeu.TestKit.Performance;
 using Microsoft.AspNetCore.SignalR.Client;
 using Xunit;
 
@@ -9,7 +10,9 @@ namespace Apogeu.Rounds.Tests.Integration;
 [Collection(RoundsIntegration.Name)]
 public sealed class LeadershipTests(RoundsContainers containers)
 {
-    private static readonly TimeSpan TakeoverLimit = TimeSpan.FromSeconds(6);
+    // 6 s on the reference machine, × the machine factor elsewhere (SPEC-0052).
+    private static readonly (TimeSpan Budget, string Source) TakeoverLimit =
+        PerformanceBudget.Resolve(TimeSpan.FromSeconds(6), Environment.GetEnvironmentVariable);
     private static readonly TimeSpan RoundTimeout = TimeSpan.FromSeconds(60);
     private const int Rounds = 5;
     private const int TakeoverSamples = 3;
@@ -17,7 +20,7 @@ public sealed class LeadershipTests(RoundsContainers containers)
     // Long flights (up to ln(2)/0.00002 ≈ 34.7 s): the old leader is flying, sending RoundSync every 200 ms, when it loses Redis.
     private static readonly SalaSettings LongFlights = new(GrowthK: "0.00002", Cap: "2.00");
 
-    [Fact(DisplayName = "Dadas duas instâncias do condutor com Redis real, quando rodam 5 rodadas, então só uma conduz e os números de rodada são 1..5 sem repetição; ao matar a líder, a outra assume em ≤ 6 s")]
+    [Fact(DisplayName = "Dadas duas instâncias do condutor com Redis real, quando rodam 5 rodadas, então só uma conduz e os números de rodada são 1..5 sem repetição; ao matar a líder, a outra assume em ≤ 6 s na máquina de referência")]
     [Trait("Spec", "SPEC-0008:IT-01")]
     [Trait("Category", "Integration")]
     [Trait("Category", "Performance")]
@@ -61,12 +64,12 @@ public sealed class LeadershipTests(RoundsContainers containers)
         var samples = await MeasureTakeoversAsync(cluster, hosts, numbers.Max(), ct);
         var slowest = samples.Max();
         var described = string.Join(", ", samples.Select(s => s.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms"));
-        Assert.True(slowest <= TakeoverLimit, $"A takeover took {slowest.TotalMilliseconds:F0} ms > {TakeoverLimit.TotalSeconds} s. Samples: {described}");
+        Assert.True(slowest <= TakeoverLimit.Budget, $"A takeover took {slowest.TotalMilliseconds:F0} ms > budget {TakeoverLimit.Budget.TotalSeconds} s from {TakeoverLimit.Source}. Samples: {described}");
     }
 
     // From the G4 review of SPEC-0008: the leader loses Redis the ungraceful way (its lock connection hangs; no release, no
     // DisposeAsync). The other instance takes over within 6 s and the old leader conducts nothing once it does.
-    [Fact(DisplayName = "Dado o líder que perde o Redis sem liberar o lock (conexão travada), quando a outra instância assume, então assume em ≤ 6 s e o líder antigo não transiciona nem transmite nada depois disso")]
+    [Fact(DisplayName = "Dado o líder que perde o Redis sem liberar o lock (conexão travada), quando a outra instância assume, então assume em ≤ 6 s na máquina de referência e o líder antigo não transiciona nem transmite nada depois disso")]
     [Trait("Spec", "SPEC-0008:IT-01")]
     [Trait("Category", "Integration")]
     [Trait("Category", "Performance")]
@@ -107,7 +110,7 @@ public sealed class LeadershipTests(RoundsContainers containers)
         await sampling.CancelAsync();
         await sampler;
 
-        Assert.True(takeover <= TakeoverLimit, $"Takeover after an ungraceful loss took {takeover.TotalMilliseconds:F0} ms > {TakeoverLimit.TotalSeconds} s.");
+        Assert.True(takeover <= TakeoverLimit.Budget, $"Takeover after an ungraceful loss took {takeover.TotalMilliseconds:F0} ms > budget {TakeoverLimit.Budget.TotalSeconds} s from {TakeoverLimit.Source}.");
         Assert.True(overlaps.Count == 0, $"Two instances led the room at the same time: {string.Join("; ", overlaps)}");
         Assert.NotNull(sentByOld);
         var late = sentByOld.Sent.Where(m => m.SentAt >= successorLeadsAt).ToList();

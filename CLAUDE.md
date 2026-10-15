@@ -18,6 +18,8 @@ pnpm -C src/frontend typecheck
 pnpm -C src/frontend format:check
 ```
 
+Limites locais dos testes de desempenho (`Category=Performance`): `APOGEU_PERF_BUDGET_SCALE` é o fator da máquina (decimal > 0, ex.: `5` ou `1.5`), no perfil do shell; sem ela vale 1 (máquina de referência) e na CI é ignorada (cada teste mantém o limite de CI) — SPEC-0052.
+
 ## Regras de código
 
 - Avisos de compilação são erros (`TreatWarningsAsErrors`); não suprima regra sem motivo na própria linha.
