@@ -154,7 +154,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 04dc50c | 2026-10-10 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:06.77]     Dados DemoCasino e Apogeu reais, quando o jogador logado pede ) — 301ec87 | 2026-10-15 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
