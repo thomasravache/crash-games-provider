@@ -104,9 +104,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 254ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — b2ccf8b | 2026-10-14 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.00s (tests 95%, transform 3%, import 1%)) — b2ccf8b | 2026-10-14 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (Emenda v2, b2ccf8b). Minors: fator enorme (1e300) gera OverflowException sem nomear a variável e faltam NaN/Infinity/1,5 no UT-01; GITHUB_ACTIONS com distinção de caixa; static readonly embrulha erro de configuração (TypeInitializationException); prazo (b) do IT-10 sem fator; docstring do PerformanceBudget cita fator 5; UT-01 com nome de cash-out. Testes alterados fora de commit red justificados: só passaram a ler o limite pelo resolvedor. Minor de spec (texto desatualizado) corrigido pelo Architect. — b2ccf8b | 2026-10-14 |
-| G5 Integração & CI | PENDING | | |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #31 verde (run 38676137955, commit 32cbe33): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; backend verde na 3ª tentativa e e2e Firefox na 2ª, após falhas de tempo conhecidas sem relação com a onda (LateDebitReusedClientBetIdTests, E2E Firefox de aposta perdida/dupla, troca de rodada no teste do líder impedido, alerta de conciliação verificado sem espera em SettlementRaceTests; os dois últimos passam 3/3 localmente); local em 54f8b85: build 0 avisos, arquitetura 19/19 + front, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-15 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 9. Registro de Impedimentos

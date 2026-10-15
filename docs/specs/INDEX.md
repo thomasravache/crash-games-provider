@@ -4,15 +4,14 @@
 
 ## Saúde
 
-- Validação (G0): **2 erro(s), 22 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 2, approved 27, in-progress 5, implemented 21
-- Impedimentos: **2 aberto(s)**, 20 resolvido(s)
+- Validação (G0): **2 erro(s), 27 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 2, approved 26, in-progress 6, implemented 21
+- Impedimentos: **1 aberto(s)**, 22 resolvido(s)
 
 ## Impedimentos Abertos
 
 | Spec | ID | Tipo | Fase/Gate | Responsável | Aberto em | Idade | Descrição |
 |---|---|---|---|---|---|---|---|
-| SPEC-0001 | IMP-01 | externo | G5 | thomas | 2026-10-14 | 1d | CI da PR #31 (onda 1) não roda: GitHub Actions recusa iniciar jobs ('recent account payments have failed or your spending limit needs to be increased'); cota gratuita de minutos do repo privado provavelmente esgotada e limite de gasto em zero |
 | SPEC-0015 | IMP-01 | externo | G1 | thomas: GitHub Pro ou repositório público | 2026-10-09 | 6d | Branch protection e rulesets indisponíveis no GitHub Free para repositório privado (API 403) |
 
 ## Cobertura de Pilares
@@ -46,7 +45,7 @@ Perfil: **rigoroso**
 
 ## Plano de Execução
 
-**Em andamento:** SPEC-0025, SPEC-0043, SPEC-0046, SPEC-0052, SPEC-0058  
+**Em andamento:** SPEC-0025, SPEC-0043, SPEC-0046, SPEC-0052, SPEC-0058, SPEC-0059  
 **Paradas por impedimento:** —  
 **Próximo lote:** —
 
@@ -56,36 +55,36 @@ Perfil: **rigoroso**
 | 1 | SPEC-0043 | Cassino demo: backend do cassino e entrada | full/M | in-progress | 🔄 em andamento |  |
 | 1 | SPEC-0058 | Atualizar ASP.NET Core para 10.0.13 (CVE-2026-70159) | lite/S | in-progress | 🔄 em andamento |  |
 | 2 | SPEC-0046 | Carteira seamless: adaptador HTTP da carteira do operador | full/M | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0025 |
+| 2 | SPEC-0059 | CI em runner configurável (self-hosted na VM) | lite/S | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0058 |
 | 2 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
-| 2 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
 | 3 | SPEC-0052 | Limites locais dos testes de desempenho configuráveis por máquina | lite/S | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046 |
-| 3 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 6d) | saiu da onda 1: arquivos em comum com SPEC-0043, SPEC-0058; saiu da onda 2: max_parallel=3 |
-| 3 | SPEC-0027 | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0043; saiu da onda 2: max_parallel=3 |
-| 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0058; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0015 |
+| 3 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
+| 3 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 6d) | saiu da onda 1: arquivos em comum com SPEC-0043, SPEC-0058; saiu da onda 2: arquivos em comum com SPEC-0059 |
+| 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0058; saiu da onda 2: arquivos em comum com SPEC-0059; saiu da onda 3: arquivos em comum com SPEC-0015 |
+| 4 | SPEC-0027 | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0043; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
 | 4 | SPEC-0028 | Endurecimento da API de operadores | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: arquivos em comum com SPEC-0052 |
-| 4 | SPEC-0029 | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
-| 5 | SPEC-0030 | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0043; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017, SPEC-0029 |
-| 5 | SPEC-0031 | Abas de apostas da Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0025 | saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029 |
+| 5 | SPEC-0029 | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3 |
 | 5 | SPEC-0032 | Pool de conexões limitado no Fairness e no Operators | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0028 |
-| 6 | SPEC-0033 | Acabamento técnico da cena da Pipa | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029; saiu da onda 5: max_parallel=3 |
-| 6 | SPEC-0036 | Backoffice: shell, login, papéis e trilha de auditoria | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029; saiu da onda 5: arquivos em comum com SPEC-0031 |
-| 6 | SPEC-0044 | Cassino demo: lobby com o catálogo da Apogeu | full/M | approved | ⛔ aguarda implementação de SPEC-0043 | saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0028; saiu da onda 5: arquivos em comum com SPEC-0032 |
-| 7 | SPEC-0037 | Backoffice: painel de desempenho | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec |  |
-| 7 | SPEC-0045 | Cassino demo: página do jogo com lançamento assinado | full/M | approved | ⛔ aguarda implementação de SPEC-0044 |  |
-| 7 | SPEC-0053 | Teto de ganho por rodada nos limites do operador | full/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0028; saiu da onda 5: arquivos em comum com SPEC-0032; saiu da onda 6: arquivos em comum com SPEC-0044 |
-| 8 | SPEC-0038 | Backoffice: operadores, chaves e comissão | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 7: arquivos em comum com SPEC-0037 |
-| 8 | SPEC-0047 | Cassino demo: carteira própria (seamless) | full/M | approved | ⛔ aguarda implementação de SPEC-0045; aguarda implementação de SPEC-0046 |  |
-| 8 | SPEC-0054 | Corte de exposição por rodada com retirada automática | full/M | approved | ⛔ aguarda implementação de SPEC-0053; aguarda implementação de SPEC-0025 |  |
-| 9 | SPEC-0039 | Backoffice: catálogo e limites por operador | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 7: arquivos em comum com SPEC-0037; saiu da onda 8: arquivos em comum com SPEC-0038 |
-| 9 | SPEC-0055 | Aviso de limite da rodada e regras na Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0054 |  |
-| 9 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | approved | ⛔ aguarda implementação de SPEC-0025 | saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: arquivos em comum com SPEC-0052; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 8: arquivos em comum com SPEC-0054 |
-| 10 | SPEC-0040 | Backoffice: rodadas e auditoria provably fair | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 7: arquivos em comum com SPEC-0037; saiu da onda 8: arquivos em comum com SPEC-0038; saiu da onda 9: arquivos em comum com SPEC-0039 |
-| 10 | SPEC-0057 | G2 roda os testes afetados uma vez só | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0058; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0052, SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: max_parallel=3; saiu da onda 8: max_parallel=3; saiu da onda 9: max_parallel=3 |
-| 10 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: max_parallel=3; saiu da onda 8: max_parallel=3; saiu da onda 9: max_parallel=3 |
-| 11 | SPEC-0041 | Backoffice: busca de apostas | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 7: arquivos em comum com SPEC-0037; saiu da onda 8: arquivos em comum com SPEC-0038; saiu da onda 9: arquivos em comum com SPEC-0039; saiu da onda 10: arquivos em comum com SPEC-0040 |
-| 11 | SPEC-0059 | CI em runner configurável (self-hosted na VM) | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0058; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017; saiu da onda 5: arquivos em comum com SPEC-0030; saiu da onda 6: arquivos em comum com SPEC-0033; saiu da onda 7: max_parallel=3; saiu da onda 8: max_parallel=3; saiu da onda 9: max_parallel=3; saiu da onda 10: arquivos em comum com SPEC-0057 |
-| 12 | SPEC-0042 | Backoffice: relatórios e fechamento mensal | full/M | approved | ⛔ aguarda implementação de SPEC-0036; aguarda implementação de SPEC-0038; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 9: arquivos em comum com SPEC-0039; saiu da onda 10: arquivos em comum com SPEC-0040; saiu da onda 11: arquivos em comum com SPEC-0041 |
-| 13 | SPEC-0048 | Capacidade do cash-out em rajada na infraestrutura real | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: arquivos em comum com SPEC-0052; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 8: arquivos em comum com SPEC-0054; saiu da onda 9: arquivos em comum com SPEC-0056; saiu da onda 10: arquivos em comum com SPEC-0040; saiu da onda 11: arquivos em comum com SPEC-0041; saiu da onda 12: arquivos em comum com SPEC-0042 |
+| 5 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | approved | ⛔ aguarda implementação de SPEC-0025 | saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: arquivos em comum com SPEC-0052; saiu da onda 4: max_parallel=3 |
+| 6 | SPEC-0030 | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0043; saiu da onda 2: arquivos em comum com SPEC-0059; saiu da onda 3: arquivos em comum com SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017; saiu da onda 5: arquivos em comum com SPEC-0029 |
+| 6 | SPEC-0031 | Abas de apostas da Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0025 | saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0029 |
+| 6 | SPEC-0033 | Acabamento técnico da cena da Pipa | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0059; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0029 |
+| 7 | SPEC-0036 | Backoffice: shell, login, papéis e trilha de auditoria | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0029; saiu da onda 6: arquivos em comum com SPEC-0031 |
+| 7 | SPEC-0044 | Cassino demo: lobby com o catálogo da Apogeu | full/M | approved | ⛔ aguarda implementação de SPEC-0043 | saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0028; saiu da onda 5: arquivos em comum com SPEC-0032; saiu da onda 6: max_parallel=3 |
+| 7 | SPEC-0057 | G2 roda os testes afetados uma vez só | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0058; saiu da onda 2: arquivos em comum com SPEC-0059; saiu da onda 3: arquivos em comum com SPEC-0052, SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3 |
+| 8 | SPEC-0037 | Backoffice: painel de desempenho | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec |  |
+| 8 | SPEC-0045 | Cassino demo: página do jogo com lançamento assinado | full/M | approved | ⛔ aguarda implementação de SPEC-0044 |  |
+| 8 | SPEC-0053 | Teto de ganho por rodada nos limites do operador | full/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0028; saiu da onda 5: arquivos em comum com SPEC-0032; saiu da onda 6: max_parallel=3; saiu da onda 7: arquivos em comum com SPEC-0044 |
+| 9 | SPEC-0038 | Backoffice: operadores, chaves e comissão | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 8: arquivos em comum com SPEC-0037 |
+| 9 | SPEC-0047 | Cassino demo: carteira própria (seamless) | full/M | approved | ⛔ aguarda implementação de SPEC-0045; aguarda implementação de SPEC-0046 |  |
+| 9 | SPEC-0054 | Corte de exposição por rodada com retirada automática | full/M | approved | ⛔ aguarda implementação de SPEC-0053; aguarda implementação de SPEC-0025 |  |
+| 10 | SPEC-0039 | Backoffice: catálogo e limites por operador | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 8: arquivos em comum com SPEC-0037; saiu da onda 9: arquivos em comum com SPEC-0038 |
+| 10 | SPEC-0055 | Aviso de limite da rodada e regras na Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0054 |  |
+| 10 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0059; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: max_parallel=3; saiu da onda 8: max_parallel=3; saiu da onda 9: max_parallel=3 |
+| 11 | SPEC-0040 | Backoffice: rodadas e auditoria provably fair | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 8: arquivos em comum com SPEC-0037; saiu da onda 9: arquivos em comum com SPEC-0038; saiu da onda 10: arquivos em comum com SPEC-0039 |
+| 12 | SPEC-0041 | Backoffice: busca de apostas | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 8: arquivos em comum com SPEC-0037; saiu da onda 9: arquivos em comum com SPEC-0038; saiu da onda 10: arquivos em comum com SPEC-0039; saiu da onda 11: arquivos em comum com SPEC-0040 |
+| 13 | SPEC-0042 | Backoffice: relatórios e fechamento mensal | full/M | approved | ⛔ aguarda implementação de SPEC-0036; aguarda implementação de SPEC-0038; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 10: arquivos em comum com SPEC-0039; saiu da onda 11: arquivos em comum com SPEC-0040; saiu da onda 12: arquivos em comum com SPEC-0041 |
+| 14 | SPEC-0048 | Capacidade do cash-out em rajada na infraestrutura real | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0025; saiu da onda 2: arquivos em comum com SPEC-0046; saiu da onda 3: arquivos em comum com SPEC-0052; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0056; saiu da onda 6: max_parallel=3; saiu da onda 7: max_parallel=3; saiu da onda 8: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 9: arquivos em comum com SPEC-0054; saiu da onda 10: max_parallel=3; saiu da onda 11: arquivos em comum com SPEC-0040; saiu da onda 12: arquivos em comum com SPEC-0041; saiu da onda 13: arquivos em comum com SPEC-0042 |
 
 ## Épicos
 
@@ -121,7 +120,7 @@ flowchart LR
     S0051["SPEC-0051<br/>Gates locais só com os testes afetados …"]:::implemented
     S0057["SPEC-0057<br/>G2 roda os testes afetados uma vez só"]:::approved
     S0058["SPEC-0058<br/>Atualizar ASP.NET Core para 10.0.13 (CV…"]:::inprogress
-    S0059["SPEC-0059<br/>CI em runner configurável (self-hosted …"]:::approved
+    S0059["SPEC-0059<br/>CI em runner configurável (self-hosted …"]:::inprogress
   end
   subgraph E0019["SPEC-0019 · Apostas e cash-out em demo"]
     S0020["SPEC-0020<br/>Catálogo de jogos e limites por operado…"]:::implemented
@@ -294,7 +293,7 @@ flowchart LR
 | [SPEC-0056](SPEC-0056-apostas-ao-vivo-com-varias-instancias.md) | Apostas ao vivo com várias instâncias | full | feature | approved | 2026-10-13 | SPEC-0019 | SPEC-0025 | SPEC-0025@4, SPEC-0023@3 |
 | [SPEC-0057](SPEC-0057-g2-roda-os-testes-afetados-uma-vez-so.md) | G2 roda os testes afetados uma vez só | lite | refactor | approved | 2026-10-14 | SPEC-0001 | SPEC-0051 | — |
 | [SPEC-0058](SPEC-0058-atualizar-asp-net-core-para-10-0-13-cve-2026-70159.md) | Atualizar ASP.NET Core para 10.0.13 (CVE-2026-70159) | lite | fix | in-progress | 2026-10-14 | SPEC-0001 | — | — |
-| [SPEC-0059](SPEC-0059-ci-em-runner-configuravel-self-hosted-na-vm.md) | CI em runner configurável (self-hosted na VM) | lite | fix | approved | 2026-10-15 | SPEC-0001 | — | — |
+| [SPEC-0059](SPEC-0059-ci-em-runner-configuravel-self-hosted-na-vm.md) | CI em runner configurável (self-hosted na VM) | lite | fix | in-progress | 2026-10-15 | SPEC-0001 | — | — |
 
 ## ADRs
 
