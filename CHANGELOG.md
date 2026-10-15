@@ -12,6 +12,7 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 - ASP.NET Core, Extensions e EF Core 10.0.13 e SDK 10.0.402: corrige o CVE-2026-70159 (GHSA-334f-vvp4-7g6p), negação de serviço no SignalR; testes de guarda impedem voltar à faixa vulnerável (SPEC-0058)
 
 ### Added
+- Cassino demo: carteira própria em modo seamless — `/apogeu/v1/{balance,debit,credit,rollback}` com a assinatura da Apogeu verificada, idempotência por transação, R$ 3.000,00 por jogador e saldo no topo do lobby e da página do jogo; em Development o operador demo usa essa carteira (SPEC-0047)
 - Cassino demo: página do jogo — botão Jogar no lobby, lançamento assinado no BFF (`POST /casino/play/{gameCode}`, uso único, 404 GAME_NOT_AVAILABLE e 502 PROVIDER_UNAVAILABLE) e a Pipa num iframe com sandbox mínimo, tela cheia, "Voltar ao lobby" e a coluna "Sobre o jogo" (SPEC-0045)
 - Cassino demo: lobby com o catálogo da Apogeu — `GET /casino/games` no BFF (chamada assinada, cache de 60 s, 401 sem sessão e 502 PROVIDER_UNAVAILABLE com a Apogeu fora do ar), banner de destaque, abas Todos/Crash/Novidades e cartões com a arte do kit visual; o catálogo `GET /api/v1/games` passa a trazer `thumbnailUrl` e `bannerUrl` (SPEC-0044)
 - Abas de apostas da Pipa: "Todas as apostas" ao vivo com apelido anonimizado e totais da rodada, e "Minhas apostas" com o histórico do jogador e "Carregar mais" por cursor (SPEC-0031)
@@ -39,6 +40,7 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 - Estrutura do repositório e qualidade de código: solução .NET 10 em monólito modular (6 módulos), workspace pnpm com os apps e pacotes do front, análise estrita, lint/format e hooks de commit (SPEC-0002)
 
 ### Changed
+- A CI roda os testes .NET e os E2E quando o cassino demo muda (`src/demo/**`, `tests/demo/**`); antes esses PRs pulavam o job `backend` (SPEC-0060)
 - Gates locais G1/G2 rodam só os testes afetados pela mudança (`tools/ci/affected-tests`); backend, arquivos de apoio compartilhados e arquivos não mapeados continuam rodando a suíte inteira, e o G5 local e a CI do GitHub rodam tudo (SPEC-0051)
 
 ### Fixed

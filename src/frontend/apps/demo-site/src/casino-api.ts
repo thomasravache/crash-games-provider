@@ -205,3 +205,38 @@ export async function playGame(gameCode: string): Promise<PlayResult> {
     ? { status: "not-available" }
     : { status: "unavailable" };
 }
+
+const balancePath = "/casino/balance";
+
+/** The balance of the casino wallet (SPEC-0047 §6): a decimal string with two places and its currency. */
+export interface CasinoBalance {
+  readonly balance: string;
+  readonly currency: string;
+}
+
+/** Outcome of the balance read: the balance, no session (401) or unavailable (any other failure). */
+export type BalanceResult =
+  | { readonly status: "ok"; readonly balance: CasinoBalance }
+  | { readonly status: "unauthorized" }
+  | { readonly status: "unavailable" };
+
+const decimalPattern = /^-?\d+(?:\.\d+)?$/u;
+
+/** GET /casino/balance: the balance of the session player in the casino's own wallet. */
+export async function readBalance(signal: AbortSignal): Promise<BalanceResult> {
+  let response: Response;
+  try {
+    response = await fetch(balancePath, { credentials: "same-origin", signal });
+  } catch {
+    return { status: "unavailable" };
+  }
+  if (response.status === 401) {
+    return { status: "unauthorized" };
+  }
+  const body = response.ok ? await readJson(response) : undefined;
+  const balance = body === undefined ? undefined : stringField(body, "balance");
+  const currency = body === undefined ? undefined : stringField(body, "currency");
+  return balance === undefined || currency === undefined || !decimalPattern.test(balance)
+    ? { status: "unavailable" }
+    : { status: "ok", balance: { balance, currency } };
+}

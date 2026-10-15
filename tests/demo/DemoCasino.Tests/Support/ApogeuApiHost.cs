@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text.Json;
 using Apogeu.Operators.Infrastructure.Catalog;
 using Apogeu.Security.Tests.Support;
+using Apogeu.Wallet.Contracts;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -33,6 +34,18 @@ internal sealed class ApogeuApiHost : IAsyncDisposable
 
     private const string OpenApiPath = "/openapi/v1.json";
 
+    /// <summary>The balance the game reads with the player session (SPEC-0021 §6).</summary>
+    private const string WalletBalancePath = "/api/v1/wallet/balance";
+
+    /// <summary>Provisional per-operator wallet settings of SPEC-0046 (Emenda): <c>Wallet:Operators:{op}:Mode|WalletUrl|KeyId|Secret</c>.</summary>
+    private const string WalletOperatorsSection = "Wallet:Operators";
+
+    /// <summary>The demo operator of the Development seed (SPEC-0009).</summary>
+    public const string DemoOperatorId = "demo";
+
+    /// <summary>Assembly of the Host's messaging lifecycle (Wolverine), kept in seamless mode.</summary>
+    private const string ServiceDefaultsAssembly = "Apogeu.ServiceDefaults";
+
     private readonly WebApplicationFactory<HostProgram> _factory;
 
     private ApogeuApiHost(WebApplicationFactory<HostProgram> factory, TestApiKey key)
@@ -44,10 +57,26 @@ internal sealed class ApogeuApiHost : IAsyncDisposable
     /// <summary>The active API key of the demo operator.</summary>
     public TestApiKey Key { get; }
 
-    public static async Task<ApogeuApiHost> StartAsync(string postgresServerConnectionString, string redisConnectionString, CancellationToken cancellationToken)
+    public static Task<ApogeuApiHost> StartAsync(string postgresServerConnectionString, string redisConnectionString, CancellationToken cancellationToken) =>
+        StartAsync(postgresServerConnectionString, redisConnectionString, key: null, seamlessWalletUrl: null, cancellationToken);
+
+    /// <summary>
+    /// The Apogeu with the demo operator key <paramref name="key"/> (generated when null) and, when
+    /// <paramref name="seamlessWalletUrl"/> is given, the demo operator in seamless mode (SPEC-0047): its wallet is the
+    /// operator wallet at that address, called signed with the same key (<c>Wallet:Operators:demo:*</c>, the provisional
+    /// settings of SPEC-0046). In seamless mode the Wallet module's hosted services (its migrations) and the Host's messaging
+    /// (the durable resend of credits, ADR-0028) are kept.
+    /// </summary>
+    public static async Task<ApogeuApiHost> StartAsync(
+        string postgresServerConnectionString,
+        string redisConnectionString,
+        TestApiKey? key,
+        Uri? seamlessWalletUrl,
+        CancellationToken cancellationToken)
     {
         var database = await TestDatabase.CreateAsync(postgresServerConnectionString, cancellationToken).ConfigureAwait(false);
-        var key = TestApiKey.Generate();
+        key ??= TestApiKey.Generate();
+        var seamless = seamlessWalletUrl is not null;
         var signingKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
 
         var factory = new WebApplicationFactory<HostProgram>().WithWebHostBuilder(host =>
@@ -59,13 +88,23 @@ internal sealed class ApogeuApiHost : IAsyncDisposable
             host.UseSetting("Operators:Demo:ApiKeys:0:Id", key.Id);
             host.UseSetting("Operators:Demo:ApiKeys:0:Secret", key.Secret);
             host.UseSetting("Security:PlayerSession:SigningKey", signingKey);
+            if (seamlessWalletUrl is not null)
+            {
+                host.UseSetting($"{WalletOperatorsSection}:{DemoOperatorId}:Mode", "Seamless");
+                host.UseSetting($"{WalletOperatorsSection}:{DemoOperatorId}:WalletUrl", seamlessWalletUrl.ToString());
+                host.UseSetting($"{WalletOperatorsSection}:{DemoOperatorId}:KeyId", key.Id);
+                host.UseSetting($"{WalletOperatorsSection}:{DemoOperatorId}:Secret", key.Secret);
+            }
+
             host.ConfigureTestServices(services =>
             {
                 var otherModules = services
                     .Where(d => d.ServiceType == typeof(IHostedService)
                         && d.ImplementationType?.Assembly.GetName().Name is { } assembly
                         && assembly.StartsWith("Apogeu.", StringComparison.Ordinal)
-                        && !assembly.StartsWith("Apogeu.Operators.", StringComparison.Ordinal))
+                        && !assembly.StartsWith("Apogeu.Operators.", StringComparison.Ordinal)
+                        && !(seamless && (assembly.StartsWith("Apogeu.Wallet.", StringComparison.Ordinal)
+                            || string.Equals(assembly, ServiceDefaultsAssembly, StringComparison.Ordinal))))
                     .ToList();
                 foreach (var descriptor in otherModules)
                 {
@@ -145,6 +184,32 @@ internal sealed class ApogeuApiHost : IAsyncDisposable
         {
             await action(scope.ServiceProvider.GetRequiredService<ICatalogStore>()).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>Runs <paramref name="action"/> with the Apogeu's <see cref="IOperatorWallet"/> (the port the bets go through), in a scope of its own.</summary>
+    public async Task<T> WithWalletAsync<T>(Func<IOperatorWallet, Task<T>> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        var scope = _factory.Services.CreateAsyncScope();
+        await using (scope.ConfigureAwait(false))
+        {
+            return await action(scope.ServiceProvider.GetRequiredService<IOperatorWallet>()).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// <c>GET /api/v1/wallet/balance</c> with the player session <paramref name="sessionToken"/>: the balance the game shows
+    /// (SPEC-0021 §6), as a decimal.
+    /// </summary>
+    public async Task<decimal> GameBalanceAsync(string sessionToken, CancellationToken cancellationToken)
+    {
+        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = DemoCasinoHost.ApogeuBaseUrl });
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", sessionToken);
+        using var response = await client.GetAsync(new Uri(WalletBalancePath, UriKind.Relative), cancellationToken).ConfigureAwait(false);
+        var text = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        Assert.True(response.IsSuccessStatusCode, $"GET {WalletBalancePath} answered {(int)response.StatusCode}: {text}");
+        using var json = JsonDocument.Parse(text);
+        return decimal.Parse(json.RootElement.GetProperty("balance").GetString()!, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
     }
 
     public ValueTask DisposeAsync() => _factory.DisposeAsync();

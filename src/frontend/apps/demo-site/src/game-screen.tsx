@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 
+import { CasinoBalance } from "./casino-balance";
 import { aboutGame, provider } from "./game-info";
 
 interface GameScreenProps {
@@ -8,6 +9,8 @@ interface GameScreenProps {
   readonly launchUrl: string | undefined;
   readonly onLaunch: (code: string) => Promise<void>;
   readonly onBack: () => void;
+  /** Leaves the casino (the session is gone). */
+  readonly onLeave: () => void;
 }
 
 /** The minimum the game needs in the iframe (SPEC-0045 §6): its scripts, its own origin (API and hub) and popups. */
@@ -15,9 +18,10 @@ const gameSandbox = "allow-scripts allow-same-origin allow-popups";
 
 /**
  * The game page of the demo casino (SPEC-0045 §6, Stitch "Cassino Demo — Pipa (Refinado)"): the frame of the casino
- * (back to the lobby, the game name, fullscreen), the game of the Apogeu in an iframe and the "Sobre o jogo" column.
+ * (back to the lobby, the game name, the casino balance of SPEC-0047, fullscreen), the game of the Apogeu in an iframe
+ * and the "Sobre o jogo" column.
  */
-export function GameScreen({ code, launchUrl, onLaunch, onBack }: GameScreenProps) {
+export function GameScreen({ code, launchUrl, onLaunch, onBack, onLeave }: GameScreenProps) {
   const ids = useId();
   const stage = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -66,9 +70,12 @@ export function GameScreen({ code, launchUrl, onLaunch, onBack }: GameScreenProp
         <h1 id={titleId} className="game-title">
           {name}
         </h1>
-        <button type="button" className="secondary" onClick={toggleFullscreen}>
-          {fullscreen ? "Sair da tela cheia" : "Tela cheia"}
-        </button>
+        <div className="player">
+          <CasinoBalance onUnauthorized={onLeave} />
+          <button type="button" className="secondary" onClick={toggleFullscreen}>
+            {fullscreen ? "Sair da tela cheia" : "Tela cheia"}
+          </button>
+        </div>
       </header>
       <div className="game-layout">
         <main className="game-main" aria-labelledby={titleId} aria-busy={launchUrl === undefined}>
