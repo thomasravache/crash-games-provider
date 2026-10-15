@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <!-- Durable resend of the seamless credits and rollbacks through the outbox of the module's DbContext (ADR-0002/0018, SPEC-0046). -->
+    <PackageReference Include="WolverineFx" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" />
   </ItemGroup>
 
