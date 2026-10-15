@@ -4,7 +4,7 @@ title: Hospedagem na VPS com Aspire, Docker Compose, Caddy e sslip.io
 status: accepted
 origin: decision
 date: 2026-10-15
-pillars: [entrega, seguranca]
+pillars: [entrega, segredos-dados]
 decision_makers: [thomas]
 consulted: []
 informed: []
