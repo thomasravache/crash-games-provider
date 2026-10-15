@@ -184,8 +184,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 1e9b543 (árvore suja) | 2026-10-09 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:06:21.38]     Dado o contrato gerado do hub /hubs/bets, quando o snapshot de) — fb28c49 | 2026-10-13 |
-| G2 Green | FAIL | build exit 0 (✓ built in 270ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:00:09.36]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — a243e65 | 2026-10-14 |
-| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.51s (tests 94%, transform 3%, import 1%, worker 1%)) — 387ba75 | 2026-10-13 |
+| G2 Green | PASS | build exit 0 (✓ built in 332ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 2abd224 | 2026-10-14 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.04s (tests 96%, transform 3%, import 1%)) — 2abd224 | 2026-10-14 |
 | G4 Review | FAIL | Reviewer independente: CHANGES REQUESTED (387ba75). MAJOR M1: projeção e difusão por instância; com várias instâncias, lotes N×, totais contraditórios e cash-outs do líder ausentes (viola o NFR do §5). Minors: m1 cancelamento sem lista de removidas; m2 totalWagered soma moedas; m3 corrida/vazamento/reinício do apelido de queued; m4 lock global no caminho do cash-out; m5 snapshot da rodada anterior quando o feed não tem rodada; m6 LiveBetsFeed opcional; m7 limit não numérico sem envelope; m8 IT-04 depois do código (emenda). | 2026-10-13 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
