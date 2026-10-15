@@ -10,7 +10,7 @@ parent: SPEC-0035
 depends_on: [SPEC-0043, SPEC-0020]
 consumes_contract: [SPEC-0020@3]
 contract_version: 1
-touches: ["src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/frontend/apps/demo-site/**", "tests/e2e/demo-site/**", "src/backend/Modules/Operators/Operators.Features/Catalog/**", "tests/backend/Modules/Operators.Tests/**", "src/frontend/apps/game-pipa/public/kit/**"]
+touches: [src/demo/DemoCasino/**, tests/demo/DemoCasino.Tests/**, src/frontend/apps/demo-site/**, tests/e2e/demo-site/**, src/backend/Modules/Operators/Operators.Features/Catalog/**, tests/backend/Modules/Operators.Tests/**, src/frontend/apps/game-pipa/public/kit/**, src/frontend/packages/contracts/**, artifacts/openapi/**]
 adrs: [ADR-0002, ADR-0003, ADR-0009, ADR-0025, ADR-0027]
 external: []
 size: M
@@ -36,7 +36,7 @@ Lobby do cassino demo: o BFF busca os jogos habilitados na Apogeu (`GET /api/v1/
 
 ## 3. Dependências
 - **Implementações necessárias:** SPEC-0043, SPEC-0020.
-- **Contratos consumidos:** SPEC-0020@2 (`GET /api/v1/games`).
+- **Contratos consumidos:** SPEC-0020@3 (`GET /api/v1/games`).
 - **Pré-requisitos externos:** N/A
 
 ## 4. Decisão Arquitetural
@@ -66,6 +66,13 @@ Lobby do cassino demo: o BFF busca os jogos habilitados na Apogeu (`GET /api/v1/
 ```text
 Apogeu GET /api/v1/games → [{ code, name, currencies, thumbnailUrl, bannerUrl }]   // thumbnailUrl/bannerUrl: novos campos (compatível)
 BFF GET /casino/games → 200 [{ code, name, thumbnailUrl, bannerUrl, category:"crash", isNew }] | 502 PROVIDER_UNAVAILABLE | 401 sem sessão
+Regras do lobby (Emenda v1):
+  category = "crash" para todo jogo do catálogo (só há crash games)
+  isNew = true para os códigos em DemoCasino:Lobby:NewGames (configuração; padrão ["pipa"])
+  aba "Novidades" = jogos com isNew; aba "Crash" = category crash; "Todos" = todos
+  cartões "Em breve" (Fortune Slot, Turbo Aviator, Roulette Master) = fixos no front, fora do contrato, sem clique
+  thumbnailUrl/bannerUrl = URL absoluta {Operators:GameBaseUrl}/kit/{code}/thumb.png e /banner.png, servida pelo front do jogo
+  cache de 60 s do BFF usa o TimeProvider do DI (testável com FakeTimeProvider)
 ```
 
 **Design:** Stitch — projeto "Apogeu Games — Identidade e Backoffice" (1861192770945985645), design system "Apogeu — Lobby demo (cassino neutro)", tela "Cassino Demo — Lobby".
@@ -160,6 +167,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G1 | spec | UT-01 sem regra: categoria e selo Novo não têm fonte (catálogo não tem categoria nem novidade); aba Novidades e cartões Em breve sem origem; touches sem packages/contracts e artifacts/openapi (GameSummaryResponse muda); §3 cita SPEC-0020@2 em vez de @3; forma da URL das artes e TimeProvider do cache não fixados | test-writer leu SPEC-0044, 0043, 0020, 0035 e a tela do Stitch; parou antes de escrever | Architect | Emenda v1 — regras do lobby, contrato @3, touches com contratos gerados | 2026-10-15 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -202,3 +210,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0044`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-15 | Regras do lobby fixadas: category sempre crash; isNew pela configuração `DemoCasino:Lobby:NewGames` (padrão pipa); Novidades filtra isNew; cartões Em breve fixos no front; URL absoluta das artes em `GameBaseUrl/kit/{code}/`; cache pelo TimeProvider do DI; contrato consumido corrigido para SPEC-0020@3; `touches` com `packages/contracts` e `artifacts/openapi` (GameSummaryResponse ganha os campos de arte) | Test-writer (SPEC_DEFECT, IMP-01): UT-01 sem regra para derivar categoria e novidade | Nenhuma | decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) |
