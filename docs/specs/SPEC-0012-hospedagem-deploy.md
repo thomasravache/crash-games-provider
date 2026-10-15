@@ -38,7 +38,7 @@ A jornada do jogador acessível de qualquer lugar, celular inclusive, em endere�
 internet ──443──► Caddy ─┬─ cassino.<host>  → demo-site (estático) e /casino/* → demo-casino
                          ├─ jogo.<host>     → game-pipa (estático)
                          └─ api.<host>      → api (REST + hubs SignalR)
-rede interna: api ↔ postgres, redis, keycloak; demo-casino ↔ api (HMAC) e api → demo-casino (carteira seamless)
+rede interna: api ↔ postgres, redis (Keycloak só quando o backoffice for publicado); demo-casino ↔ api (HMAC) e api → demo-casino (carteira seamless)
 ```
 A SPEC-0065 entrega o compose e as imagens (contrato com a 0066: serviços, variáveis esperadas no `.env` e volumes); a SPEC-0066 entrega o Caddy, os scripts e a operação.
 
