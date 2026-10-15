@@ -35,7 +35,13 @@ internal sealed class ProductionApiHost : IAsyncDisposable
     /// <summary>Why the host did not start, or <see langword="null"/> when it did.</summary>
     public Exception? StartFailure { get; }
 
-    public static async Task<ProductionApiHost> StartAsync(string postgresServerConnectionString, string redisConnectionString, CancellationToken cancellationToken)
+    /// <summary>
+    /// Starts the host. With <paramref name="migrateOnStartup"/> the test sets <c>Database:MigrateOnStartup=true</c> itself, as
+    /// the production compose does (Emenda v3: never from an appsettings file); without it the key is left unset and the
+    /// demo operator off, as a real production host of ADR-0010 (migrations by the pipeline).
+    /// </summary>
+    public static async Task<ProductionApiHost> StartAsync(
+        string postgresServerConnectionString, string redisConnectionString, CancellationToken cancellationToken, bool migrateOnStartup = true)
     {
         var database = await TestDatabase.CreateAsync(postgresServerConnectionString, cancellationToken).ConfigureAwait(false);
         var key = TestApiKey.Generate();
@@ -48,7 +54,12 @@ internal sealed class ProductionApiHost : IAsyncDisposable
             host.UseSetting("ConnectionStrings:apogeu", database);
             host.UseSetting("ConnectionStrings:redis", redisConnectionString);
             host.UseSetting("Operators:GameBaseUrl", "https://game.apogeu.test");
-            host.UseSetting("Operators:Demo:Enabled", bool.TrueString);
+            if (migrateOnStartup)
+            {
+                host.UseSetting("Database:MigrateOnStartup", bool.TrueString);
+                host.UseSetting("Operators:Demo:Enabled", bool.TrueString);
+            }
+
             host.UseSetting("Operators:Demo:ApiKeys:0:Id", key.Id);
             host.UseSetting("Operators:Demo:ApiKeys:0:Secret", key.Secret);
             host.UseSetting("Security:PlayerSession:SigningKey", signingKey);

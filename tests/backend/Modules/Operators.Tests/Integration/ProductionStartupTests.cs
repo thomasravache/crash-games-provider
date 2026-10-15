@@ -23,7 +23,7 @@ public sealed class ProductionStartupTests(PostgreSqlContainerFixture postgres, 
     /// <summary>The envelope tables of the Wolverine durable storage (inbox, outbox, dead letters).</summary>
     private static readonly string[] WolverineTables = ["wolverine_incoming_envelopes", "wolverine_outgoing_envelopes", "wolverine_dead_letters"];
 
-    [Fact(DisplayName = "Dado o Host em Production com banco vazio e Operators:Demo:Enabled=true, quando sobe, então as migrações de todos os módulos (e o armazenamento do Wolverine) foram aplicadas, o operador demo, o catálogo e os limites existem, e /dev/launch-demo responde 404")]
+    [Fact(DisplayName = "Dado o Host em Production com banco vazio e Operators:Demo:Enabled=true, Database:MigrateOnStartup=true, quando sobe, então as migrações de todos os módulos (e o armazenamento do Wolverine) foram aplicadas, o operador demo, o catálogo e os limites existem, e /dev/launch-demo responde 404")]
     [Trait("Spec", "SPEC-0065:IT-02")]
     [Trait("Category", "Integration")]
     public async Task GivenProductionHostOnEmptyDatabaseWithDemoEnabledWhenStartedThenModulesAreMigratedAndDemoOperatorIsReady()
@@ -71,6 +71,41 @@ public sealed class ProductionStartupTests(PostgreSqlContainerFixture postgres, 
         using var client = host.CreateClient();
         using var response = await client.GetAsync(new Uri("/dev/launch-demo", UriKind.Relative), ct);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact(DisplayName = "Dado o Host em Production com banco vazio e sem Database:MigrateOnStartup, quando sobe, então nada é migrado (as migrações de produção real ficam com o pipeline, ADR-0010)")]
+    [Trait("Spec", "SPEC-0065:IT-02")]
+    [Trait("Category", "Integration")]
+    public async Task GivenProductionHostWithoutMigrateOnStartupWhenStartedThenNothingIsMigrated()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        // Whether it starts or not on a database without schema is not the point: only that it did not migrate.
+        await using var host = await ProductionApiHost.StartAsync(postgres.ConnectionString, redis.ConnectionString, ct, migrateOnStartup: false);
+
+        var histories = await CountAsync(
+            host.Database, "SELECT count(*) FROM information_schema.tables WHERE table_name = '__EFMigrationsHistory'", ct);
+        Assert.True(histories == 0, $"The Host in Production without Database:MigrateOnStartup migrated {histories} module schema(s).");
+        foreach (var table in WolverineTables)
+        {
+            Assert.False(
+                await TableExistsAsync(host.Database, "wolverine", table, ct),
+                $"The Host in Production without Database:MigrateOnStartup created wolverine.{table}.");
+        }
+    }
+
+    private static async Task<long> CountAsync(string database, string sql, CancellationToken ct)
+    {
+        var connection = new NpgsqlConnection(database);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
+            var command = new NpgsqlCommand(sql, connection);
+            await using (command.ConfigureAwait(false))
+            {
+                return Convert.ToInt64(await command.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture);
+            }
+        }
     }
 
     private static async Task<bool> TableExistsAsync(string database, string schema, string table, CancellationToken ct)

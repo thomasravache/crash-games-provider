@@ -89,6 +89,51 @@ internal sealed class ComposeDocument
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
+    /// <summary>The image of the service, as written.</summary>
+    public string Image(string service) => Scalar(Child(RequiredService(service), "image"));
+
+    /// <summary>The <c>user</c> of the service, or empty when it runs as the image's user.</summary>
+    public string User(string service) => Scalar(Child(RequiredService(service), "user"));
+
+    /// <summary>The entrypoint followed by the command of the service (list or string syntax), as written.</summary>
+    public IReadOnlyList<string> EntrypointAndCommand(string service)
+    {
+        var node = RequiredService(service);
+        return [.. Words(Child(node, "entrypoint")), .. Words(Child(node, "command"))];
+    }
+
+    /// <summary>The services this one depends on, with their condition (empty for the list syntax).</summary>
+    public IReadOnlyDictionary<string, string> DependsOn(string service)
+    {
+        var dependencies = new Dictionary<string, string>(StringComparer.Ordinal);
+        switch (Child(RequiredService(service), "depends_on"))
+        {
+            case YamlMappingNode map:
+                foreach (var (key, value) in map.Children)
+                {
+                    dependencies[Scalar(key)] = Scalar(Child(value, "condition"));
+                }
+
+                break;
+            case YamlSequenceNode list:
+                foreach (var entry in list.Children)
+                {
+                    dependencies[Scalar(entry)] = string.Empty;
+                }
+
+                break;
+        }
+
+        return dependencies;
+    }
+
+    private static List<string> Words(YamlNode? node) => node switch
+    {
+        YamlSequenceNode list => list.Children.Select(Scalar).ToList(),
+        YamlScalarNode scalar when !string.IsNullOrEmpty(scalar.Value) => [scalar.Value],
+        _ => [],
+    };
+
     private YamlMappingNode? Service(string name) => Child(Child(_root, "services"), name) as YamlMappingNode;
 
     private YamlMappingNode RequiredService(string name)

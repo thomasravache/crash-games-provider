@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Apogeu.AppHost.Tests.Support;
@@ -15,8 +14,11 @@ public sealed partial class ComposeContractTests(PublishedComposeFixture publish
 {
     private static readonly TimeSpan DockerTimeout = TimeSpan.FromMinutes(2);
 
-    /// <summary>Services of §6.</summary>
-    private static readonly string[] ContractServices = ["api", "demo-casino", "postgres", "redis"];
+    /// <summary>Services of §6 (Emenda v3: the short-lived keys-init included).</summary>
+    private static readonly string[] ContractServices = ["api", "demo-casino", "keys-init", "postgres", "redis"];
+
+    /// <summary>The short-lived service that hands the key volume to the api user (Emenda v3): it needs no network.</summary>
+    private const string KeysInit = "keys-init";
 
     /// <summary>Volumes of §6.</summary>
     private static readonly string[] ContractVolumes = ["dataprotection-keys", "postgres-data"];
@@ -74,7 +76,8 @@ public sealed partial class ComposeContractTests(PublishedComposeFixture publish
         foreach (var service in root.GetProperty("services").EnumerateObject())
         {
             Assert.True(
-                service.Value.TryGetProperty("networks", out var networks) && networks.TryGetProperty(network, out _),
+                string.Equals(service.Name, KeysInit, StringComparison.Ordinal)
+                    || (service.Value.TryGetProperty("networks", out var networks) && networks.TryGetProperty(network, out _)),
                 $"The service '{service.Name}' is not on the network '{network}' shared with the proxy of SPEC-0066.");
             Assert.False(
                 service.Value.TryGetProperty("ports", out var ports) && ports.GetArrayLength() > 0,
@@ -101,7 +104,7 @@ public sealed partial class ComposeContractTests(PublishedComposeFixture publish
         try
         {
             var envFile = Path.Combine(scratch, "test.env");
-            await File.WriteAllLinesAsync(envFile, variables.Order(StringComparer.Ordinal).Select(variable => $"{variable}={TestValue(variable)}"), cancellationToken).ConfigureAwait(false);
+            await ComposeTestEnvironment.WriteAsync(envFile, variables, cancellationToken).ConfigureAwait(false);
             var output = Path.Combine(scratch, "resolved.json");
 
             var config = await ProcessRunner.RunAsync(
@@ -123,11 +126,6 @@ public sealed partial class ComposeContractTests(PublishedComposeFixture publish
             Directory.Delete(scratch, recursive: true);
         }
     }
-
-    private static string TestValue(string variable) =>
-        variable.EndsWith("_IMAGE", StringComparison.Ordinal) ? $"registry.apogeu.test/{variable.ToLowerInvariant().Replace('_', '-')}:ct01"
-        : variable.StartsWith("PUBLIC_", StringComparison.Ordinal) ? $"https://{variable.ToLowerInvariant().Replace('_', '-')}.apogeu.test"
-        : RandomNumberGenerator.GetHexString(32, lowercase: true);
 
     private static string[] Names(JsonElement root, string section) =>
         root.TryGetProperty(section, out var element) && element.ValueKind == JsonValueKind.Object
