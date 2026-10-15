@@ -12,6 +12,18 @@
 	{$APOGEU_CADDY_ACME}
 	# Only the internal CA of the test names would be installed; never touch a trust store in the container.
 	skip_install_trust
+	# Every other log of the proxy (errors such as a 502 with the backend down carry the request too): the same filter
+	# as the access log of the sites, so no output of the proxy holds a token (ADR-0014, SPEC-0066 Emenda v5).
+	log default {
+		output stderr
+		format filter {
+			request>uri query {
+				delete lt
+				delete access_token
+			}
+			request>headers>Referer delete
+		}
+	}
 }
 
 # Security headers of every site. HSTS without includeSubDomains/preload: sslip.io is a shared domain.
@@ -24,7 +36,8 @@
 	}
 	# Access log on stderr (docker logs, rotated by the compose). Caddy redacts the Cookie and Authorization headers by
 	# default; the tokens that travel in a URL are erased too (ADR-0014): the launch token lt of the game and the
-	# access_token of the SignalR hubs, in the logged query and in the Referer (the game page URL carries lt).
+	# access_token of the SignalR hubs, in the logged query, in the Referer (the game page URL carries lt) and in the
+	# Location of the http→https redirect (308), which repeats the query.
 	log {
 		format filter {
 			request>uri query {
@@ -32,6 +45,10 @@
 				delete access_token
 			}
 			request>headers>Referer delete
+			resp_headers>Location query {
+				delete lt
+				delete access_token
+			}
 		}
 	}
 }
