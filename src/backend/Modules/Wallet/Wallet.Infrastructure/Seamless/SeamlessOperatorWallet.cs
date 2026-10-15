@@ -269,10 +269,14 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
     private static bool IsSettled(RemoteAnswer answer, WalletResult result) =>
         result is not WalletUnavailable || string.Equals(answer.Status, "PLAYER_NOT_FOUND", StringComparison.Ordinal);
 
-    /// <summary>Plain http only to the loopback (a local operator wallet in development); anywhere else https.</summary>
-    private static bool IsAllowed(Uri walletUrl) =>
+    /// <summary>
+    /// Plain http only to the loopback (a local operator wallet in development) or to a host listed for the operator
+    /// (SPEC-0065: the DemoCasino on the internal network of the production compose); anywhere else https.
+    /// </summary>
+    private bool IsAllowed(OperatorId op, Uri walletUrl) =>
         string.Equals(walletUrl.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
-        || (string.Equals(walletUrl.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) && walletUrl.IsLoopback);
+        || (string.Equals(walletUrl.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
+            && (walletUrl.IsLoopback || (_settings is IOperatorWalletHttpHosts hosts && hosts.AllowsHttp(op, walletUrl.Host))));
 
     private WalletResult Traced(Activity? activity, string type, WalletResult result)
     {
@@ -304,7 +308,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
 
     /// <summary>
     /// The seamless settings of <paramref name="op"/> when they can be used (seamless mode, a key and a wallet URL over https,
-    /// or plain http to the loopback); <see langword="null"/>, logged as an error, otherwise. A failing lookup propagates.
+    /// or plain http to the loopback or a listed host); <see langword="null"/>, logged as an error, otherwise. A failing lookup propagates.
     /// </summary>
     private async Task<OperatorWalletSettings?> UsableSettingsAsync(OperatorId op, string operation, string transactionId, CancellationToken ct)
     {
@@ -315,7 +319,7 @@ public sealed class SeamlessOperatorWallet : IOperatorWallet
             return null;
         }
 
-        if (!IsAllowed(walletUrl))
+        if (!IsAllowed(op, walletUrl))
         {
             SeamlessLog.InsecureWalletUrl(_logger, op.Value, operation, transactionId);
             return null;
