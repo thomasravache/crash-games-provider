@@ -4,7 +4,7 @@ title: Robustez dos testes intermitentes
 tier: lite
 type: fix
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-15
 parent: SPEC-0061
 depends_on: [SPEC-0047]
@@ -54,11 +54,27 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
 
+<!-- Preenchido na fase PLAN (2026-10-15). Cada fase começa pelos testes. -->
+
+**Fase 0: Caracterização**
+- [ ] CH-01: `tools/ci/stress-flaky` rodando os testes listados 20 vezes com carga sintética no código atual; taxa de falha registrada antes de qualquer mudança
+
+**Fase 1: Correção**
+- [ ] Red: UT-01 e E2E-01 (20/20 e 10/10 sob carga) falhando na linha de base, com a tag `SPEC-0064:<ID>`
+- [ ] Green: esperas por evento e relógio controlado nos testes, sem mudar o que cada um prova
+- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
-| G0 Spec | PENDING | | |
+| G0 Spec | PASS | validate: 0 erro(s) — 851ddb9 (árvore suja) | 2026-10-15 |
 | G1 Red | PENDING | | |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |

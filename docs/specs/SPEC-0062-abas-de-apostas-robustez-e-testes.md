@@ -4,7 +4,7 @@ title: "Abas de apostas: robustez e testes"
 tier: lite
 type: fix
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-15
 parent: SPEC-0061
 depends_on: [SPEC-0031]
@@ -55,11 +55,24 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
 
+<!-- Preenchido na fase PLAN (2026-10-15). Cada fase começa pelos testes. -->
+
+**Fase 1: Regressão e correção**
+- [ ] Red: escrever UT-01 e UT-02 com a tag `SPEC-0062:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Green: corrigir store, cliente e abas, seguindo o padrão da SPEC-0031
+- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
-| G0 Spec | PENDING | | |
+| G0 Spec | PASS | validate: 0 erro(s) — 851ddb9 (árvore suja) | 2026-10-15 |
 | G1 Red | PENDING | | |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
