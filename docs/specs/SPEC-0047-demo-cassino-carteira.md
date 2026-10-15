@@ -154,7 +154,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:13.93]     Dados DemoCasino e Apogeu reais em modo seamless, quando o jog) — 9babb28 | 2026-10-15 |
 | G2 Green | PASS | build exit 0 (✓ built in 337ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7a1b8e6 | 2026-10-15 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.02s (tests 96%, transform 3%, import 1%)) — 7a1b8e6 | 2026-10-15 |
-| G4 Review | PENDING | | |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes; dinheiro, assinatura e ADR-0027 conferidos). Minors: jogo local depende do demo-casino (rodado com --no-build: exige dotnet build antes) e o saldo volta a 3.000 a cada reinício (memória); sem testes do débito depois do próprio estorno nem de concorrência; verificação sobre o caminho decodificado (igual para /apogeu/v1/*); memória sem limite no demo; estorno de crédito responde TRANSACTION_NOT_FOUND sem conferir jogador/moeda; polling continua com a aba oculta; saldo sem papel acessível próprio — 7a1b8e6 | 2026-10-15 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
