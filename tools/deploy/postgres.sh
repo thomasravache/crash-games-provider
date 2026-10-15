@@ -52,9 +52,13 @@ keys_export() {
     tar -czf - -C /keys .
 }
 
-# Fails unless the file is a complete, readable tar.gz (a truncated or corrupted archive is refused). Host tools only.
+# Fails unless the file is a complete, readable tar.gz (a truncated or corrupted archive is refused) holding at least one
+# regular file (an archive of empty directories has no key: SPEC-0066 Emenda v5). Host tools only.
 keys_archive_valid() {
-  gzip --test "$1" 2>/dev/null && tar --list --gzip --file "$1" >/dev/null 2>&1
+  gzip --test "$1" 2>/dev/null || return 1
+  local listing
+  listing="$(tar --list --verbose --gzip --file "$1" 2>/dev/null)" || return 1
+  grep -q '^-' <<<"$listing"
 }
 
 # Replaces the files of the keys volume by the archive on stdin (owners and modes of the archive, e.g. 1654 of the api).
