@@ -8,8 +8,8 @@ status: in-progress
 created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0047]
-consumes_contract: [SPEC-0065@2]
-contract_version: 2
+consumes_contract: [SPEC-0065@3]
+contract_version: 3
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
 touches: ["infra/caddy/**", "infra/vps/**", "tools/deploy/**", "docs/runbooks/**", "tests/deploy/**"]
 adrs: [ADR-0029, ADR-0013, ADR-0014, ADR-0018]
@@ -46,7 +46,7 @@ Põe a plataforma no ar na VPS: o Caddy recebe `cassino.143-95-218-240.sslip.io`
 ## 3. Dependências
 <!-- As dependências entre specs ficam no frontmatter. Use `depends_on` só quando a IMPLEMENTAÇÃO da outra spec for necessária; se bastar o CONTRATO, use `consumes_contract` (permite rodar em paralelo). -->
 - **Implementações necessárias:** SPEC-0065 — o compose de produção que esta spec roda.
-- **Contratos consumidos:** SPEC-0065@2 — serviços, rede, volumes e variáveis do compose.
+- **Contratos consumidos:** SPEC-0065@3 — serviços (inclui o `keys-init` de vida curta), rede, volumes e variáveis do compose.
 - **Pré-requisitos externos:** imagem `caddy:2.11.7`; DNS do sslip.io; portas 80/443 alcançáveis da internet (UFW da VPS; firewall do provedor, se houver).
 
 ## 4. Decisão Arquitetural
@@ -114,13 +114,13 @@ tools/deploy/backup | restore <arquivo>
 - N/A — infraestrutura nova.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dado o `Caddyfile` com o host de teste, quando validado pelo `caddy validate` (imagem 2.11.7) e inspecionado, então só existem os três sites, `/casino/*` vai para o demo-casino, a API para `api:8080`, HTTP redireciona para HTTPS e os cabeçalhos de segurança estão presentes.
+- **UT-01** — Dado o `Caddyfile` com o host de teste, quando validado pelo `caddy validate` (imagem 2.11.7) e inspecionado, então só existem os três sites, `/casino/*` vai para o demo-casino, a API para `api:8080`, HTTP redireciona para HTTPS, os cabeçalhos de segurança estão presentes e os `X-Forwarded-*` que chegam da internet são descartados e reescritos pelo proxy (sem `trusted_proxies`; a API confia em `X-Forwarded-*` — Emenda v3).
 - **UT-02** — Dado um diretório de deploy sem `.env`, quando o `vps-deploy` prepara a versão, então cria o `.env` com todos os segredos aleatórios e permissão 600, não os imprime, e numa segunda execução mantém os mesmos valores.
 
 ### 7.3 Testes de Integração
 <!-- Com as dependências reais (containers/emuladores), não mocks. -->
 - **IT-01** — Dado um projeto compose de teste na máquina (portas e certificados de teste), quando a versão A e depois a B são publicadas, então B fica no ar; com B sem saúde, o script volta sozinho para A; e o `vps-rollback` volta de B para A.
-- **IT-02** — Dado um Postgres com dados, quando o `backup` roda e o `restore` carrega o arquivo num Postgres limpo, então as contagens das tabelas de cada módulo coincidem.
+- **IT-02** — Dado um Postgres com dados e o volume `dataprotection-keys` com chaves, quando o `backup` roda e o `restore` carrega o arquivo num Postgres limpo e num volume limpo, então as contagens das tabelas de cada módulo coincidem e as chaves restauradas são idênticas (sem elas as sementes não reveladas ficam ilegíveis — Emenda v3).
 
 ### 7.4 Testes de Contrato
 <!-- Obrigatório (CT-xx) se esta spec consome contrato de outra ou se outra spec consome o contrato desta. -->
@@ -231,4 +231,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0066`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 3 | 2026-10-15 | Backup e restauração incluem o volume `dataprotection-keys` junto com o Postgres; o proxy descarta e reescreve `X-Forwarded-*`; consome SPEC-0065@3 (serviço `keys-init`) | Review G4 da SPEC-0065 (N2, N6) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 2 | 2026-10-15 | Interface dos scripts fixada (`--prepare`, variáveis de ambiente e ganchos, serviço `proxy`, nomes dos backups; referência `tests/deploy/README.md`); E2E-01 acompanha a rodada pela tela, sem o gancho de teste; consome SPEC-0065@2 | Test-writer (SPEC_DEFECT, IMP-01) | SPEC-0067 (chama `vps-deploy`/`vps-rollback`) | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
