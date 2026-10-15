@@ -90,3 +90,72 @@ export async function currentPlayer(signal: AbortSignal): Promise<CasinoPlayer |
 export async function leaveCasino(): Promise<void> {
   await fetch(logoutPath, { method: "POST", credentials: "same-origin" });
 }
+
+const gamesPath = "/casino/games";
+
+/** A game of the lobby (SPEC-0044 §6): the catalog of the Apogeu as the casino BFF serves it. */
+export interface LobbyGame {
+  readonly code: string;
+  readonly name: string;
+  readonly thumbnailUrl: string;
+  readonly bannerUrl: string;
+  readonly category: string;
+  readonly isNew: boolean;
+}
+
+/** Outcome of the lobby catalog: the games, no session (401) or the provider unavailable (502 or any other failure). */
+export type GamesResult =
+  | { readonly status: "ok"; readonly games: readonly LobbyGame[] }
+  | { readonly status: "unauthorized" }
+  | { readonly status: "unavailable" };
+
+function lobbyGame(value: unknown): LobbyGame | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  const code = stringField(value, "code");
+  const name = stringField(value, "name");
+  const thumbnailUrl = stringField(value, "thumbnailUrl");
+  const bannerUrl = stringField(value, "bannerUrl");
+  const category = stringField(value, "category");
+  const isNew = value["isNew"];
+  return code === undefined ||
+    name === undefined ||
+    thumbnailUrl === undefined ||
+    bannerUrl === undefined ||
+    category === undefined ||
+    typeof isNew !== "boolean"
+    ? undefined
+    : { code, name, thumbnailUrl, bannerUrl, category, isNew };
+}
+
+/** GET /casino/games: the games enabled for the casino (the BFF signs the call to the Apogeu, ADR-0027). */
+export async function listGames(signal: AbortSignal): Promise<GamesResult> {
+  let response: Response;
+  try {
+    response = await fetch(gamesPath, { credentials: "same-origin", signal });
+  } catch {
+    return { status: "unavailable" };
+  }
+  if (response.status === 401) {
+    return { status: "unauthorized" };
+  }
+  if (!response.ok) {
+    return { status: "unavailable" };
+  }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return { status: "unavailable" };
+  }
+  if (!Array.isArray(body)) {
+    return { status: "unavailable" };
+  }
+  const items: readonly unknown[] = body;
+  const games = items.map(lobbyGame);
+  return games.every((game) => game !== undefined)
+    ? { status: "ok", games }
+    : { status: "unavailable" };
+}
