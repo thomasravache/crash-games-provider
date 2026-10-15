@@ -17,3 +17,5 @@ export * from "./bets/bet-announcement";
 export * from "./bets/bets-tabs-text";
 export * from "./bets/all-bets-tab";
 export * from "./bets/my-bets-tab";
+export * from "./bets/bets-tabs";
+export * from "./bets/use-tabs-state";

@@ -1,8 +1,6 @@
 // "Minhas apostas" (SPEC-0031, SPEC-0025@4): the player's own bets from GET /api/v1/me/bets, newest first, paged by an
 // opaque cursor ("carregar mais"). Pages are appended without duplicating a bet; with no next cursor there is no
 // "carregar mais".
-//
-// SCAFFOLD (SPEC-0031): signatures only; the reducer and the store are implemented in the green phase.
 
 import type { Money, Multiplier } from "@apogeu/contracts";
 
@@ -64,17 +62,56 @@ export const initialMyBetsState: MyBetsState = {
   error: null,
 };
 
-/** Next history state for one event. */
-export function reduceMyBetsEvent(_state: MyBetsState, event: MyBetsEvent): MyBetsState {
-  throw new Error(`SPEC-0031: reduceMyBetsEvent(${event.type}) is not implemented yet`);
+/** `items` without the bets already in `known` (nor repeated inside the page), in their order. */
+function newBets(known: readonly MyBetEntry[], items: readonly MyBetEntry[]): MyBetEntry[] {
+  const seen = new Set(known.map((item) => item.betId));
+  const fresh: MyBetEntry[] = [];
+  for (const item of items) {
+    if (seen.has(item.betId)) continue;
+    seen.add(item.betId);
+    fresh.push(item);
+  }
+  return fresh;
 }
 
-export function createMyBetsStore(): MyBetsStore {
+/** Next history state for one event. */
+export function reduceMyBetsEvent(state: MyBetsState, event: MyBetsEvent): MyBetsState {
+  switch (event.type) {
+    case "myBetsRequested":
+      return state.loading && state.error === null
+        ? state
+        : { ...state, loading: true, error: null };
+    case "myBetsPage":
+      return {
+        items: event.append
+          ? [...state.items, ...newBets(state.items, event.items)]
+          : newBets([], event.items),
+        nextCursor: event.nextCursor,
+        loading: false,
+        loaded: true,
+        error: null,
+      };
+    case "myBetsFailed":
+      return { ...state, loading: false, error: event.code };
+  }
+}
+
+export function createMyBetsStore(initial: MyBetsState = initialMyBetsState): MyBetsStore {
+  let state = initial;
+  const listeners = new Set<() => void>();
   return {
-    getState: () => initialMyBetsState,
-    subscribe: () => () => undefined,
+    getState: () => state,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     dispatch(event) {
-      reduceMyBetsEvent(initialMyBetsState, event);
+      const next = reduceMyBetsEvent(state, event);
+      if (next === state) return;
+      state = next;
+      for (const listener of [...listeners]) listener();
     },
   };
 }

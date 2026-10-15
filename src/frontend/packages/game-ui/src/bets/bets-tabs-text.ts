@@ -9,8 +9,31 @@ export const betsTabsText = {
   all: "Todas as apostas",
   /** Tab (role "tab") and panel name of the player's history. */
   mine: "Minhas apostas",
+  /** Accessible name of the tab list. */
+  tabList: "Apostas",
   /** Button of the next history page. */
   loadMore: "Carregar mais",
+  /** Column headers of "Todas as apostas". */
+  liveColumns: { player: "Jogador", amount: "Aposta", multiplier: "Mult.", payout: "Ganho" },
+  /** Column headers of "Minhas apostas". */
+  mineColumns: {
+    round: "Rodada",
+    amount: "Aposta",
+    multiplier: "Mult.",
+    payout: "Ganho",
+    status: "Situação",
+  },
+  /** Totals of the round in "Todas as apostas". */
+  totals: { bets: "Apostas", players: "Jogadores", wagered: "Total apostado" },
+  /** Round number in a row of "Minhas apostas": "#45". */
+  round: (roundNumber: number | null) => (roundNumber === null ? "—" : `#${String(roundNumber)}`),
+  /** Empty value (open bet, no multiplier or payout). */
+  none: "—",
+  liveEmpty: "Nenhuma aposta nesta rodada ainda.",
+  mineEmpty: "Você ainda não fez apostas.",
+  mineLoading: "Carregando suas apostas…",
+  mineError: "Não foi possível carregar suas apostas. Tente de novo.",
+  retry: "Tentar de novo",
   /** Status of a bet in "Minhas apostas". */
   status: {
     placed: "Em jogo",
@@ -29,6 +52,8 @@ export const betsTabsTestIds = {
   liveTotalBets: "live-total-bets",
   liveTotalPlayers: "live-total-players",
   liveTotalWagered: "live-total-wagered",
+  /** The tabs ("all" / "mine"). */
+  tab: (tab: "all" | "mine") => `bets-tab-${tab}`,
   /** Row of a bet of the player, by its betId. */
   myBet: (betId: string) => `my-bet-${betId}`,
   loadMore: "my-bets-load-more",

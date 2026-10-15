@@ -1,15 +1,8 @@
 // Wire types of the RoundsHub (SPEC-0008@2 §6), of the session exchange (SPEC-0009@1 §6) and of the BetsHub and wallet
 // (SPEC-0026), taken from the generated contracts (ADR-0008): never written by hand here, so a contract change breaks
-// the build of the client. The SPEC-0025 history types are local stand-ins until that endpoint is generated.
+// the build of the client.
 
-import type {
-  BetsHubClient,
-  BetsHubServer,
-  components,
-  Money,
-  Multiplier,
-  RoundsHubServer,
-} from "@apogeu/contracts";
+import type { BetsHubClient, BetsHubServer, components, RoundsHubServer } from "@apogeu/contracts";
 
 export type {
   BetsHubClient,
@@ -78,26 +71,11 @@ export type WalletBalance = components["schemas"]["BalanceResponse"];
 /** POST /api/v1/wallet/demo/recharge 200 body (SPEC-0021@4). */
 export type WalletRecharge = components["schemas"]["RechargeResponse"];
 
-/** Item of GET /api/v1/me/bets (SPEC-0025@1). LOCAL STAND-IN: the endpoint is not in the generated contracts yet. */
-export interface MyBet {
-  betId: string;
-  roundId: string | null;
-  roundNumber: number | null;
-  panel: number;
-  amount: Money;
-  currency: string;
-  autoCashOut: Multiplier | null;
-  multiplier: Multiplier | null;
-  payout: Money | null;
-  status: "placed" | "queued" | "active" | "cashed_out" | "lost" | "cancelled" | "refunded";
-  placedAt: string;
-}
+/** Item of GET /api/v1/me/bets (MyBetItem of SPEC-0025@4). */
+export type MyBet = components["schemas"]["MyBetItem"];
 
-/** GET /api/v1/me/bets 200 body (SPEC-0025@1). LOCAL STAND-IN, like MyBet. */
-export interface MyBetsPage {
-  items: MyBet[];
-  nextCursor: string | null;
-}
+/** GET /api/v1/me/bets 200 body: newest first, paged by the opaque `nextCursor` (SPEC-0025@4). */
+export type MyBetsPage = components["schemas"]["MyBetsPage"];
 
 // ---- Live bets and history (SPEC-0025@4), consumed by the bets tabs (SPEC-0031). Taken from the generated contracts.
 

@@ -1,8 +1,6 @@
 // "Todas as apostas" (SPEC-0031, SPEC-0025@4): the bets of the sala in the current round, as the server sent them
 // (JoinSalaBets snapshot, then the LiveBetsBatch messages). Nicknames arrive anonymized ("Ma***"); money and
 // multipliers stay decimal strings (ADR-0008). A RoundBetting of another round, from the round store, empties the list.
-//
-// SCAFFOLD (SPEC-0031): signatures only; the reducer and the store are implemented in the green phase.
 
 import type { Money, Multiplier } from "@apogeu/contracts";
 
@@ -82,17 +80,73 @@ export const initialLiveBetsState: LiveBetsState = {
   totalWagered: null,
 };
 
-/** Next live bets state for one event. */
-export function reduceLiveBetsEvent(_state: LiveBetsState, event: LiveBetsEvent): LiveBetsState {
-  throw new Error(`SPEC-0031: reduceLiveBetsEvent(${event.type}) is not implemented yet`);
+/** Upserts the placed bets (by betRef) and applies the cash-outs to the list. */
+function applyBets(
+  bets: readonly LiveBet[],
+  placed: readonly LiveBet[],
+  cashedOut: readonly LiveCashOut[],
+): LiveBet[] {
+  const next = [...bets];
+  for (const bet of placed) {
+    const index = next.findIndex((existing) => existing.betRef === bet.betRef);
+    if (index < 0) next.push(bet);
+    else next[index] = bet;
+  }
+  for (const cashOut of cashedOut) {
+    const index = next.findIndex((existing) => existing.betRef === cashOut.betRef);
+    const bet = next[index];
+    if (bet === undefined) continue;
+    next[index] = { ...bet, multiplier: cashOut.multiplier, payout: cashOut.payout };
+  }
+  return next;
 }
 
-export function createLiveBetsStore(): LiveBetsStore {
+/** Next live bets state for one event. */
+export function reduceLiveBetsEvent(state: LiveBetsState, event: LiveBetsEvent): LiveBetsState {
+  switch (event.type) {
+    case "liveSnapshot":
+      return {
+        roundId: event.roundId,
+        bets: applyBets([], event.bets, []),
+        totalBets: event.totalBets,
+        totalPlayers: event.totalPlayers,
+        totalWagered: event.totalWagered,
+      };
+    case "liveBatch":
+      // A batch of another round (it may arrive before the RoundBetting) starts the list of that round over.
+      return {
+        roundId: event.roundId,
+        bets: applyBets(
+          event.roundId === state.roundId ? state.bets : [],
+          event.placed,
+          event.cashedOut,
+        ),
+        totalBets: event.totalBets,
+        totalPlayers: event.totalPlayers,
+        totalWagered: event.totalWagered,
+      };
+    case "liveRoundBetting":
+      if (event.roundId === state.roundId) return state;
+      return { ...initialLiveBetsState, roundId: event.roundId };
+  }
+}
+
+export function createLiveBetsStore(initial: LiveBetsState = initialLiveBetsState): LiveBetsStore {
+  let state = initial;
+  const listeners = new Set<() => void>();
   return {
-    getState: () => initialLiveBetsState,
-    subscribe: () => () => undefined,
+    getState: () => state,
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
     dispatch(event) {
-      reduceLiveBetsEvent(initialLiveBetsState, event);
+      const next = reduceLiveBetsEvent(state, event);
+      if (next === state) return;
+      state = next;
+      for (const listener of [...listeners]) listener();
     },
   };
 }
