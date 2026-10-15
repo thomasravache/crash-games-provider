@@ -17,7 +17,7 @@ approved_at:
 <!-- type: feature | migration | foundation (produto novo: ver references/greenfield.md). O épico não é executado: define visão, decisões, decomposição e entrega. Quem executa são as specs filhas (tier full ou lite, tamanho S/M, `parent: SPEC-0061`). A ordem de execução é calculada a partir do frontmatter das filhas (`spec_graph.py waves`). -->
 
 ## 1. Visão
-Fechar os pontos não-bloqueantes apontados nas revisões (G4) das ondas da jornada do jogador (SPEC-0031, SPEC-0044, SPEC-0045, SPEC-0060), depois que thomas testar a jornada completa (decisão de thomas, 2026-10-15: "vai rodar depois da jornada do usuário porque quero testar isso antes"). Ajustes visuais entram só depois da aprovação dele das telas.
+Fechar os pontos não-bloqueantes apontados nas revisões (G4) das ondas da jornada do jogador (SPEC-0031, SPEC-0044, SPEC-0045, SPEC-0060), depois que thomas testar a jornada completa (decisão de thomas, 2026-10-15: "vai rodar depois da jornada do usuário porque quero testar isso antes"). Visual: thomas aprovou o que foi implementado nas SPEC-0031/0044/0045 ("gostei da parte que implementou", 2026-10-15); por isso este épico não muda o visual.
 
 ## 2. Escopo
 **Objetivos (dentro do escopo):**
@@ -27,7 +27,7 @@ Fechar os pontos não-bloqueantes apontados nas revisões (G4) das ondas da jorn
 **Não-objetivos (fora do escopo):**
 - Canonicalização do caminho na assinatura HMAC (spec `fix` própria, se thomas aprovar).
 - Robustez dos testes intermitentes do backend (spec própria).
-- Ajustes visuais ainda não aprovados por thomas.
+- Mudanças de visual (o implementado foi aprovado por thomas em 2026-10-15).
 
 ## 3. Arquitetura Alvo
 **Contexto:** projeto existente; nada muda na arquitetura. Cada filha segue o padrão da spec que originou o ponto.

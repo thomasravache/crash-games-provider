@@ -39,7 +39,7 @@ Corrige os pontos não-bloqueantes dos reviews (G4) das SPEC-0044 e SPEC-0045 no
 - Contadores do DemoCasino exportados por OTLP quando `OTEL_EXPORTER_OTLP_ENDPOINT` estiver definido.
 
 **Não-objetivos (fora do escopo):**
-- Ajustes visuais não aprovados por thomas (cor do acento, aba inicial, rodapé, marca no topo, ícone de tela cheia): entram por emenda após a aprovação.
+- Mudanças de visual: thomas aprovou o visual implementado (2026-10-15).
 - Mudanças no contrato público da Apogeu.
 
 ## 3. Dependências
@@ -82,7 +82,7 @@ Tela /jogo/{gameCode}: foco no h1 ao abrir; lançamento tardio descartado se a r
 ```
 ```
 
-**Design:** telas do Stitch "Cassino Demo — Lobby" e "Cassino Demo — Pipa (Refinado)" (projeto 1861192770945985645), com os ajustes que thomas aprovar.
+**Design:** telas do Stitch "Cassino Demo — Lobby" e "Cassino Demo — Pipa (Refinado)" (projeto 1861192770945985645), no visual implementado, aprovado por thomas em 2026-10-15.
 
 **Arquivos/módulos afetados:** ver `touches` no frontmatter. N/A
 
