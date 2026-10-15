@@ -4,7 +4,7 @@ title: Limites locais dos testes de desempenho configuráveis por máquina
 tier: lite
 type: fix
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-13
 parent: SPEC-0019
 depends_on: []

@@ -4,7 +4,7 @@ title: "Apostas ao vivo e histórico pessoal"
 tier: full
 type: feature
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-07
 parent: SPEC-0019
 depends_on: [SPEC-0024]
