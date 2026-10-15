@@ -156,8 +156,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.02s (tests 96%, transform 3%, import 1%)) — 7a1b8e6 | 2026-10-15 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes; dinheiro, assinatura e ADR-0027 conferidos). Minors: jogo local depende do demo-casino (rodado com --no-build: exige dotnet build antes) e o saldo volta a 3.000 a cada reinício (memória); sem testes do débito depois do próprio estorno nem de concorrência; verificação sobre o caminho decodificado (igual para /apogeu/v1/*); memória sem limite no demo; estorno de crédito responde TRANSACTION_NOT_FOUND sem conferir jogador/moeda; polling continua com a aba oculta; saldo sem papel acessível próprio — 7a1b8e6 | 2026-10-15 |
 | G5 Integração & CI | PASS | MANUAL: CI do PR #38 verde (run 38778078986, commit b0f5e0d): backend (suíte .NET completa + Performance, com os testes do DemoCasino desde a SPEC-0060), frontend, contracts, e2e (Chromium, WebKit e Firefox, com SPEC-0047:E2E-01 e os E2E da Pipa com o operador demo em seamless), security e sdd; backend verde na 2ª tentativa após falha de tempo conhecida no teste do líder impedido do cash-out (troca de rodada, sem relação com a carteira); merge 4e038be | 2026-10-15 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #38, run 38778078986); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
