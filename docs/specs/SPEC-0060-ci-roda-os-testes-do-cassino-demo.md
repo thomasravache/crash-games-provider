@@ -4,7 +4,7 @@ title: CI roda os testes do cassino demo
 tier: lite
 type: fix
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-15
 parent: SPEC-0035
 depends_on: [SPEC-0004, SPEC-0043]
@@ -79,7 +79,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | MANUAL: CI do PR #37 verde (run 38762211508, commit 858842e) com o job backend rodando (suíte .NET completa + Performance) por causa do ci.yml alterado — prova da correção; frontend, contracts, e2e, security e sdd verdes; merge a44a7f7 | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #37, run 38762211508); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 8cc72ab | 2026-10-15 |
 
 ## 9. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
