@@ -77,8 +77,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.04s (tests 96%, transform 2%, import 1%)) — 8768804 | 2026-10-15 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: alias de âncora inexistente vira glob literal sem erro (PathsFilter.cs:113-120); matcher não trata {a,b}, [...] nem ! (documentar o subconjunto); ExplicitCapture inócuo; Theory só com casos positivos (o Fact de sanidade cobre negativos); contracts acionado por src/demo é um pouco amplo, como decidido na spec — 8768804 | 2026-10-15 |
 | G5 Integração & CI | PASS | MANUAL: CI do PR #37 verde (run 38762211508, commit 858842e) com o job backend rodando (suíte .NET completa + Performance) por causa do ci.yml alterado — prova da correção; frontend, contracts, e2e, security e sdd verdes; merge a44a7f7 | 2026-10-15 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #37, run 38762211508); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 9. Registro de Impedimentos
