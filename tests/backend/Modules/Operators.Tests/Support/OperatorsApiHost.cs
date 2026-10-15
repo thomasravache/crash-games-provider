@@ -35,8 +35,13 @@ internal sealed class OperatorsApiHost : IAsyncDisposable
     /// <summary>The active API key of the demo operator.</summary>
     public TestApiKey Key { get; }
 
-    public static async Task<OperatorsApiHost> StartAsync(string postgresServerConnectionString, string redisConnectionString, CancellationToken cancellationToken)
+    public static Task<OperatorsApiHost> StartAsync(string postgresServerConnectionString, string redisConnectionString, CancellationToken cancellationToken) =>
+        StartAsync(postgresServerConnectionString, redisConnectionString, new Uri("https://game.apogeu.test"), cancellationToken);
+
+    /// <summary>Starts the host with <paramref name="gameBaseUrl"/> as <c>Operators:GameBaseUrl</c> (SPEC-0044: the origin of the kit art).</summary>
+    public static async Task<OperatorsApiHost> StartAsync(string postgresServerConnectionString, string redisConnectionString, Uri gameBaseUrl, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(gameBaseUrl);
         var database = await TestDatabase.CreateAsync(postgresServerConnectionString, cancellationToken).ConfigureAwait(false);
         var clock = new FakeTimeProvider(DateTimeOffset.FromUnixTimeMilliseconds(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()));
         var key = TestApiKey.Generate();
@@ -47,7 +52,7 @@ internal sealed class OperatorsApiHost : IAsyncDisposable
             host.UseEnvironment("Development");
             host.UseSetting("ConnectionStrings:apogeu", database);
             host.UseSetting("ConnectionStrings:redis", redisConnectionString);
-            host.UseSetting("Operators:GameBaseUrl", "https://game.apogeu.test");
+            host.UseSetting("Operators:GameBaseUrl", gameBaseUrl.ToString().TrimEnd('/'));
             host.UseSetting("Operators:Demo:ApiKeys:0:Id", key.Id);
             host.UseSetting("Operators:Demo:ApiKeys:0:Secret", key.Secret);
             host.UseSetting("Security:PlayerSession:SigningKey", signingKey);

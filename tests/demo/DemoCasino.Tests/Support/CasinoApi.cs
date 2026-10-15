@@ -6,13 +6,16 @@ using Xunit;
 
 namespace Apogeu.DemoCasino.Tests.Support;
 
-/// <summary>Calls of the casino BFF contract of SPEC-0043 §6 and the reading of its responses.</summary>
+/// <summary>Calls of the casino BFF contract of SPEC-0043 §6 and SPEC-0044 §6 and the reading of its responses.</summary>
 internal static class CasinoApi
 {
     public const string SessionPath = "/casino/session";
     public const string MePath = "/casino/me";
     public const string LogoutPath = "/casino/logout";
     public const string SessionCookie = "casino_session";
+
+    /// <summary>The lobby catalog of SPEC-0044 §6.</summary>
+    public const string GamesPath = "/casino/games";
 
     /// <summary>POST /casino/session with <c>{ nickname, currency }</c>.</summary>
     public static async Task<HttpResponseMessage> EnterAsync(HttpClient client, string nickname, string currency, CancellationToken ct)
@@ -28,6 +31,40 @@ internal static class CasinoApi
 
     public static Task<HttpResponseMessage> MeAsync(HttpClient client, CancellationToken ct) =>
         client.GetAsync(new Uri(MePath, UriKind.Relative), ct);
+
+    /// <summary>GET /casino/games (SPEC-0044 §6).</summary>
+    public static Task<HttpResponseMessage> GamesAsync(HttpClient client, CancellationToken ct) =>
+        client.GetAsync(new Uri(GamesPath, UriKind.Relative), ct);
+
+    /// <summary>A browser client with a casino session: enters with a fresh nickname and keeps the cookie.</summary>
+    public static async Task<HttpClient> SignedInBrowserAsync(DemoCasinoHost casino, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(casino);
+        var browser = casino.CreateBrowserClient();
+        try
+        {
+            using var entered = await EnterAsync(browser, NewNickname(), "BRL", ct).ConfigureAwait(false);
+            _ = await ReadOkJsonAsync(entered, ct).ConfigureAwait(false);
+            return browser;
+        }
+        catch
+        {
+            browser.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>Asserts a 200 JSON response of GET /casino/games and returns its items (a JSON array, SPEC-0044 §6).</summary>
+    public static async Task<IReadOnlyList<JsonElement>> ReadGamesAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"Expected 200 from GET {GamesPath}, got {(int)response.StatusCode}. Body: {text}");
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        using var json = JsonDocument.Parse(text);
+        Assert.Equal(JsonValueKind.Array, json.RootElement.ValueKind);
+        return [.. json.RootElement.EnumerateArray().Select(item => item.Clone())];
+    }
 
     public static async Task<HttpResponseMessage> LogoutAsync(HttpClient client, CancellationToken ct)
     {
