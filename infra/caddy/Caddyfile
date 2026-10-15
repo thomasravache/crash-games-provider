@@ -12,8 +12,9 @@
 	{$APOGEU_CADDY_ACME}
 	# Only the internal CA of the test names would be installed; never touch a trust store in the container.
 	skip_install_trust
-	# Every other log of the proxy (errors such as a 502 with the backend down carry the request too): the same filter
-	# as the access log of the sites, so no output of the proxy holds a token (ADR-0014, SPEC-0066 Emenda v5).
+	# Every other log of the proxy (errors such as a 502 with the backend down carry the request too, and the access log
+	# of the 308 redirect of an unknown host goes here): the same filter as the access log of the sites, so no output of
+	# the proxy holds a token (ADR-0014, SPEC-0066 Emendas v5 and v6).
 	log default {
 		output stderr
 		format filter {
@@ -22,6 +23,10 @@
 				delete access_token
 			}
 			request>headers>Referer delete
+			resp_headers>Location query {
+				delete lt
+				delete access_token
+			}
 		}
 	}
 }
