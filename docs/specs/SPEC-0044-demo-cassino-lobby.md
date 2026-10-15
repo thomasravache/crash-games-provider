@@ -4,7 +4,7 @@ title: "Cassino demo: lobby com o catálogo da Apogeu"
 tier: full
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0043, SPEC-0020]
@@ -134,20 +134,20 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
 
 **Fase 1: Regressão e correção**
-- [ ] Red: escrever UT-01, IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0044:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo o padrão citado
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0044:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo o padrão citado
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase 2: Jornada E2E**
-- [ ] Red: E2E-01 falhando pelo motivo certo
-- [ ] Green: jornada completa passando localmente
+- [x] Red: E2E-01 falhando pelo motivo certo
+- [x] Green: jornada completa passando localmente
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -158,10 +158,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 309ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 62a4c0f | 2026-10-15 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.08s (tests 95%, transform 3%, import 2%)) — 62a4c0f | 2026-10-15 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: N1 URLs das artes string? no BFF x string no front (artes ausentes escondem a lista); N2 contador democasino.apogeu.failures sem exporter (só log); N3 sem timeout curto no cliente Apogeu (semáforo espera até 100 s); N4 gradiente do banner com rgb fixo em vez de token; N5 cartões Em breve não-crash na aba Crash; desvios visuais declarados (acento dourado em vez de #5B7FD6, aba inicial Todos, sem saldo/Jogar agora, rodapé ausente, artes PNG pesadas e banner de 512 px esticado) ficam para a aprovação visual do thomas — 62a4c0f | 2026-10-15 |
-| G5 Integração & CI | PASS | MANUAL: MANUAL: CI do PR #34 verde (run 38717248741, commit 197fa3e): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; e2e verde na 2ª tentativa após 2 falhas de tempo no webkit-mobile em testes da SPEC-0026 (E2E-02 aposta perdida, E2E-04 aposta dupla: a aposta volta a APOSTAR antes de virar RETIRAR), o mesmo padrão intermitente já visto no Firefox na onda 1; local em 197fa3e: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #34 verde (run 38717248741, commit 197fa3e): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; e2e verde na 2ª tentativa após 2 falhas de tempo no webkit-mobile em testes da SPEC-0026 (E2E-02 aposta perdida, E2E-04 aposta dupla: a aposta volta a APOSTAR antes de virar RETIRAR), o mesmo padrão intermitente já visto no Firefox na onda 1; local em 197fa3e: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #34, run 38717248741); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — bd0272e | 2026-10-15 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -174,37 +174,48 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O cassino demo ganhou o lobby: o BFF (`GET /casino/games`) busca na Apogeu, por chamada assinada, os jogos habilitados para o operador e devolve código, nome, artes (miniatura e banner do kit visual), categoria e selo "Novo", com cache de 60 s; sem sessão responde 401 e com a Apogeu fora do ar 502 PROVIDER_UNAVAILABLE. A tela mostra o banner de destaque da Pipa, as abas Todos/Crash/Novidades, o cartão da Pipa com miniatura e três cartões "Em breve". O catálogo da Apogeu (`GET /api/v1/games`) passou a trazer `thumbnailUrl` e `bannerUrl`.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Red b9bef2c (UT-01, IT-01..03, CT-01, E2E-01, caixa-preta por HTTP); green e63a363 (Operators: `GameKit` monta `{GameBaseUrl}/kit/{code}/thumb.png` e `banner.png`, contratos regenerados, artes PNG em `apps/game-pipa/public/kit/pipa/`), 15f27dd (DemoCasino `Lobby/`: `ApogeuCatalog` com cache pelo `TimeProvider` do DI e `SemaphoreSlim`, falha não cacheada, log e contador `democasino.apogeu.failures`; `NewGames` substitui o padrão ["pipa"]) e 45af0de (demo-site: `lobby-screen.tsx`, abas ARIA, busca local, aviso em falha). Emenda v1 fixou as regras do lobby, o contrato SPEC-0020@3 e os contratos gerados no `touches` (IMP-01). O DemoCasino segue sem referência à Apogeu (ADR-0027). G2 local passou na 3ª tentativa com `APOGEU_PERF_BUDGET_SCALE=2` só naquela execução: o `CashOutLatencyTests` dá p99 116–129 ms nesta VM também em main (decisão recomendada em piloto automático).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dada a resposta do catálogo, quando mapeada para o lobby, então categoria e selo "Novo" são derivados corretam… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| IT-01 | Dados DemoCasino e Apogeu reais, quando o jogador logado pede `/casino/games`, então recebe a Pipa com miniatu… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| IT-02 | Dada a Apogeu indisponível, quando o lobby é pedido, então 502 PROVIDER_UNAVAILABLE. | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| IT-03 | Dada a Pipa desabilitada para o operador demo, quando o cache expira, então ela some da lista. | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| CT-01 | Dado o `GET /api/v1/games` real com os campos novos, quando validado contra o OpenAPI gerado e as URLs são bus… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| E2E-01 | Dado o jogador logado no cassino demo, quando abre o lobby, então vê o banner da Pipa, a aba Crash e o cartão… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — segurança (IT-01), resiliência (IT-02) e acessibilidade (E2E-01) verificadas; desempenho no mobile medido pela SPEC-0030
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A até a SPEC-0012; em main pelo PR #34
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — falhas da Apogeu em log de warning e no contador `democasino.apogeu.failures`; rollback = reverter o merge 38b0509
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #34 (merge 38b0509, 2026-10-15).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+Minors do review (G4): N1 artes ausentes no catálogo escondem a lista (BFF `string?` × front `string`); N2 contador sem exporter (a observabilidade fica no log de warning); N3 sem timeout curto no cliente "Apogeu"; N4 gradiente do banner com cor fixa em vez de token; N5 cartões "Em breve" não-crash na aba Crash. Aprovação visual do thomas pendente para os desvios da tela "Cassino Demo — Lobby": acento dourado em vez de #5B7FD6, aba inicial Todos, sem rodapé de demonstração, artes PNG pesadas e banner de 512 px esticado. Meta de lobby ≤ 2 s no mobile fica para a medição da SPEC-0030. A agrupar numa spec de melhorias, a propor ao thomas.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0044`. -->

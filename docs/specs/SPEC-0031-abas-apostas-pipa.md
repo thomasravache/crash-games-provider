@@ -4,7 +4,7 @@ title: Abas de apostas da Pipa
 tier: lite
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-09
 parent: SPEC-0019
 depends_on: [SPEC-0025, SPEC-0026]
@@ -59,20 +59,20 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
 
 **Fase 1: Regressão e correção**
-- [ ] Red: escrever UT-01, UT-02, CT-01 com a tag `SPEC-0031:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo o padrão citado
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, CT-01 com a tag `SPEC-0031:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo o padrão citado
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase 2: Jornada E2E**
-- [ ] Red: E2E-01 falhando pelo motivo certo
-- [ ] Green: jornada completa passando localmente
+- [x] Red: E2E-01 falhando pelo motivo certo
+- [x] Green: jornada completa passando localmente
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -83,10 +83,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 270ms); test exit 0 ($ pnpm -C src/frontend test); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:src/frontend/coverage/lcov.info" -targetdir:artifacts/c) — 88cdf0c | 2026-10-15 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.02s (tests 96%, transform 2%, import 1%)) — 88cdf0c | 2026-10-15 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: lote atrasado de rodada anterior pode reexibir apostas até o próximo lote (ordem entre hubs); conclusão de aposta com Minhas apostas aberta relê só a página 1; cancelamento não relê o histórico; Tentar de novo após falha do Carregar mais relê a página 1; teste UT-02 frágil ao procurar 'disabled' nas classes; tabpanel sem tabIndex; sem teste de re-join na reconexão, de falha do JoinSalaBets e de descarte por geração; ordem das apostas novas não definida pela spec — 88cdf0c | 2026-10-15 |
-| G5 Integração & CI | PASS | MANUAL: MANUAL: CI do PR #34 verde (run 38717248741, commit 197fa3e): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; e2e verde na 2ª tentativa após 2 falhas de tempo no webkit-mobile em testes da SPEC-0026 (E2E-02 aposta perdida, E2E-04 aposta dupla: a aposta volta a APOSTAR antes de virar RETIRAR), o mesmo padrão intermitente já visto no Firefox na onda 1; local em 197fa3e: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #34 verde (run 38717248741, commit 197fa3e): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; e2e verde na 2ª tentativa após 2 falhas de tempo no webkit-mobile em testes da SPEC-0026 (E2E-02 aposta perdida, E2E-04 aposta dupla: a aposta volta a APOSTAR antes de virar RETIRAR), o mesmo padrão intermitente já visto no Firefox na onda 1; local em 197fa3e: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #34, run 38717248741); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — c2ea517 | 2026-10-15 |
 
 ## 9. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -99,30 +99,39 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
 
 ### O que foi entregue
+Abaixo dos painéis de aposta da Pipa, duas abas: "Todas as apostas" mostra ao vivo as apostas da rodada (apelido anonimizado, valor, saque e ganho, com os totais) e zera quando começa outra rodada; "Minhas apostas" lista o histórico do jogador (Ganhou/Perdeu…) com "Carregar mais" por cursor e "Tentar de novo" em caso de erro.
 
 ### Como foi feito
+Red 02e560a (UT-01, UT-02, CT-01, E2E-01) sobre o scaffold 217fc2a; green 5fde360 (game-sdk: stores `live-bets` e `my-bets`, `BetsClient` entra na sala com `JoinSalaBets` sem derrubar o `start()` se falhar, refaz a entrada ao reconectar, uma requisição por cursor e descarte de página antiga por geração; game-ui: `BetsTabs` no padrão ARIA de abas, `AllBetsTab`, `MyBetsTab` e o slot `betsTabs` do `Hud`) e 13f7a59 (liga as abas no `App.tsx`). Emenda v1: CT-01 no projeto `integration` contra o Host, contrato SPEC-0025@4 e nova rodada pelo `RoundBetting`; Emenda v2: `App.tsx` no `touches` (IMP-02). Tipos `MyBet`/`MyBetsPage` locais trocados pelos gerados (ADR-0008).
 
 ### Prova de Correção
 <!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dado um `LiveBetsSnapshot` seguido de lotes, quando aplicados ao store, então a aba "Todas as apostas" mostra… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| UT-02 | Dadas duas páginas de `GET /api/v1/me/bets`, quando o jogador clica "carregar mais", então a segunda página é… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| CT-01 | Dadas as mensagens reais de `LiveBetsSnapshot`, dos lotes e de `GET /api/v1/me/bets`, quando validadas contra… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
+| E2E-01 | Dado o jogo aberto pelo lançamento demo, quando o jogador aposta R$ 10,00, retira no voo e depois perde outra… | PASS | G2 do registro de gates; CI do PR #34 verde (run 38717248741 em 197fa3e e run 38722116901 em 1099eb7), merge 38b0509 |
 
 ### Definição de Pronto
-- [ ] Teste de regressão falhou antes e passa depois da correção
-- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão existente mantido
-- [ ] Disponível no ambiente-alvo via pipeline (G6)
-- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
-- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Teste de regressão falhou antes e passa depois da correção
+- [x] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão existente mantido
+- [x] Disponível no ambiente-alvo via pipeline (G6) — N/A até a SPEC-0012; em main pelo PR #34
+- [x] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [x] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #34 (merge 38b0509, 2026-10-15).
 
 ### Pendências
+Minors do review (G4): lote atrasado da rodada anterior pode reexibir apostas até o próximo lote (ordem entre hubs); ao terminar uma aposta com "Minhas apostas" aberta só a página 1 é relida; cancelamento não relê o histórico; "Tentar de novo" após falha do "Carregar mais" relê a página 1; UT-02 frágil ao procurar "disabled" nas classes; `tabpanel` sem `tabIndex`; faltam testes de nova entrada na reconexão, de falha do `JoinSalaBets` e do descarte por geração. Aprovação visual do thomas pendente para as telas do Stitch "Pipa — Abas de apostas (Todas as apostas)" e "(Minhas apostas)", geradas em 2026-10-15. A agrupar numa spec de melhorias, a propor ao thomas.
 
 ## 11. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
