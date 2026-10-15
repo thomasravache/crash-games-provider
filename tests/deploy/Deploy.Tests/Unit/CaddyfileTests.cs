@@ -14,6 +14,8 @@ namespace Apogeu.Deploy.Tests.Unit;
 /// and rewritten by the proxy (no trusted_proxies; the api trusts X-Forwarded-*), shown through the real Caddyfile in
 /// front of an echo backend. Emenda v4: the access log of the proxy keeps no token: the launch token <c>lt</c> of the game
 /// and the <c>access_token</c> of the SignalR hubs are erased from the logged query, as Cookie and Authorization.
+/// Emenda v5: no output of the proxy (docker logs, stdout and stderr) holds a token: neither the error log of a 502 with
+/// the backend down (URI and Referer) nor the Location of the http→https redirect (308).
 /// </summary>
 public sealed class CaddyfileTests
 {
@@ -144,6 +146,64 @@ public sealed class CaddyfileTests
         foreach (var secret in new[] { launchToken, accessToken, cookie, authorization })
         {
             Assert.False(logs.Contains(secret, StringComparison.Ordinal), $"the access log of the proxy keeps {secret}:\n{logs}");
+        }
+    }
+
+    [Fact(DisplayName = "Dado o backend fora do ar, quando um GET com access_token e Referer com lt dá 502, então nenhuma saída do proxy contém os tokens")]
+    [Trait("Category", "Unit")]
+    [Trait("Spec", "SPEC-0066:UT-01")]
+    public async Task GivenTheBackendDownWhenARequestWithTokensFailsThenNoOutputOfTheProxyKeepsThem()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string accessToken = "AT-SEGREDO-502e1d";
+        const string launchToken = "LT-SEGREDO-502f7a";
+
+        await using var proxy = await ProxyProbe.StartAsync(
+            DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken, withBackend: false);
+        var status = await proxy.GetAsync(
+            $"api.{TestDomain}", $"/hubs/x?access_token={accessToken}&id=1", [$"Referer: https://jogo.{TestDomain}/?lt={launchToken}"], cancellationToken);
+
+        Assert.Equal(502, status);
+        var logs = await LogsWithAsync(proxy, "/hubs/x", cancellationToken);
+        AssertNoSecret(logs, accessToken, launchToken);
+    }
+
+    [Fact(DisplayName = "Dado um GET http:// com lt, quando o proxy redireciona para https (308), então nenhuma saída do proxy contém o token")]
+    [Trait("Category", "Unit")]
+    [Trait("Spec", "SPEC-0066:UT-01")]
+    public async Task GivenAnHttpRequestWithTheLaunchTokenWhenRedirectedThenNoOutputOfTheProxyKeepsIt()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string launchToken = "LT-SEGREDO-308c42";
+
+        await using var proxy = await ProxyProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
+        var status = await proxy.GetAsync("http", $"jogo.{TestDomain}", $"/?lt={launchToken}&lang=pt-BR", [], cancellationToken);
+
+        Assert.Equal(308, status);
+        var logs = await LogsWithAsync(proxy, "308", cancellationToken);
+        AssertNoSecret(logs, launchToken);
+    }
+
+    /// <summary>The output of the proxy once it holds <paramref name="expected"/> (the request is logged: the log stays useful).</summary>
+    private static async Task<string> LogsWithAsync(ProxyProbe proxy, string expected, CancellationToken cancellationToken)
+    {
+        var logs = string.Empty;
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (DateTime.UtcNow < deadline && !logs.Contains(expected, StringComparison.Ordinal))
+        {
+            await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+            logs = await proxy.LogsAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        Assert.True(logs.Contains(expected, StringComparison.Ordinal), $"the request is not in the output of the proxy (expected '{expected}'):\n{logs}");
+        return logs;
+    }
+
+    private static void AssertNoSecret(string logs, params string[] secrets)
+    {
+        foreach (var secret in secrets)
+        {
+            Assert.False(logs.Contains(secret, StringComparison.Ordinal), $"the output of the proxy keeps {secret}:\n{logs}");
         }
     }
 

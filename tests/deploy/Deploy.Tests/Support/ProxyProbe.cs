@@ -32,7 +32,13 @@ internal sealed class ProxyProbe : IAsyncDisposable
 
     private int Port { get; set; }
 
-    public static async Task<ProxyProbe> StartAsync(string caddyfile, string domain, CancellationToken cancellationToken)
+    private int HttpPort { get; set; }
+
+    /// <summary>
+    /// Starts the proxy and, unless <paramref name="withBackend"/> is false, the echo backend. Without it, <c>api</c> and
+    /// <c>demo-casino</c> do not resolve and the proxied routes answer 502 (backend down, Emenda v5).
+    /// </summary>
+    public static async Task<ProxyProbe> StartAsync(string caddyfile, string domain, CancellationToken cancellationToken, bool withBackend = true)
     {
         var name = "apogeu-test-ut01-" + Guid.NewGuid().ToString("N")[..12];
         var directory = Path.Combine(Path.GetTempPath(), name);
@@ -46,20 +52,26 @@ internal sealed class ProxyProbe : IAsyncDisposable
         }
 
         await probe.DockerAsync(["network", "create", name], cancellationToken).ConfigureAwait(false);
-        await probe.DockerAsync(
-            [
-                "run", "--detach", "--name", name + "-echo", "--network", name, "--network-alias", "api", "--network-alias", "demo-casino",
-                "--volume", $"{directory}:/srv:ro", "busybox:1.37.0-musl", "httpd", "-f", "-p", "8080", "-h", "/srv/www", "-c", "/srv/httpd.conf",
-            ],
-            cancellationToken).ConfigureAwait(false);
+        if (withBackend)
+        {
+            await probe.DockerAsync(
+                [
+                    "run", "--detach", "--name", name + "-echo", "--network", name, "--network-alias", "api", "--network-alias", "demo-casino",
+                    "--volume", $"{directory}:/srv:ro", "busybox:1.37.0-musl", "httpd", "-f", "-p", "8080", "-h", "/srv/www", "-c", "/srv/httpd.conf",
+                ],
+                cancellationToken).ConfigureAwait(false);
+        }
+
         await probe.DockerAsync(
             [
                 "run", "--detach", "--name", name + "-proxy", "--network", name, "--env", $"{DeployScripts.DomainVariable}={domain}",
-                "--volume", $"{caddyfile}:/etc/caddy/Caddyfile:ro", "--publish", "127.0.0.1::443", DockerCli.CaddyImage,
+                "--volume", $"{caddyfile}:/etc/caddy/Caddyfile:ro", "--publish", "127.0.0.1::443", "--publish", "127.0.0.1::80", DockerCli.CaddyImage,
             ],
             cancellationToken).ConfigureAwait(false);
         var port = await probe.DockerAsync(["port", name + "-proxy", "443/tcp"], cancellationToken).ConfigureAwait(false);
         probe.Port = int.Parse(port.StandardOutput.Split('\n')[0].Trim().Split(':')[^1], System.Globalization.CultureInfo.InvariantCulture);
+        var http = await probe.DockerAsync(["port", name + "-proxy", "80/tcp"], cancellationToken).ConfigureAwait(false);
+        probe.HttpPort = int.Parse(http.StandardOutput.Split('\n')[0].Trim().Split(':')[^1], System.Globalization.CultureInfo.InvariantCulture);
         return probe;
     }
 
@@ -100,31 +112,36 @@ internal sealed class ProxyProbe : IAsyncDisposable
         }
     }
 
-    /// <summary>GET through the proxy with the given headers (any status); retries while the proxy is not answering yet.</summary>
-    public async Task GetAsync(string host, string path, IEnumerable<string> headers, CancellationToken cancellationToken)
+    /// <summary>GET over HTTPS through the proxy with the given headers; the status (any). Retries while the proxy is not answering yet.</summary>
+    public Task<int> GetAsync(string host, string path, IEnumerable<string> headers, CancellationToken cancellationToken) =>
+        GetAsync("https", host, path, headers, cancellationToken);
+
+    /// <summary>GET over <paramref name="scheme"/> (http or https) through the proxy, without following redirects; the status.</summary>
+    public async Task<int> GetAsync(string scheme, string host, string path, IEnumerable<string> headers, CancellationToken cancellationToken)
     {
+        var port = string.Equals(scheme, "http", StringComparison.Ordinal) ? HttpPort : Port;
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (true)
         {
             var result = await ProcessRunner.RunAsync(
                 "curl",
                 [
-                    "--silent", "--insecure", "--max-time", "5", "--output", "/dev/null",
-                    "--resolve", $"{host}:{Port}:127.0.0.1",
+                    "--silent", "--insecure", "--max-time", "5", "--output", "/dev/null", "--write-out", "%{http_code}",
+                    "--resolve", $"{host}:{port}:127.0.0.1",
                     .. headers.SelectMany(header => new[] { "--header", header }),
-                    $"https://{host}:{Port}{path}",
+                    $"{scheme}://{host}:{port}{path}",
                 ],
                 RepositoryRoot.Path,
                 ProcessRunner.ShortTimeout,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             if (result.Succeeded)
             {
-                return;
+                return int.Parse(result.StandardOutput.Trim(), System.Globalization.CultureInfo.InvariantCulture);
             }
 
             if (DateTime.UtcNow > deadline)
             {
-                throw new Xunit.Sdk.XunitException($"the proxy did not answer {host}{path}. " + result.Describe());
+                throw new Xunit.Sdk.XunitException($"the proxy did not answer {scheme}://{host}{path}. " + result.Describe());
             }
 
             await Task.Delay(500, cancellationToken).ConfigureAwait(false);

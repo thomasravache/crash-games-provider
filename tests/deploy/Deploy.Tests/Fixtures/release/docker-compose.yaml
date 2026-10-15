@@ -39,13 +39,12 @@ services:
   keys-init:
     # SPEC-0065@3 (Emenda v3): short-lived, no ports; hands the dataprotection-keys volume to the api user (UID 1654).
     image: "busybox:1.37.0"
-    command: ["chown", "-R", "1654:1654", "/keys"]
+    command: ["chown", "1654:1654", "/keys"]
+    network_mode: none
     volumes:
       - type: volume
         source: dataprotection-keys
         target: /keys
-    networks:
-      - aspire
   demo-casino:
     image: "${DEMO_CASINO_IMAGE}"
     environment:

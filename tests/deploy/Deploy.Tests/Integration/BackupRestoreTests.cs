@@ -13,8 +13,9 @@ namespace Apogeu.Deploy.Tests.Integration;
 /// <c>apogeu-keys-&lt;stamp&gt;.tar.gz</c> with the same stamp, and prints the path of the dump;
 /// <c>tools/deploy/restore &lt;dump&gt;</c> loads the dump into a clean PostgreSQL and the keys archive beside it into a
 /// clean volume: the row counts of every table match and the keys are identical (content and owner, the api user 1654).
-/// Without the keys the unrevealed seeds stay unreadable. A corrupted keys archive is refused before the database and
-/// the volume are touched, and the current keys stay (Emenda v4). The backup keeps 7 days: older files of the directory go,
+/// Without the keys the unrevealed seeds stay unreadable. A corrupted keys archive, or one without keys, is refused
+/// before the database and the volume are touched, and the current keys stay (Emendas v4 and v5); the keys are imported
+/// before the database (Emenda v5). The backup keeps 7 days: older files of the directory go,
 /// newer ones and other files stay.
 /// </summary>
 public sealed class BackupRestoreTests : IAsyncLifetime
@@ -114,6 +115,66 @@ public sealed class BackupRestoreTests : IAsyncLifetime
         Assert.True(restore.ExitCode > 0, "restore did not run. " + restore.Describe());
         Assert.False(await DatabaseExistsAsync(_target.GetConnectionString(), cancellationToken), "restore touched the database before refusing the keys archive");
         Assert.Equal(currentKeys, await KeysOfAsync(_targetKeys));
+    }
+
+    [Fact(DisplayName = "Dado um arquivo de chaves válido mas sem nenhuma chave, quando o restore roda, então recusa antes de tocar no banco e no volume")]
+    [Trait("Category", "Integration")]
+    [Trait("Spec", "SPEC-0066:IT-02")]
+    public async Task GivenAKeysArchiveWithoutKeysWhenRestoredThenNothingIsTouched()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var backup = await RunAsync(DeployScripts.Backup, [], _source, _sourceKeys, cancellationToken);
+        Assert.True(backup.Succeeded, "backup failed. " + backup.Describe());
+        var dump = DumpPathOf(backup);
+        var keysArchive = KeysArchiveOf(dump);
+
+        // A well-formed tar.gz of an empty directory: gzip and tar accept it, but there is no key in it.
+        var empty = Path.Combine(_root, "empty-keys");
+        Directory.CreateDirectory(empty);
+        File.Delete(keysArchive);
+        var tar = await ProcessRunner.RunAsync("tar", ["-czf", keysArchive, "-C", empty, "."], _root, ProcessRunner.ShortTimeout, cancellationToken: cancellationToken);
+        Assert.True(tar.Succeeded, tar.Describe());
+        await SeedKeysAsync(_targetKeys);
+        var currentKeys = await KeysOfAsync(_targetKeys);
+
+        var restore = await RunAsync(DeployScripts.Restore, [dump], _target, _targetKeys, cancellationToken);
+
+        Assert.False(restore.Succeeded, "restore accepted a keys archive without keys. " + restore.Describe());
+        Assert.True(restore.ExitCode > 0, "restore did not run. " + restore.Describe());
+        Assert.False(await DatabaseExistsAsync(_target.GetConnectionString(), cancellationToken), "restore touched the database before refusing the keys archive");
+        Assert.Equal(currentKeys, await KeysOfAsync(_targetKeys));
+    }
+
+    [Fact(DisplayName = "Dada uma importação das chaves que falha, quando o restore roda, então o banco não foi restaurado (as chaves vêm antes do banco)")]
+    [Trait("Category", "Integration")]
+    [Trait("Spec", "SPEC-0066:IT-02")]
+    public async Task GivenTheKeysImportFailingWhenRestoredThenTheDatabaseIsNotRestored()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var backup = await RunAsync(DeployScripts.Backup, [], _source, _sourceKeys, cancellationToken);
+        Assert.True(backup.Succeeded, "backup failed. " + backup.Describe());
+
+        // A volume that exists (docker volume inspect works) but cannot be mounted: a bind to a directory that does not
+        // exist. The archive is valid; only writing the keys fails.
+        var broken = "apogeu-test-it02-broken-" + Guid.NewGuid().ToString("N");
+        await RunCheckedAsync(
+        [
+            "volume", "create", "--driver", "local", "--opt", "type=none", "--opt", "o=bind",
+            "--opt", "device=" + Path.Combine(_root, "does-not-exist"), broken,
+        ]);
+        try
+        {
+            var restore = await RunAsync(DeployScripts.Restore, [DumpPathOf(backup)], _target, broken, cancellationToken);
+
+            Assert.False(restore.Succeeded, "restore succeeded with a keys volume that cannot be written. " + restore.Describe());
+            Assert.False(
+                await DatabaseExistsAsync(_target.GetConnectionString(), cancellationToken),
+                "the database was restored although importing the keys failed: the keys must come first. " + restore.Describe());
+        }
+        finally
+        {
+            await DockerCli.RunAsync(["volume", "rm", "--force", broken], CancellationToken.None);
+        }
     }
 
     [Fact(DisplayName = "Dados dumps com mais e menos de 7 dias, quando o backup roda, então só os mais antigos que 7 dias são apagados")]
