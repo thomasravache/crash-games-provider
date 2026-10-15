@@ -170,9 +170,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — af14212 (árvore suja) | 2026-10-15 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:05.73]     Dado o Host com DataProtection:KeysPath num diretório, quando ) — f8683df | 2026-10-15 |
-| G2 Green | FAIL | build exit 0 (✓ built in 283ms); test exit 1 ([xUnit.net 00:05:09.54]     Dado um evento de crash entregue duas vezes, quando processado); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:00:02.29]     Dado o Directory.Packages.props, quando a família ASP.NET Core) — 02cddb2 | 2026-10-15 |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 332ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7933873 | 2026-10-15 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  977ms (tests 96%, transform 3%, import 1%)) — 7933873 | 2026-10-15 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente (2ª rodada): APPROVED. 1ª rodada CHANGES_REQUESTED (B1: volume de chaves sem escrita para a API, provado com Docker) resolvida pela Emenda v3: keys-init com a mesma montagem e ordem garantida (service_completed_successfully), falha cedo na subida sem escrita no KeysPath, migração só pelo compose (sem appsettings.Production.json, IT-02 prova que Production sem a chave não migra). Minors: N1 chaves sem cifra em repouso (antes do lançamento); N8 cookie do DemoCasino sem chaves persistidas; N9 UID 1654 fixo depende do usuário app das imagens .NET (a API falha cedo se mudar); N11 busybox por tag; lock files do f095e1e justificados — 7933873 | 2026-10-15 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
