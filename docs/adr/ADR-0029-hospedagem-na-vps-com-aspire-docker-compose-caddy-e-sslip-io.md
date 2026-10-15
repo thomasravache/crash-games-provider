@@ -42,6 +42,8 @@ A jornada do jogador está pronta e thomas quer jogá-la de qualquer lugar (celu
 - Deploy e rollback em um passo pelo `tools/deploy/`; a versão anterior fica disponível para voltar.
 - Backup diário do Postgres com restauração testada.
 - Cada container com limite de memória, para não derrubar a VPS compartilhada.
+- Na demonstração a API migra o banco na subida (`Database:MigrateOnStartup`, ligado só pelo compose publicado); produção real volta a migrar pelo pipeline (ADR-0010).
+- O volume das chaves do Data Protection pertence ao usuário da API (serviço `keys-init`) e entra no backup junto com o Postgres; chaves sem cifra em repouso são aceitas só na demonstração (cifrar antes do lançamento, ADR-0014).
 
 ### Consequências
 - **Boa**, porque a jornada fica acessível de qualquer lugar sem custo, os problemas de ambiente real (TLS, proxy, rede) aparecem cedo e o G6 deixa de ser N/A.
