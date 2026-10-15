@@ -152,7 +152,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 66ae264 | 2026-10-10 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:13.93]     Dados DemoCasino e Apogeu reais em modo seamless, quando o jog) — 9babb28 | 2026-10-15 |
-| G2 Green | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 337ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7a1b8e6 | 2026-10-15 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
