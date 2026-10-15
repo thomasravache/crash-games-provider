@@ -4,7 +4,7 @@ title: "Cassino demo: carteira própria (seamless)"
 tier: full
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0045, SPEC-0046]
@@ -158,7 +158,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | MANUAL: CI do PR #38 verde (run 38778078986, commit b0f5e0d): backend (suíte .NET completa + Performance, com os testes do DemoCasino desde a SPEC-0060), frontend, contracts, e2e (Chromium, WebKit e Firefox, com SPEC-0047:E2E-01 e os E2E da Pipa com o operador demo em seamless), security e sdd; backend verde na 2ª tentativa após falha de tempo conhecida no teste do líder impedido do cash-out (troca de rodada, sem relação com a carteira); merge 4e038be | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #38, run 38778078986); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — d38ee62 | 2026-10-15 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
