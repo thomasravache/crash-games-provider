@@ -153,8 +153,8 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.03s (tests 96%, transform 3%, import 1%)) — 7c9409e | 2026-10-15 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: launchUrl aceita qualquer origem http(s) (defesa em profundidade: aceitar só a origem configurada do jogo, https fora de dev); sem timeout explícito no cliente Apogeu (até 100 s, tempo esgotado sem teste); corrida no relançamento leva de volta ao jogo após Voltar; falha empilha histórico (usar replaceState); foco cai no body na troca de página; visual: marca no topo, ícone de tela cheia e subtítulo da coluna diferem do Stitch; meter sem exporter e allow=fullscreen extra; aviso de jogo indisponível/provedor fora sem E2E (coberto por IT-03/IT-04) — 7c9409e | 2026-10-15 |
 | G5 Integração & CI | PASS | MANUAL: CI do PR #36 verde (run 38748728309, commit 68eca9a): frontend, contracts, e2e (Chromium, WebKit e Firefox, com os 3 E2E do cassino demo), security e sdd; o job backend foi pulado porque o filtro de mudanças da CI não inclui src/demo/** nem tests/demo/** (lacuna corrigida pela SPEC-0060); a suíte .NET completa, com os 47 testes do DemoCasino, passou no G2 local em 7c9409e; local em 68eca9a: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #36, run 38748728309); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
