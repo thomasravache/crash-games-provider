@@ -9,9 +9,9 @@ created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0047]
 consumes_contract: []
-contract_version: 2
+contract_version: 3
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
-touches: ["src/backend/AppHost/**", "src/backend/Host/**", "src/backend/Modules/Fairness/Fairness.Infrastructure/**", "src/backend/Modules/Operators/Operators.Features/Development/**", "src/backend/Modules/Operators/Operators.Infrastructure/**", "src/backend/Modules/Wallet/Wallet.Infrastructure/**", "tests/backend/AppHost.Tests/**", "tests/backend/Modules/Fairness.Tests/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Modules/Wallet.Tests/**", "Directory.Packages.props", "infra/compose/**", "src/backend/Modules/Fairness/Fairness.Features/**", "src/backend/Modules/Rounds/Rounds.Features/**", "src/backend/Modules/Betting/Betting.Features/**", "src/backend/Modules/Wallet/Wallet.Features/**"]
+touches: ["src/backend/AppHost/**", "src/backend/Host/**", "src/backend/Modules/Fairness/Fairness.Infrastructure/**", "src/backend/Modules/Operators/Operators.Features/Development/**", "src/backend/Modules/Operators/Operators.Infrastructure/**", "src/backend/Modules/Wallet/Wallet.Infrastructure/**", "tests/backend/AppHost.Tests/**", "tests/backend/Modules/Fairness.Tests/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Modules/Wallet.Tests/**", "Directory.Packages.props", "infra/compose/**", "src/backend/Modules/Fairness/Fairness.Features/**", "src/backend/Modules/Rounds/Rounds.Features/**", "src/backend/Modules/Betting/Betting.Features/**", "src/backend/Modules/Wallet/Wallet.Features/**", "tests/ci/Ci.Tests/Unit/AspNetCoreVersionTests.cs", "tools/contracts/HubContracts/packages.lock.json"]
 adrs: [ADR-0029, ADR-0003, ADR-0014, ADR-0016]
 external: []
 size: M
@@ -56,7 +56,7 @@ O AppHost passa a publicar a plataforma como um Docker Compose de produção (`a
 
 **Justificativa:** uma única descrição do sistema (ADR-0003) e hospedagem na VPS decidida no ADR-0029.
 
-**Desvio do padrão existente:** Nenhum (o pacote novo está no ADR-0029).
+**Desvio do padrão existente:** a migração na subida (ADR-0010 prevê migração pelo pipeline) vale só no compose da demonstração, ligada por `Database:MigrateOnStartup`; registrada no ADR-0029 como regra do ambiente demo (Emenda v3). O pacote novo está no ADR-0029.
 
 **Alternativas descartadas:** docker-compose escrito à mão (duas descrições do sistema que divergem); rodar o AppHost em modo de desenvolvimento na VPS (rotas `/dev/*`, painel e Vite dev expostos).
 
@@ -76,10 +76,10 @@ O AppHost passa a publicar a plataforma como um Docker Compose de produção (`a
 
 ```text
 ```text
-Serviços: api, demo-casino, postgres, redis (rede interna; sem ports no host). Keycloak fica fora da produção até o backoffice ser publicado (SPEC-0036); a API recebe Security__Backoffice__Authority do parâmetro backoffice-authority (Emenda v1)
+Serviços: api, demo-casino, postgres, redis (rede interna; sem ports no host) e `keys-init` (busybox:1.37.0, vida curta: ajusta o dono do volume `dataprotection-keys` para o usuário da API, UID 1654; a api depende dele com `service_completed_successfully` — Emenda v3). Keycloak fica fora da produção até o backoffice ser publicado (SPEC-0036); a API recebe Security__Backoffice__Authority do parâmetro backoffice-authority (Emenda v1)
 Volumes: postgres-data, dataprotection-keys
 Variáveis do `.env` gerado pelo Aspire, sem valores (Emenda v1): OPERATORS_DEMO_KEY_ID, OPERATORS_DEMO_KEY_SECRET, PLAYER_SESSION_SIGNING_KEY, POSTGRES_PASSWORD, REDIS_PASSWORD, BACKOFFICE_AUTHORITY, PUBLIC_API_URL (https://api.143-95-218-240.sslip.io), PUBLIC_GAME_URL (https://jogo.143-95-218-240.sslip.io), API_IMAGE e DEMO_CASINO_IMAGE (imagens da versão)
-API em Production: migra os módulos na subida (inclusive o armazenamento do Wolverine); Operators:Demo:Enabled=true garante operador demo, catálogo e limites; Wallet:Operators:demo:Mode=Seamless → http://demo-casino, liberado por `Wallet:Operators:demo:AllowHttpHosts=[demo-casino]` (http só para hosts listados; o padrão continua: http só no loopback, https no resto — Emenda v1); DataProtection:KeysPath=/keys
+API em Production: com `Database__MigrateOnStartup=true` vindo só do compose (não do `appsettings.Production.json`, Emenda v3) migra os módulos na subida (inclusive o armazenamento do Wolverine); com `DataProtection:KeysPath` sem permissão de escrita a API falha na subida com mensagem clara (Emenda v3); Operators:Demo:Enabled=true garante operador demo, catálogo e limites; Wallet:Operators:demo:Mode=Seamless → http://demo-casino, liberado por `Wallet:Operators:demo:AllowHttpHosts=[demo-casino]` (http só para hosts listados; o padrão continua: http só no loopback, https no resto — Emenda v1); DataProtection:KeysPath=/keys
 Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcançáveis pelo nome
 ```
 ```
@@ -94,6 +94,7 @@ Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcanç
 |---|---|---|---|
 | Compose de produção | `aspire publish` | serviços e volumes esperados, ambiente Production, sem portas no host, sem segredo literal | UT-01 |
 | Reinício | Host reinicia com o mesmo volume de chaves | sementes cifradas antes continuam legíveis | IT-01 |
+| Volume de chaves | volume novo criado pelo Docker (root) | `keys-init` entrega o volume ao usuário da API antes de ela subir; sem escrita, a API falha na subida | UT-03, IT-03 |
 | Subida em produção | banco vazio, `Production`, demo ligado | migrações aplicadas, operador demo e catálogo presentes, `/dev/launch-demo` 404 | IT-02 |
 | Configuração | `public-game-url` e `public-api-url` | `Operators:GameBaseUrl` e CORS da API usam os endereços públicos; carteira seamless aponta para o demo-casino | UT-02 |
 | Contrato com a SPEC-0066 | compose + `.env` sem valores | `docker compose config` válido com os serviços, rede, volumes e variáveis do §6 | CT-01 |
@@ -112,7 +113,9 @@ Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcanç
 ### 7.3 Testes de Integração
 <!-- Com as dependências reais (containers/emuladores), não mocks. -->
 - **IT-01** — Dado o Host com `DataProtection:KeysPath` num diretório, quando uma cadeia de sementes é cifrada, o Host para e sobe de novo com o mesmo diretório, então a semente é decifrada (Postgres real).
-- **IT-02** — Dado o Host em `Production` com banco vazio e `Operators:Demo:Enabled=true`, quando sobe, então as migrações de todos os módulos foram aplicadas, o operador demo, o catálogo e os limites existem, e `/dev/launch-demo` responde 404.
+- **UT-03** — Dado o compose publicado, quando lido, então o serviço `keys-init` monta `dataprotection-keys`, troca o dono para 1654:1654, não publica portas, e a api depende dele com `service_completed_successfully` (Emenda v3).
+- **IT-03** — Dado um volume Docker novo montado num contêiner que roda como o usuário 1654, quando o `keys-init` roda antes, então o usuário grava em `/keys`; e dado o Host com `DataProtection:KeysPath` num diretório sem escrita, quando sobe, então falha na subida citando o caminho (Emenda v3).
+- **IT-02** — Dado o Host em `Production` com banco vazio, `Database:MigrateOnStartup=true` e `Operators:Demo:Enabled=true`, quando sobe, então as migrações de todos os módulos foram aplicadas, o operador demo, o catálogo e os limites existem, e `/dev/launch-demo` responde 404.
 
 ### 7.4 Testes de Contrato
 <!-- Obrigatório (CT-xx) se esta spec consome contrato de outra ou se outra spec consome o contrato desta. -->
@@ -167,7 +170,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — af14212 (árvore suja) | 2026-10-15 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:05.73]     Dado o Host com DataProtection:KeysPath num diretório, quando ) — f8683df | 2026-10-15 |
-| G2 Green | PENDING | | |
+| G2 Green | FAIL | build exit 0 (✓ built in 283ms); test exit 1 ([xUnit.net 00:05:09.54]     Dado um evento de crash entregue duas vezes, quando processado); lint exit 0 (All matched files use Prettier code style!); coverage exit 1 ([xUnit.net 00:00:02.29]     Dado o Directory.Packages.props, quando a família ASP.NET Core) — 02cddb2 | 2026-10-15 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
@@ -180,6 +183,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
 | IMP-01 | 2026-10-15 | G1 | spec | §7.5 cita E2E-01 com ID (lido como teste da 0065); REDIS_PASSWORD e bind mount do realm do Keycloak fora do contrato do §6; nomes das variáveis de imagem e do arquivo .env indefinidos; carteira seamless recusa http fora do loopback (http://demo-casino); migrações de Development nos *.Features fora do touches | test-writer escreveu UT-01, UT-02, IT-01, IT-02 e CT-01 (red c89e314, 32096f8) e validou as asserções contra um esboço descartado | architect | Emenda v2 (contrato): sem Keycloak, REDIS_PASSWORD, AllowHttpHosts, nomes de imagem e .env | 2026-10-15 |
+| IMP-02 | 2026-10-15 | G4 | spec | Review G4 (CHANGES_REQUESTED, B1): volume dataprotection-keys criado como root:root 755 e a API roda como app (UID 1654): sem escrita, sem chave, sem rodada em produção; MigrateOnStartup em appsettings.Production.json vale para qualquer Production (ADR-0010); G2: teste de guarda da SPEC-0058 sem EntityFrameworkCore.Relational na família e lock do HubContracts desatualizado (NU1004) | Reviewer provou com docker run -u 1654 sobre volume novo: Permission denied | architect | Emenda v3 (contrato): keys-init, falha cedo sem escrita, MigrateOnStartup só no compose, família EF no teste de guarda, lock do HubContracts | 2026-10-15 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -220,4 +224,5 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0065`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 3 | 2026-10-15 | Serviço `keys-init` (busybox:1.37.0) entrega o volume `dataprotection-keys` ao usuário da API (UID 1654) antes da subida; API falha cedo se o diretório de chaves não aceitar escrita; `Database:MigrateOnStartup` só pelo compose (fora do `appsettings.Production.json`, em linha com o ADR-0010 para produção real); `EntityFrameworkCore.Relational` na lista da família do teste de guarda da SPEC-0058 e lock do HubContracts atualizado; UT-03 e IT-03 | Review G4 (B1: API sem escrita no volume de chaves, provado com Docker; N3) e G2 (teste de guarda da SPEC-0058; NU1004 no lock do HubContracts) | SPEC-0066 (consome @3) | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 2 | 2026-10-15 | Keycloak fora do compose de produção (backoffice não publicado; `BACKOFFICE_AUTHORITY` como parâmetro); `REDIS_PASSWORD` no contrato; variáveis de imagem `API_IMAGE`/`DEMO_CASINO_IMAGE` e arquivo `.env` sem valores; carteira seamless aceita http só para hosts listados em `AllowHttpHosts` (demo-casino na rede interna); armazenamento do Wolverine criado na subida de produção; `*.Features` dos módulos no `touches` (migrações); §7.5 sem ID de teste de outra spec | Test-writer (SPEC_DEFECT, IMP-01) | SPEC-0066 (contrato do compose: 4 serviços e variáveis novas) | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
