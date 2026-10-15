@@ -1,9 +1,15 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { listGames, type CasinoPlayer, type LobbyGame } from "./casino-api";
+import { provider as studio } from "./game-info";
 
 interface LobbyScreenProps {
   readonly player: CasinoPlayer;
+  /** A notice of the last opening of a game (unavailable game or provider, SPEC-0045 §6.1), or null. */
+  readonly notice: string | null;
+  /** The code of the game being launched, or null. */
+  readonly opening: string | null;
+  readonly onPlay: (code: string) => void;
   readonly onLeave: () => void;
 }
 
@@ -28,8 +34,6 @@ const categories: readonly Category[] = [
 
 /** Cards "Em breve": fixed in the front, outside the contract, not clickable (§6, Emenda v1). Shown in Todos and Crash. */
 const comingSoon: readonly string[] = ["Fortune Slot", "Turbo Aviator", "Roulette Master"];
-
-const studio = "Apogeu Games";
 
 function inCategory(game: LobbyGame, category: CategoryId): boolean {
   switch (category) {
@@ -65,7 +69,7 @@ function tabIndexFor(key: string, index: number, count: number): number | undefi
 }
 
 /** The lobby of the demo casino (SPEC-0044, Stitch "Cassino Demo — Lobby"): featured game, category tabs and cards. */
-export function LobbyScreen({ player, onLeave }: LobbyScreenProps) {
+export function LobbyScreen({ player, notice, opening, onPlay, onLeave }: LobbyScreenProps) {
   const ids = useId();
   const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
   const [category, setCategory] = useState<CategoryId>("all");
@@ -153,6 +157,12 @@ export function LobbyScreen({ player, onLeave }: LobbyScreenProps) {
       <main className="lobby" aria-busy={catalog.status === "loading"}>
         <h1 className="visually-hidden">Lobby</h1>
 
+        {notice === null ? null : (
+          <p className="notice" role="alert">
+            {notice}
+          </p>
+        )}
+
         {catalog.status === "unavailable" ? (
           <p className="notice" role="alert">
             Jogos indisponíveis no momento. Tente de novo em instantes.
@@ -169,6 +179,17 @@ export function LobbyScreen({ player, onLeave }: LobbyScreenProps) {
                 Crash game da {studio}: aposte, acompanhe o multiplicador subir e saia antes do
                 crash.
               </p>
+              <button
+                type="button"
+                className="play featured-play"
+                disabled={opening !== null}
+                aria-busy={opening === featured.code}
+                onClick={() => {
+                  onPlay(featured.code);
+                }}
+              >
+                Jogar agora<span className="visually-hidden"> {featured.name}</span>
+              </button>
             </div>
           </section>
         )}
@@ -218,6 +239,18 @@ export function LobbyScreen({ player, onLeave }: LobbyScreenProps) {
                 <div className="game-info">
                   <h3>{game.name}</h3>
                   <p className="studio">{studio}</p>
+                  <button
+                    type="button"
+                    className="play"
+                    disabled={opening !== null}
+                    aria-busy={opening === game.code}
+                    onClick={() => {
+                      onPlay(game.code);
+                    }}
+                  >
+                    {opening === game.code ? "Abrindo…" : "Jogar"}
+                    <span className="visually-hidden"> {game.name}</span>
+                  </button>
                 </div>
               </li>
             ))}

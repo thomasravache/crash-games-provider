@@ -38,6 +38,9 @@
     <Compile Include="../../backend/Repository.Tests/Support/RepositoryRoot.cs" Link="Support/Shared/RepositoryRoot.cs" />
     <Compile Include="../../backend/Security.Tests/Support/TestApiKey.cs" Link="Support/Shared/TestApiKey.cs" />
     <Compile Include="../../backend/Security.Tests/Support/TestDatabase.cs" Link="Support/Shared/TestDatabase.cs" />
+    <!-- SPEC-0045: reading the launch token out of a launch URL and the claims of the player session. -->
+    <Compile Include="../../backend/Security.Tests/Support/LaunchUrls.cs" Link="Support/Shared/LaunchUrls.cs" />
+    <Compile Include="../../backend/Security.Tests/Support/JwtParts.cs" Link="Support/Shared/JwtParts.cs" />
   </ItemGroup>
 
 </Project>

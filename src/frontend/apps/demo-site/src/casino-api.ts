@@ -159,3 +159,49 @@ export async function listGames(signal: AbortSignal): Promise<GamesResult> {
     ? { status: "ok", games }
     : { status: "unavailable" };
 }
+
+/** Outcome of the launch (SPEC-0045 §6): the single-use launch URL, no session, the game unavailable or the provider down. */
+export type PlayResult =
+  | { readonly status: "ok"; readonly launchUrl: string }
+  | { readonly status: "unauthorized" }
+  | { readonly status: "not-available" }
+  | { readonly status: "unavailable" };
+
+/** Only an absolute http(s) URL goes into the iframe. */
+function launchUrlOf(body: Record<string, unknown> | undefined): string | undefined {
+  const value = body === undefined ? undefined : stringField(body, "launchUrl");
+  if (value === undefined || !URL.canParse(value)) {
+    return undefined;
+  }
+  const { protocol } = new URL(value);
+  return protocol === "https:" || protocol === "http:" ? value : undefined;
+}
+
+/**
+ * POST /casino/play/{gameCode}: the casino BFF launches the game at the Apogeu (signed on the server, ADR-0027) and
+ * answers the single-use launch URL; the browser never calls the operator API.
+ */
+export async function playGame(gameCode: string): Promise<PlayResult> {
+  let response: Response;
+  try {
+    response = await fetch(`/casino/play/${encodeURIComponent(gameCode)}`, {
+      method: "POST",
+      credentials: "same-origin",
+    });
+  } catch {
+    return { status: "unavailable" };
+  }
+  if (response.status === 401) {
+    return { status: "unauthorized" };
+  }
+  const body = await readJson(response);
+  if (response.ok) {
+    const launchUrl = launchUrlOf(body);
+    return launchUrl === undefined ? { status: "unavailable" } : { status: "ok", launchUrl };
+  }
+  return response.status === 404 &&
+    body !== undefined &&
+    stringField(body, "code") === "GAME_NOT_AVAILABLE"
+    ? { status: "not-available" }
+    : { status: "unavailable" };
+}
