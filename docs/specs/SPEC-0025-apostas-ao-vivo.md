@@ -158,25 +158,25 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-07). Cada fase começa pelos testes. -->
 
 **Fase 1: Andaime do contrato**
-- [ ] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0005, ADR-0014, ADR-0019, ADR-0008 relidos
+- [x] Scaffold (tipos, interfaces, assinaturas lançando NotImplemented, sem lógica) em commit `chore(...): scaffold` separado; ADRs ADR-0005, ADR-0014, ADR-0019, ADR-0008 relidos
 
 **Fase 2: Unitários**
-- [ ] Red: escrever UT-01, UT-02, UT-03 com a tag `SPEC-0025:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo os ADRs
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte unitária + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, UT-02, UT-03 com a tag `SPEC-0025:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo os ADRs
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte unitária + arquitetura (G2/G3)
 
 **Fase 3: Integração e contrato (dependências reais)**
-- [ ] Red: escrever IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0025:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0025:<ID>`, dependências reais (containers), e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -204,37 +204,52 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+A sala recebe as apostas da rodada em tempo real (apelido anonimizado, valor, multiplicador e ganho de quem retirou), em lotes a cada 200 ms com no máximo 100 itens, e o snapshot ao entrar. O jogador consulta o histórico das próprias apostas em `GET /api/v1/me/bets`, com paginação por cursor. Vale para uma instância do Host (Emenda v4); várias instâncias ficam com a SPEC-0056.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Scaffold c3fb967, red fb28c49, green 5741615: projeção por sala (`LiveBetsBatcher`) alimentada pelos eventos de aposta, difusão por `LiveBetsBroadcaster`, claim `nick` no token de sessão (Emenda v2), `betRef` opaco, índice `ix_bets_player_history`, métricas `betting.live_batches` e `betting.live_batch_size`. Emenda v3 (limite padrão 20 e `INVALID_CURSOR`, IT-04 em 1026bd6). Emenda v4 depois do 1º review: snapshot vazio sem rodada, `limit` não numérico com envelope e feed obrigatório (red 90f1062, green a243e65).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dados os apelidos "Marcos", "A" e ausente, quando anonimizados, então "Ma", "A" e "Jogador". | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| UT-03 | Dado um lançamento com apelido "Marcos" e outro sem apelido, quando a sessão do jogador é criada, então o toke… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| UT-02 | Dadas 250 apostas na mesma janela de 200 ms, quando o lote é montado, então traz 100 itens (maiores valores) e… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-01 | Dado o Host real com dois jogadores de operadores diferentes na mesma sala (segundo operador por dublê de test… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-02 | Dado um jogador com apostas cashed_out, lost, cancelled e refunded, quando pagina GET /api/v1/me/bets com limi… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-04 | Dado um jogador com 25 apostas, quando chama GET /api/v1/me/bets sem limit, então recebe 20 itens e nextCursor… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-05 | Dada uma sala cuja rodada anterior teve apostas e que está sem rodada corrente no feed, quando um jogador cham… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-06 | Dado um jogador com sessão, quando chama GET /api/v1/me/bets?limit=abc, então recebe 400 INVALID_LIMIT no mesm… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-03 | Dadas 1.000 apostas numa rodada (vários jogadores em paralelo; fase de apostas ampliada pela configuração da s… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| CT-01 | Dadas as mensagens e respostas reais de IT-01/IT-02, quando validadas contra os tipos gerados, então conferem … | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A até a SPEC-0012; em main pelo PR #31
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #31 (merge 25c6d4e, 2026-10-15).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+SPEC-0056 (várias instâncias: emissor único no líder, apelido persistido, removidas, trava por sala, uma moeda por sala). Minors da 2ª revisão: o OpenAPI tipa `limit` como string; falta teste dedicado para rodada nova sem snapshot.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0025`. -->

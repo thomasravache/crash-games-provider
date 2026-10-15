@@ -8,7 +8,14 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 
 ## [Unreleased]
 
+### Security
+- ASP.NET Core, Extensions e EF Core 10.0.13 e SDK 10.0.402: corrige o CVE-2026-70159 (GHSA-334f-vvp4-7g6p), negação de serviço no SignalR; testes de guarda impedem voltar à faixa vulnerável (SPEC-0058)
+
 ### Added
+- Cassino demo: backend próprio (`DemoCasino`, operador externo que fala com a Apogeu só por HTTP assinado) e tela de entrada com apelido e moeda, sessão em cookie e segredo HMAC só no servidor (SPEC-0043)
+- Carteira seamless: adaptador HTTP da carteira do próprio operador (assinatura HMAC, idempotência por transação, prazo, reenvio de crédito e estorno até confirmar pelo outbox, livro-razão espelho); modo de carteira por operador (SPEC-0046)
+- Apostas ao vivo e histórico pessoal: lotes a cada 200 ms (até 100 itens) com apelido anonimizado e `betRef` opaco, snapshot ao entrar na sala e `GET /api/v1/me/bets` com paginação por cursor; uma instância do Host (várias instâncias na SPEC-0056) (SPEC-0025)
+- Fator `APOGEU_PERF_BUDGET_SCALE` para os limites locais dos testes de desempenho em máquinas compartilhadas (padrão 1, ignorado na CI) (SPEC-0052)
 - Jogo local no celular por túnel: com `AppHost:PublicApiUrl` e `AppHost:PublicGameUrl` o lançamento demo, a API e o CORS usam os endereços públicos dos túneis; sem eles nada muda (SPEC-0050)
 - Painel de aposta da Pipa: dois painéis com valor, fichas e cash-out automático, botões APOSTAR / CANCELAR / RETIRAR / PRÓXIMA, ganho, perda e estorno no painel, saldo demo com recarga, mensagens de erro em português e tremor do "PIPA CORTADA!" (SPEC-0026)
 - Liquidação da rodada: apostas não retiradas viram perdidas no crash, rodada anulada estorna as apostas, cash-out em andamento no crash é respeitado e cada rodada fecha um resumo único com o GGR (SPEC-0024)

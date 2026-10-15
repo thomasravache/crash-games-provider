@@ -149,16 +149,16 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
 
 **Fase 1: Regressão e correção**
-- [ ] Red: escrever UT-01, IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0046:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo o padrão citado
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, IT-01, IT-02, IT-03, IT-04, IT-05, CT-01 com a tag `SPEC-0046:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo o padrão citado
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -185,37 +185,55 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O adaptador `IOperatorWallet` fala com a carteira do próprio operador por HTTP (modelo seamless), seguindo o contrato público `docs/integration/operator-wallet-api.md`: assinatura HMAC, idempotência por transactionId, prazo, reenvio de crédito e estorno até confirmar e livro-razão espelho. O modo de carteira (demo ou seamless) passou a ser configuração do operador.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Red em 4dc45ab, green em 69b4a1d. Reenvio sem perda e sem bloqueio entre operadores (0af0786, e7d91c1) pelo outbox do Wolverine; uma cadeia de reenvio por transação (c2a3878 → 9996d5b), achado da 2ª revisão. Aprovado na 3ª revisão (APPROVED WITH MINORS).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-02 | Dado um operador que responde 307/308, uma resposta com currency ou transactionId divergentes e uma URL http f… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| UT-03 | Dado o assembly Wallet.Infrastructure, quando inspecionado, então nenhum tipo concreto implementa IHostedServi… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| UT-04 | Dado um crédito ou estorno cuja 1ª tentativa dá not_configured e cuja pendência foi agendada, quando a carteir… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| UT-01 | Dadas as respostas OK, INSUFFICIENT_FUNDS, DUPLICATE, PLAYER_NOT_FOUND, TRANSACTION_NOT_FOUND, timeout e 500, … | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-01 | Dado um operador de teste HTTP real (WireMock-like em processo), quando a Apogeu debita em modo seamless, entã… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-02 | Dado o operador demorando 3 s, quando o débito é feito, então Unavailable e a aposta não é aceita (SPEC-0022). | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-03 | Dado o operador respondendo 500 por 1 min, quando um crédito é feito, então é reenviado com backoff até OK e a… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-04 | Dado um crédito pendente e o processo reiniciado, quando a varredura roda, então o crédito é confirmado. | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-06 | Dado um crédito pendente cujo operador perde a configuração ou passa a demo, quando o tempo passa, então a pen… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-07 | Dados um operador que sempre estoura o prazo, outro cuja leitura de configuração lança e um saudável, quando h… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-08 | Dado o operador fora do ar, quando o mesmo crédito (mesmo transactionId) é pedido N vezes, então existe uma ún… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| IT-05 | Dado o operador respondendo em 100 ms, quando 300 débitos são medidos, então p99 ≤ 300 ms (Category=Performanc… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
+| CT-01 | Dadas as requisições reais enviadas ao operador de teste, quando verificadas com a assinatura de referência do… | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A até a SPEC-0012; em main pelo PR #31
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #31 (merge 25c6d4e, 2026-10-15).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+Minors da 3ª revisão: guarda sem expiração; logs Error repetidos com not_configured; chamada extra à carteira depois de liquidar.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0046`. -->
