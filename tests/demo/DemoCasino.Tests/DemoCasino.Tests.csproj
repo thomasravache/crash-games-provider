@@ -4,7 +4,9 @@
     Tests of the demo casino BFF (SPEC-0043, ADR-0027, ADR-0009): the entry endpoints (/casino/session, /casino/me,
     /casino/logout) on the real DemoCasino in memory (WebApplicationFactory), the HMAC client against the reference
     signature of SPEC-0009@1, and the production build of the demo-site (no operator secret in the bundle).
-    The DemoCasino has no database or cache (session in a signed cookie), so no container is needed.
+    The DemoCasino has no database or cache (session in a signed cookie). The lobby tests of SPEC-0044 run it against
+    the real Apogeu Host in memory (on real PostgreSQL and Redis, Testcontainers), so this test project (never the
+    DemoCasino itself, ADR-0027) references the Host and the TestKit.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -17,10 +19,14 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Npgsql" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../../src/demo/DemoCasino/DemoCasino.csproj" />
+    <!-- SPEC-0044: the real Apogeu for the lobby tests. Aliased: both the DemoCasino and the Host expose a top-level Program class. -->
+    <ProjectReference Include="../../../src/backend/Host/Host.csproj" Aliases="ApogeuHost" />
+    <ProjectReference Include="../../backend/TestKit/TestKit.csproj" />
   </ItemGroup>
 
   <!-- The independent HMAC reference of SPEC-0009 and the process/repository helpers of Repository.Tests, compiled in
@@ -30,6 +36,8 @@
     <Compile Include="../../backend/Repository.Tests/Support/ProcessRunner.cs" Link="Support/Shared/ProcessRunner.cs" />
     <Compile Include="../../backend/Repository.Tests/Support/ProcessResult.cs" Link="Support/Shared/ProcessResult.cs" />
     <Compile Include="../../backend/Repository.Tests/Support/RepositoryRoot.cs" Link="Support/Shared/RepositoryRoot.cs" />
+    <Compile Include="../../backend/Security.Tests/Support/TestApiKey.cs" Link="Support/Shared/TestApiKey.cs" />
+    <Compile Include="../../backend/Security.Tests/Support/TestDatabase.cs" Link="Support/Shared/TestDatabase.cs" />
   </ItemGroup>
 
 </Project>

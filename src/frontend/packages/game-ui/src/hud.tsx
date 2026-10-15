@@ -30,6 +30,8 @@ export interface HudProps {
   readonly sound?: SoundToggleProps;
   /** The two bet panels (SPEC-0026); absent: the disabled "Apostas em breve" panel of SPEC-0010. */
   readonly bets?: ReactNode;
+  /** "Todas as apostas" / "Minhas apostas" below the panels (SPEC-0031); absent: no tabs. */
+  readonly betsTabs?: ReactNode;
   /** Confirmed balance with "Recarregar demo" (SPEC-0026); absent: the fixed `demoBalance`. */
   readonly balance?: ReactNode;
   /** Windows opened from the HUD (for example "Comprovadamente Justo"), kept inside the main landmark. */
@@ -122,6 +124,7 @@ export function Hud({
   scene,
   sound,
   bets,
+  betsTabs,
   balance,
   children,
 }: HudProps): JSX.Element {
@@ -194,6 +197,7 @@ export function Hud({
           >
             {hudText.fairnessTitle}
           </button>
+          {betsTabs}
         </section>
         {children}
       </main>

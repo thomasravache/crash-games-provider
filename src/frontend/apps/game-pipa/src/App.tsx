@@ -14,6 +14,7 @@ import type { SoundController } from "./audio/sound-controller";
 import { useSound } from "./audio/use-sound";
 import { PipaBalance, PipaBets } from "./bets/pipa-bets";
 import { demoBalance } from "./config";
+import { PipaBetsTabs } from "./hud/pipa-bets-tabs";
 
 type Screen =
   | { readonly kind: "loading" }
@@ -85,6 +86,7 @@ function Game({
         : {
             bets: <PipaBets client={bets} round={state} />,
             balance: <PipaBalance client={bets} />,
+            betsTabs: <PipaBetsTabs client={bets} />,
           })}
     >
       {fairnessOpen ? (

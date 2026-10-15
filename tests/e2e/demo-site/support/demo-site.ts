@@ -12,6 +12,21 @@ export const entry = {
   enter: /entrar/iu,
 } as const;
 
+/** Accessible names of the lobby (pt-BR, Stitch "Cassino Demo — Lobby", SPEC-0044 §6). */
+export const lobby = {
+  pipa: /pipa/iu,
+  categories: /categorias/iu,
+  all: /^todos$/iu,
+  crash: /^crash$/iu,
+  news: /^novidades$/iu,
+} as const;
+
+/** Kit art of the Pipa, served by the game front (SPEC-0044 §6 Emenda v1: {GameBaseUrl}/kit/{code}/…). */
+export const pipaKit = {
+  thumbnail: "/kit/pipa/thumb.png",
+  banner: "/kit/pipa/banner.png",
+} as const;
+
 /** Name of the casino session cookie (SPEC-0043 §6). */
 export const sessionCookie = "casino_session";
 
@@ -35,6 +50,16 @@ export function demoSiteUrl(): string {
 /** A unique valid nickname: letters, digits and _, 3–20 characters. */
 export function newNickname(): string {
   return `e2e_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Enters the casino with a fresh nickname from the entry screen and waits for the lobby (SPEC-0043 E2E-01 steps). */
+export async function enterCasino(page: Page): Promise<string> {
+  const nickname = newNickname();
+  await page.goto(demoSiteUrl());
+  await page.getByRole("textbox", { name: entry.nickname }).fill(nickname);
+  await page.getByRole("button", { name: entry.enter }).click();
+  await expect(page.getByRole("banner")).toContainText(nickname);
+  return nickname;
 }
 
 /** WCAG 2.2 AA (§5): no axe violation on the current screen. */
