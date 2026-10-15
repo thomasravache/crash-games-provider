@@ -151,7 +151,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:06.48]     Dada a requisição real de lançamento do DemoCasino, quando val) — ad10f10 | 2026-10-15 |
 | G2 Green | PASS | build exit 0 (✓ built in 249ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7c9409e | 2026-10-15 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.03s (tests 96%, transform 3%, import 1%)) — 7c9409e | 2026-10-15 |
-| G4 Review | PENDING | | |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: launchUrl aceita qualquer origem http(s) (defesa em profundidade: aceitar só a origem configurada do jogo, https fora de dev); sem timeout explícito no cliente Apogeu (até 100 s, tempo esgotado sem teste); corrida no relançamento leva de volta ao jogo após Voltar; falha empilha histórico (usar replaceState); foco cai no body na troca de página; visual: marca no topo, ícone de tela cheia e subtítulo da coluna diferem do Stitch; meter sem exporter e allow=fullscreen extra; aviso de jogo indisponível/provedor fora sem E2E (coberto por IT-03/IT-04) — 7c9409e | 2026-10-15 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
