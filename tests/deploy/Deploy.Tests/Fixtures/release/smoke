@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# SPEC-0066 test fixture: the smoke of the test deployment (APOGEU_DEPLOY_SMOKE), in place of tools/deploy/smoke that
+# checks the public addresses. HTTPS through the proxy on the test port (Caddy's internal CA for *.localhost, hence
+# --insecure): the api health and the demo-casino behind /casino of the casino site.
+set -euo pipefail
+
+: "${APOGEU_DOMAIN:?APOGEU_DOMAIN not passed to the smoke}"
+: "${APOGEU_HTTPS_PORT:?APOGEU_HTTPS_PORT not passed to the smoke}"
+
+check() {
+  local host="$1.$APOGEU_DOMAIN" path="$2" attempt
+  for attempt in $(seq 1 20); do
+    if curl --silent --fail --insecure --max-time 3 --output /dev/null \
+      --resolve "$host:$APOGEU_HTTPS_PORT:127.0.0.1" "https://$host:$APOGEU_HTTPS_PORT$path"; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "smoke: https://$host:$APOGEU_HTTPS_PORT$path did not answer 2xx after $attempt attempts" >&2
+  return 1
+}
+
+check api /health
+check cassino /casino/version
