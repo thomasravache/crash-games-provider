@@ -131,20 +131,20 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
 
 **Fase 1: Regressão e correção**
-- [ ] Red: escrever UT-01, IT-01, IT-02, CT-01 com a tag `SPEC-0047:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo o padrão citado
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, IT-01, IT-02, CT-01 com a tag `SPEC-0047:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo o padrão citado
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase 2: Jornada E2E**
-- [ ] Red: E2E-01 falhando pelo motivo certo
-- [ ] Green: jornada completa passando localmente
+- [x] Red: E2E-01 falhando pelo motivo certo
+- [x] Green: jornada completa passando localmente
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -171,37 +171,47 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+O cassino demo tem carteira própria e implementa o contrato público da carteira do operador: a Apogeu debita, credita e estorna nele (`/apogeu/v1/{balance,debit,credit,rollback}`, assinados), com R$ 3.000,00 por jogador e idempotência por transação. Em Development o operador demo está em modo seamless, então as apostas da Pipa — dentro do cassino ou pelo `/dev/launch-demo` — movem o saldo do cassino, que aparece no topo do lobby e da página do jogo. Fecha a jornada do jogador: entrar → lobby → jogar → apostar → saldo da carteira.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Red dea8e7b (UT-01, IT-01 com DemoCasino em Kestrel e Apogeu real em seamless, IT-02, CT-01, E2E-01); green 7ffef56 (DemoCasino `Wallet/`: `CasinoWallet` em memória sob um `Lock`, `ApogeuCallVerifier` com a assinatura do contrato em tempo constante e ±300 s pelo `TimeProvider`, corpo ≤ 16 KB, métrica `democasino.wallet.calls`), 1b8b802 (demo-site: `CasinoBalance` no topo, polling de 5 s, 401 → sair, BRL sobre a string) e c229aa1 (AppHost: `Wallet__Operators__demo__*` no run mode + Development, sem `WaitFor` em ciclo). Emenda v1: AppHost no `touches`, jogador provisionado no primeiro uso, chave do operador demo nos dois sentidos, `GET /casino/balance` exato (IMP-01). Débito que chega depois do próprio estorno não é aplicado (INSUFFICIENT_FUNDS, nada debitado), compatível com a SPEC-0046. G2 local com `APOGEU_PERF_BUDGET_SCALE=2` (latência do cash-out nesta VM).
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dada a carteira do cassino, quando débito, débito repetido, crédito e estorno sem débito, então OK, DUPLICATE… | PASS | G2 do registro de gates; CI do PR #38 verde (run 38778078986 em b0f5e0d), merge 4e038be; jornada completa local em 2026-10-15 (entrada → lobby R$ 3.000,00 → Pipa → aposta e retirada → saldo R$ 3.000,07) |
+| IT-01 | Dados DemoCasino e Apogeu reais em modo seamless, quando o jogador aposta e retira, então as chamadas chegam a… | PASS | G2 do registro de gates; CI do PR #38 verde (run 38778078986 em b0f5e0d), merge 4e038be; jornada completa local em 2026-10-15 (entrada → lobby R$ 3.000,00 → Pipa → aposta e retirada → saldo R$ 3.000,07) |
+| IT-02 | Dada uma chamada sem assinatura ou com assinatura inválida, quando chega ao DemoCasino, então 401. | PASS | G2 do registro de gates; CI do PR #38 verde (run 38778078986 em b0f5e0d), merge 4e038be; jornada completa local em 2026-10-15 (entrada → lobby R$ 3.000,00 → Pipa → aposta e retirada → saldo R$ 3.000,07) |
+| CT-01 | Dadas as respostas reais do DemoCasino, quando validadas contra o contrato público da carteira, então conferem… | PASS | G2 do registro de gates; CI do PR #38 verde (run 38778078986 em b0f5e0d), merge 4e038be; jornada completa local em 2026-10-15 (entrada → lobby R$ 3.000,00 → Pipa → aposta e retirada → saldo R$ 3.000,07) |
+| E2E-01 | Dado o cassino demo em modo seamless, quando o jogador aposta R$ 10,00, retira no voo e volta ao lobby, então… | PASS | G2 do registro de gates; CI do PR #38 verde (run 38778078986 em b0f5e0d), merge 4e038be; jornada completa local em 2026-10-15 (entrada → lobby R$ 3.000,00 → Pipa → aposta e retirada → saldo R$ 3.000,07) |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — segurança (IT-02), contrato (CT-01) e acessibilidade (E2E-01) verificadas; jornada completa jogada localmente
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A até a SPEC-0012; em main pelo PR #38
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — métrica `democasino.wallet.calls` e logs; rollback = reverter o merge 4e038be (o operador demo volta à carteira demo)
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #38 (merge 4e038be, 2026-10-15). Jogo local: `dotnet build Apogeu.slnx` antes do AppHost (README).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+Minors do review (G4): jogo local depende do demo-casino (compilar antes) e o saldo volta a 3.000 a cada reinício; faltam testes do débito depois do estorno e de concorrência (SPEC-0063); verificação sobre o caminho decodificado (igual para `/apogeu/v1/*`); memória sem limite no demo; polling continua com a aba oculta. Do teste da jornada: saldo do topo leva até 5 s e o iframe de altura fixa esconde as abas de apostas (SPEC-0063).
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0047`. -->

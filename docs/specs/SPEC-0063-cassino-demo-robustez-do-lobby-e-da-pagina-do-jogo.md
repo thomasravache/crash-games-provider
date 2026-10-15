@@ -37,6 +37,8 @@ Corrige os pontos não-bloqueantes dos reviews (G4) das SPEC-0044 e SPEC-0045 no
 - Foco: `h1` do jogo ao abrir; aviso ou lobby ao voltar.
 - Artes do kit em WebP/JPEG otimizadas, banner ≥ 1280 px, `width`/`height` e `loading`/`fetchpriority`; gradiente do banner pelo token de cor.
 - Contadores do DemoCasino exportados por OTLP quando `OTEL_EXPORTER_OTLP_ENDPOINT` estiver definido.
+- Página do jogo: o iframe acompanha a altura útil da janela (as abas de apostas abaixo dos painéis ficam alcançáveis sem rolar dentro do jogo) e o saldo do topo é relido logo depois de cada aposta (hoje espera até 5 s) — achados do teste da jornada completa (2026-10-15).
+- Carteira do cassino: testes do débito que chega depois do próprio estorno e de concorrência (mesmo jogador, mesmo transactionId) — review da SPEC-0047.
 
 **Não-objetivos (fora do escopo):**
 - Mudanças de visual: thomas aprovou o visual implementado (2026-10-15).
