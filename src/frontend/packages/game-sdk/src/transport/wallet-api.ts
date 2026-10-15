@@ -2,7 +2,8 @@
 // (SPEC-0009@1) as an HTTP bearer:
 //   GET  /api/v1/wallet/balance        → 200 { balance, currency, mode }
 //   POST /api/v1/wallet/demo/recharge  → 200 { balance, currency } | 409 RECHARGE_NOT_ALLOWED | 403 NOT_DEMO
-//   GET  /api/v1/me/bets?limit=n       → 200 { items, nextCursor } | 404 while SPEC-0025 is not delivered
+//   GET  /api/v1/me/bets?limit=n&before=<cursor> → 200 { items, nextCursor } | 400 INVALID_CURSOR | 404 while SPEC-0025
+//                                                  is not delivered
 
 import { problemCode, type FetchLike } from "./session-api";
 import type { MyBetsPage, WalletBalance, WalletRecharge } from "./wire";
@@ -72,14 +73,22 @@ export async function rechargeDemoWallet(
   return balanceBody<WalletRecharge>(response);
 }
 
-/** Most recent bets of the player; resolves null when the endpoint answers 404 (not delivered yet). */
+/**
+ * Most recent bets of the player (the page after the opaque cursor `before`, when given); resolves null when the
+ * endpoint answers 404 (not delivered yet).
+ */
 export async function fetchMyBets(
   apiBaseUrl: string,
   sessionToken: string,
   fetchImpl: FetchLike,
   limit?: number,
+  before?: string,
 ): Promise<MyBetsPage | null> {
-  const query = limit === undefined ? "" : `?limit=${String(limit)}`;
+  const params = new URLSearchParams();
+  if (limit !== undefined) params.set("limit", String(limit));
+  if (before !== undefined) params.set("before", before);
+  const search = params.toString();
+  const query = search === "" ? "" : `?${search}`;
   const response = await call(fetchImpl, `${apiBaseUrl}/api/v1/me/bets${query}`, {
     headers: authorized(sessionToken),
   });

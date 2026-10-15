@@ -2,12 +2,16 @@
 // sends the panel intents (PlaceBet, CancelBet, CashOut, demo recharge) and maps every server message to a bets store
 // event. The store only shows what the server confirmed (no optimistic balance). After a reconnection the balance and
 // the open bets are read again from the server (UT-03); GET /api/v1/me/bets answering 404 keeps the local panels.
+// The bets tabs (SPEC-0031): the client joins the live bets of the sala (JoinSalaBets, then LiveBetsBatch), empties them
+// on a RoundBetting of another round, and pages the player's history ("Minhas apostas") by cursor.
 
 import type { Money, Multiplier } from "@apogeu/contracts";
 
 import { toBetErrorCode, type BetErrorCode } from "./state/bet-errors";
 import type { OpenBet, PanelNumber } from "./state/bets-state";
 import { createBetsStore, panelOf, type BetsStore } from "./state/bets-store";
+import { createLiveBetsStore, type LiveBetsEvent, type LiveBetsStore } from "./state/live-bets";
+import { createMyBetsStore, type MyBetsStore } from "./state/my-bets";
 import { normalizeMoney } from "./state/money";
 import type { RoundState, RoundStateSource } from "./state/round-state";
 import {
@@ -23,7 +27,7 @@ import {
   rechargeDemoWallet,
   WalletError,
 } from "./transport/wallet-api";
-import type { MyBet } from "./transport/wire";
+import type { LiveBetsBatch, LiveBetsSnapshot, MyBet } from "./transport/wire";
 
 export interface BetsClientOptions {
   /** Base URL of the API (Host), without a trailing slash; the hub is `${apiBaseUrl}/hubs/bets`. */
@@ -73,11 +77,25 @@ export interface BetsClient {
   rechargeDemo(): Promise<void>;
   /** Reconnection reload: balance from the wallet, open bets from GET /api/v1/me/bets (404 keeps the panels). */
   reload(): Promise<void>;
+  /**
+   * "Todas as apostas" (SPEC-0031): the JoinSalaBets snapshot and the LiveBetsBatch messages of the sala; emptied by a
+   * RoundBetting of another round in the round store.
+   */
+  readonly liveBets: LiveBetsStore;
+  /** "Minhas apostas" (SPEC-0031): the player's bets of GET /api/v1/me/bets, paged by cursor. */
+  readonly myBets: MyBetsStore;
+  /** Reads the first page of GET /api/v1/me/bets (replaces the list). */
+  loadMyBets(): Promise<void>;
+  /** "Carregar mais": reads the next page by the cursor and appends it; nothing on the last page. */
+  loadMoreMyBets(): Promise<void>;
   stop(): Promise<void>;
 }
 
 /** Bets read back on reconnection (the most recent ones hold every open bet of the two panels). */
 const reloadLimit = 20;
+
+/** Bets per page of "Minhas apostas" (the same limit on every page). */
+const historyPageLimit = 20;
 
 /** The error code of a failed hub invocation or wallet call (NETWORK when the transport failed without a code). */
 function errorCode(error: unknown): BetErrorCode {
@@ -110,8 +128,18 @@ function openBetsOf(items: readonly MyBet[]): OpenBet[] {
   return open;
 }
 
+function liveSnapshotEvent(snapshot: LiveBetsSnapshot): LiveBetsEvent {
+  return { type: "liveSnapshot", ...snapshot };
+}
+
+function liveBatchEvent(batch: LiveBetsBatch): LiveBetsEvent {
+  return { type: "liveBatch", ...batch };
+}
+
 export function createBetsClient(options: BetsClientOptions): BetsClient {
   const store = createBetsStore();
+  const liveBets = createLiveBetsStore();
+  const myBets = createMyBetsStore();
   const apiBaseUrl = options.apiBaseUrl.replace(/\/+$/u, "");
   const fetchImpl: FetchLike = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
   const connectHub = options.connectHub ?? createSignalRBetsConnection;
@@ -123,6 +151,10 @@ export function createBetsClient(options: BetsClientOptions): BetsClient {
   let stopped = false;
   let unfollowRounds: (() => void) | undefined;
   let lastRound: Pick<RoundState, "phase" | "roundId"> | undefined;
+  /** The history page in flight, by cursor ("" for the first page): a second click joins it. */
+  let historyRequest: { readonly cursor: string; readonly done: Promise<void> } | undefined;
+  /** Bumped by every first-page read: an older page in flight is then dropped. */
+  let historyGeneration = 0;
 
   function hub(): BetsHubConnection {
     if (connection === undefined) throw new BetError("NETWORK");
@@ -142,6 +174,8 @@ export function createBetsClient(options: BetsClientOptions): BetsClient {
     switch (round.phase) {
       case "betting":
         store.dispatch({ type: "roundBetting", roundId: round.roundId });
+        // A RoundBetting of another round empties "Todas as apostas" (SPEC-0031 Emenda v1).
+        liveBets.dispatch({ type: "liveRoundBetting", roundId: round.roundId });
         return;
       case "flying":
         store.dispatch({ type: "roundFlying", roundId: round.roundId });
@@ -185,11 +219,66 @@ export function createBetsClient(options: BetsClientOptions): BetsClient {
     connected.on("BetRefunded", (message) => {
       store.dispatch({ type: "betRefunded", ...message });
     });
+    connected.on("LiveBetsBatch", (batch) => {
+      liveBets.dispatch(liveBatchEvent(batch));
+    });
     connected.onreconnected(() => {
       if (stopped) return;
-      // Messages may have been lost while offline: the server is read again (UT-03).
+      // Messages may have been lost while offline: the server is read again (UT-03), and the sala joined again.
       reload().catch(() => undefined);
+      joinSalaBets(connected);
     });
+  }
+
+  /**
+   * JoinSalaBets (no argument: the sala of the session) and its snapshot in the live bets store. Not awaited: the
+   * tabs never hold the panels back, and a failure only leaves "Todas as apostas" to the next LiveBetsBatch.
+   */
+  function joinSalaBets(connected: BetsHubConnection): void {
+    connected
+      .invoke("JoinSalaBets")
+      .then((snapshot) => {
+        if (!stopped && connection === connected) liveBets.dispatch(liveSnapshotEvent(snapshot));
+      })
+      .catch(() => undefined);
+  }
+
+  /** One page of GET /api/v1/me/bets: the first one (cursor null) replaces the list, the next ones are appended. */
+  function readHistory(cursor: string | null): Promise<void> {
+    const key = cursor ?? "";
+    if (historyRequest?.cursor === key) return historyRequest.done;
+    if (cursor === null) historyGeneration += 1;
+    const generation = historyGeneration;
+    myBets.dispatch({ type: "myBetsRequested" });
+    const done = fetchHistoryPage(cursor, generation).finally(() => {
+      if (historyRequest?.done === done) historyRequest = undefined;
+    });
+    historyRequest = { cursor: key, done };
+    return done;
+  }
+
+  async function fetchHistoryPage(cursor: string | null, generation: number): Promise<void> {
+    try {
+      const page = await fetchMyBets(
+        apiBaseUrl,
+        token(),
+        fetchImpl,
+        historyPageLimit,
+        cursor ?? undefined,
+      );
+      if (generation !== historyGeneration) return;
+      myBets.dispatch({
+        type: "myBetsPage",
+        append: cursor !== null,
+        // 404: the endpoint is not there yet (SPEC-0025), an empty history.
+        items: page?.items ?? [],
+        nextCursor: page?.nextCursor ?? null,
+      });
+    } catch (error: unknown) {
+      const code = errorCode(error);
+      if (generation === historyGeneration) myBets.dispatch({ type: "myBetsFailed", code });
+      throw new BetError(code);
+    }
   }
 
   async function readBalance(): Promise<void> {
@@ -237,6 +326,7 @@ export function createBetsClient(options: BetsClientOptions): BetsClient {
       connection = connected;
       listen(connected);
       await connected.start();
+      joinSalaBets(connected);
       const limits = await connected.invoke("GetBetLimits");
       store.dispatch({ type: "limits", limits });
       await readBalance();
@@ -297,6 +387,18 @@ export function createBetsClient(options: BetsClientOptions): BetsClient {
       }
     },
     reload,
+    liveBets,
+    myBets,
+    loadMyBets() {
+      return readHistory(null);
+    },
+    loadMoreMyBets() {
+      const state = myBets.getState();
+      if (!state.loaded) return readHistory(null);
+      // On the last page there is nothing else to read.
+      if (state.nextCursor === null) return historyRequest?.done ?? Promise.resolve();
+      return readHistory(state.nextCursor);
+    },
     async stop() {
       stopped = true;
       unfollowRounds?.();
