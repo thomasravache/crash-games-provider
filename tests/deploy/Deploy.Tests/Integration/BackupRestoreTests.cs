@@ -31,8 +31,8 @@ public sealed class BackupRestoreTests : IAsyncLifetime
     private readonly PostgreSqlContainer _source = new PostgreSqlBuilder(DockerCli.PostgreSqlImage).Build();
     private readonly PostgreSqlContainer _target = new PostgreSqlBuilder(DockerCli.PostgreSqlImage).Build();
     private readonly string _root = Path.Combine(Path.GetTempPath(), "apogeu-test-it02-" + Guid.NewGuid().ToString("N"));
-    private readonly string _sourceKeys = "apogeu-test-it02-keys-" + Guid.NewGuid().ToString("N");
-    private readonly string _targetKeys = "apogeu-test-it02-keys-" + Guid.NewGuid().ToString("N");
+    private readonly string _sourceKeys = "apogeu-test-it02-keys-" + Guid.NewGuid().ToString("N"); // gitleaks:allow (volume name, not a secret)
+    private readonly string _targetKeys = "apogeu-test-it02-keys-" + Guid.NewGuid().ToString("N"); // gitleaks:allow (volume name, not a secret)
 
     private string BackupDir => Path.Combine(_root, "backups");
 
