@@ -42,7 +42,7 @@ Página do jogo no cassino demo: o BFF chama o lançamento da Apogeu (`POST /api
 ## 4. Decisão Arquitetural
 **Contexto:** o `demo-site` é esqueleto (SPEC-0002/0005) e o AppHost já o sobe. O cassino é um cliente externo (ADR-0027): fala só pela API pública de operador (SPEC-0009/0020). Referência de cliente HMAC: a assinatura de referência dos testes da SPEC-0009 (`ReferenceSignature`).
 
-**Decisão:** o BFF chama o lançamento com `playerId` da sessão do cassino, `currency`, `gameCode` e `returnUrl` do lobby; o front só recebe a URL.
+**Decisão:** o BFF chama o lançamento com o corpo do SPEC-0009@1: `playerId`, `nickname` e `currency` da sessão do cassino, `gameCode` da rota, `mode: "demo"` e `language: "pt-BR"` (sem `returnUrl`, que o contrato não tem; a volta ao lobby é o botão da moldura); o front só recebe a URL. A coluna "Sobre o jogo" usa dados fixos por jogo no demo-site (Pipa: RTP 97%, ganho máximo 10.000x, "Comprovadamente justo", provedor Apogeu Games — o padrão do catálogo da SPEC-0020, que o catálogo público não expõe); jogo sem dados fixos mostra só o provedor (Emenda v1).
 
 **Justificativa:** é exatamente o que um cassino real faz.
 
@@ -79,6 +79,7 @@ Página /jogo/{gameCode}: iframe(src=launchUrl, sandbox="allow-scripts allow-sam
 | Uso único | mesma URL aberta duas vezes | segunda vez: "Sessão expirada" no jogo | IT-02 |
 | Jogo indisponível | Pipa desabilitada | 404 e volta ao lobby com aviso | IT-03 |
 | Sem sessão | play sem cookie | 401 | IT-01 |
+| Apogeu indisponível | conexão recusada, 5xx ou tempo esgotado no lançamento | 502 PROVIDER_UNAVAILABLE; a página mostra o aviso e volta ao lobby | IT-04 |
 | Tela | voltar ao lobby e reabrir | novo lançamento | E2E-01 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
@@ -86,15 +87,16 @@ Página /jogo/{gameCode}: iframe(src=launchUrl, sandbox="allow-scripts allow-sam
 - N/A — código novo; os módulos consultados já têm cobertura das próprias specs.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dada a sessão do cassino, quando o corpo do lançamento é montado, então traz `playerId`, `currency`, `gameCode` e `returnUrl` do lobby.
+- **UT-01** — Dada a sessão do cassino, quando o corpo do lançamento é montado, então traz `playerId`, `nickname` e `currency` da sessão, `gameCode` da rota, `mode: "demo"` e `language: "pt-BR"`, e nenhum outro campo (Emenda v1).
 
 ### 7.3 Testes de Integração
 - **IT-01** — Dados DemoCasino e Apogeu reais, quando o jogador logado lança a Pipa, então recebe uma `launchUrl` válida que abre a sessão do jogo; sem cookie, 401.
 - **IT-02** — Dada uma `launchUrl` já usada, quando aberta de novo, então a Apogeu recusa (sessão expirada).
 - **IT-03** — Dada a Pipa desabilitada para o operador demo, quando o jogador tenta jogar, então 404 GAME_NOT_AVAILABLE.
+- **IT-04** — Dada a Apogeu indisponível (conexão recusada, 500, 503 ou 504), quando o jogador tenta jogar, então 502 PROVIDER_UNAVAILABLE (Emenda v1).
 
 ### 7.4 Testes de Contrato
-- **CT-01** — Dada a requisição real de lançamento do DemoCasino, quando validada contra o OpenAPI da Apogeu, então confere.
+- **CT-01** — Dada a requisição real de lançamento do DemoCasino (corpo capturado), quando validada de forma estrita contra o esquema `LaunchRequest` do OpenAPI gerado da Apogeu (sem propriedades extras), então confere (Emenda v1).
 
 ### 7.5 Testes E2E
 - **E2E-01** — Dado o ambiente Aspire, quando o jogador entra no cassino demo, abre a Pipa no lobby, vê uma rodada no iframe, volta ao lobby e reabre, então o jogo carrega nas duas vezes (lançamentos distintos); axe sem violações na moldura.
@@ -126,7 +128,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
 
 **Fase 1: Regressão e correção**
-- [ ] Red: escrever UT-01, IT-01, IT-02, IT-03, CT-01 com a tag `SPEC-0045:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Red: escrever UT-01, IT-01, IT-02, IT-03, IT-04, CT-01 com a tag `SPEC-0045:<ID>` e confirmar que falham pelo motivo certo
 - [ ] Green: implementar o mínimo para passar, seguindo o padrão citado
 - [ ] Refactor mantendo tudo verde
 - [ ] Validar: build + suíte completa + arquitetura (G2/G3)
@@ -159,6 +161,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G1 | spec | returnUrl do lançamento não existe no contrato consumido SPEC-0009@1 (UT-01 e CT-01 sem regra); 502 PROVIDER_UNAVAILABLE sem linha no Mapa nem teste; coluna Sobre o jogo sem fonte de RTP e ganho máximo | test-writer escreveu IT-01..03 e E2E-01 (red em b6b9b87) e parou antes de UT-01/CT-01 | architect | Emenda v1: corpo do SPEC-0009@1 sem returnUrl, CT-01 estrito, IT-04 (502) e Sobre o jogo com dados fixos | 2026-10-15 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -201,3 +204,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0045`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-15 | Lançamento sem `returnUrl` (corpo exato do SPEC-0009@1, com `nickname` da sessão, `mode` demo e `language` pt-BR); UT-01 e CT-01 (estrito contra `LaunchRequest`) reescritos; IT-04 e linha do Mapa para 502 PROVIDER_UNAVAILABLE; "Sobre o jogo" com dados fixos por jogo no demo-site (Pipa: RTP 97%, ganho máximo 10.000x) | Test-writer (SPEC_DEFECT, IMP-01): `returnUrl` fora do contrato consumido, 502 sem teste e RTP/ganho máximo sem fonte | Nenhuma | decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) |
