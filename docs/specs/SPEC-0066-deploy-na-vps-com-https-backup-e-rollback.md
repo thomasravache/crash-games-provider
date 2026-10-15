@@ -9,7 +9,7 @@ created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0047]
 consumes_contract: [SPEC-0065@3]
-contract_version: 3
+contract_version: 4
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
 touches: ["infra/caddy/**", "infra/vps/**", "tools/deploy/**", "docs/runbooks/**", "tests/deploy/**"]
 adrs: [ADR-0029, ADR-0013, ADR-0014, ADR-0018]
@@ -86,7 +86,7 @@ tools/deploy/vps-rollback → versão anterior no ar
 tools/deploy/backup | restore <arquivo>
 ```
 
-**Interface dos scripts (Emenda v1):** a referência é `tests/deploy/README.md`, fixada pelos testes:
+**Interface dos scripts (Emenda v1; Emenda v4: `APOGEU_BIND_ADDRESS` para o endereço em que o proxy publica, padrão `0.0.0.0` na VPS e `127.0.0.1` nos testes; logs do Docker com rotação, `max-size`/`max-file`, em todos os serviços do proxy; o runbook recomenda rodar o deploy dentro de `tmux`/`systemd-run` e cita o clone por https enquanto o repositório for público):** a referência é `tests/deploy/README.md`, fixada pelos testes:
 - `vps-deploy --prepare` cria só o diretório e o `.env` (600; mantém um `.env` existente; segredos aleatórios e distintos, sem caracteres especiais de shell; `PUBLIC_API_URL`/`PUBLIC_GAME_URL` a partir de `APOGEU_DOMAIN`; `BACKOFFICE_AUTHORITY` presente).
 - Configuração por variáveis de ambiente com os padrões da VPS: `APOGEU_DEPLOY_DIR`, `APOGEU_DEPLOY_REPO`, `APOGEU_COMPOSE_PROJECT` (`apogeu`), `APOGEU_IMAGE_PREFIX`, `APOGEU_DOMAIN` (`143-95-218-240.sslip.io`), `APOGEU_HTTP_PORT`/`APOGEU_HTTPS_PORT`, ganchos `APOGEU_DEPLOY_BUILD`/`APOGEU_DEPLOY_SMOKE`, `APOGEU_DEPLOY_HEALTH_TIMEOUT`, `APOGEU_POSTGRES_CONTAINER`, `APOGEU_BACKUP_DIR`.
 - O proxy é o serviço `proxy`, o único com portas publicadas, na rede do compose; imagens com tag do commit (≥ 7 caracteres); o compose sem algum serviço do contrato é recusado antes de subir; as variáveis de imagem do `--env-file` ganham das do shell (a volta à versão anterior não pode reusar as imagens novas).
@@ -114,17 +114,17 @@ tools/deploy/backup | restore <arquivo>
 - N/A — infraestrutura nova.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dado o `Caddyfile` com o host de teste, quando validado pelo `caddy validate` (imagem 2.11.7) e inspecionado, então só existem os três sites, `/casino/*` vai para o demo-casino, a API para `api:8080`, HTTP redireciona para HTTPS, os cabeçalhos de segurança estão presentes e os `X-Forwarded-*` que chegam da internet são descartados e reescritos pelo proxy (sem `trusted_proxies`; a API confia em `X-Forwarded-*` — Emenda v3).
+- **UT-01** — Dado o `Caddyfile` com o host de teste, quando validado pelo `caddy validate` (imagem 2.11.7) e inspecionado, então só existem os três sites, `/casino/*` vai para o demo-casino, a API para `api:8080`, HTTP redireciona para HTTPS, os cabeçalhos de segurança estão presentes e os `X-Forwarded-*` que chegam da internet são descartados e reescritos pelo proxy (sem `trusted_proxies`; a API confia em `X-Forwarded-*` — Emenda v3); o log de acesso não grava tokens: `lt` e `access_token` da query são apagados (filtro no formato do log), além de Cookie e Authorization (Emenda v4).
 - **UT-02** — Dado um diretório de deploy sem `.env`, quando o `vps-deploy` prepara a versão, então cria o `.env` com todos os segredos aleatórios e permissão 600, não os imprime, e numa segunda execução mantém os mesmos valores.
 
 ### 7.3 Testes de Integração
 <!-- Com as dependências reais (containers/emuladores), não mocks. -->
 - **IT-01** — Dado um projeto compose de teste na máquina (portas e certificados de teste), quando a versão A e depois a B são publicadas, então B fica no ar; com B sem saúde, o script volta sozinho para A; e o `vps-rollback` volta de B para A.
-- **IT-02** — Dado um Postgres com dados e o volume `dataprotection-keys` com chaves, quando o `backup` roda e o `restore` carrega o arquivo num Postgres limpo e num volume limpo, então as contagens das tabelas de cada módulo coincidem e as chaves restauradas são idênticas (sem elas as sementes não reveladas ficam ilegíveis — Emenda v3).
+- **IT-02** — Dado um Postgres com dados e o volume `dataprotection-keys` com chaves, quando o `backup` roda e o `restore` carrega o arquivo num Postgres limpo e num volume limpo, então as contagens das tabelas de cada módulo coincidem e as chaves restauradas são idênticas (sem elas as sementes não reveladas ficam ilegíveis — Emenda v3); com um arquivo de chaves corrompido, o `restore` recusa antes de tocar no banco e no volume, e as chaves atuais continuam intactas (Emenda v4).
 
 ### 7.4 Testes de Contrato
 <!-- Obrigatório (CT-xx) se esta spec consome contrato de outra ou se outra spec consome o contrato desta. -->
-- **CT-01** — Dado o compose gerado pela SPEC-0065, quando o `vps-deploy` o lê, então todos os serviços, a rede e as variáveis esperadas existem e o proxy alcança `api` e `demo-casino` pelo nome.
+- **CT-01** — Dado o compose gerado pela SPEC-0065, quando o `vps-deploy` o lê, então todos os serviços (inclusive o `keys-init` do @3), a rede e as variáveis esperadas existem e o proxy alcança `api` e `demo-casino` pelo nome; e um compose em que qualquer serviço além do `proxy` publique portas é recusado antes de subir (porta publicada pelo Docker passa por cima do UFW — Emenda v4).
 
 ### 7.5 Testes E2E
 <!-- Obrigatório (E2E-xx) quando user_facing: true: jornada nova ou atualização do E2E que já cobre a jornada. Poucos e significativos. -->
@@ -178,7 +178,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — af14212 (árvore suja) | 2026-10-15 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:19.42]     Dada uma aposta X cujo débito fica retido até depois da varred) — 861597e | 2026-10-15 |
-| G2 Green | PENDING | | |
+| G2 Green | FAIL | build exit 0 (✓ built in 397ms); test exit 1 ([xUnit.net 00:04:23.58]     Dado o operador respondendo 500 por 1 min, quando um crédito é); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — b00973d | 2026-10-15 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
@@ -191,6 +191,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
 | IMP-01 | 2026-10-15 | G1 | spec | §6 não fixava a interface dos scripts (modo --prepare, variáveis de ambiente, ganchos de build/smoke, serviço proxy, nomes dos backups); E2E-01 citava o E2E da SPEC-0047, que depende do gancho de teste ausente no build de produção; §3 citava SPEC-0065@1 | test-writer fixou a interface em tests/deploy/README.md e escreveu os 6 testes (red 3d7ebf0, 1bc902b) | architect | Emenda v2: interface dos scripts (tests/deploy/README.md), E2E-01 sem gancho de teste, SPEC-0065@2 | 2026-10-15 |
+| IMP-02 | 2026-10-15 | G4 | spec | Review G4 (CHANGES_REQUESTED, B1): o log de acesso do Caddy grava o launch token (?lt= em jogo.) e o token de sessão do WebSocket (access_token= em api./hubs), violando o ADR-0014; também: serviços fora do contrato poderiam publicar portas (Docker passa por cima do UFW), restore apaga as chaves antes de validar o arquivo, proxy de teste publicado em 0.0.0.0 na VPS, logs sem rotação | Reviewer leu o Caddyfile, o LaunchIssuer e o accessTokenFactory do game-sdk | architect | Emenda v4: log sem tokens, recusa de portas fora do proxy, restore seguro, bind address, rotação de logs | 2026-10-15 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -231,5 +232,6 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0066`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 4 | 2026-10-15 | Log de acesso do Caddy sem tokens (`lt`, `access_token`); deploy recusa serviço fora do `proxy` com portas publicadas; `restore` valida o arquivo de chaves antes de apagar as atuais; `APOGEU_BIND_ADDRESS` (testes em `127.0.0.1`); rotação dos logs do Docker; runbook com `tmux`/`systemd-run` e clone por https | Review G4 da SPEC-0066 (B1 e não-bloqueantes 1, 2, 3, 4, 6, 7) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 3 | 2026-10-15 | Backup e restauração incluem o volume `dataprotection-keys` junto com o Postgres; o proxy descarta e reescreve `X-Forwarded-*`; consome SPEC-0065@3 (serviço `keys-init`) | Review G4 da SPEC-0065 (N2, N6) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 2 | 2026-10-15 | Interface dos scripts fixada (`--prepare`, variáveis de ambiente e ganchos, serviço `proxy`, nomes dos backups; referência `tests/deploy/README.md`); E2E-01 acompanha a rodada pela tela, sem o gancho de teste; consome SPEC-0065@2 | Test-writer (SPEC_DEFECT, IMP-01) | SPEC-0067 (chama `vps-deploy`/`vps-rollback`) | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
