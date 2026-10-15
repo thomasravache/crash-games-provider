@@ -80,9 +80,9 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — f79c3c6 | 2026-10-09 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯) — 76732c5 | 2026-10-15 |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 270ms); test exit 0 ($ pnpm -C src/frontend test); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:src/frontend/coverage/lcov.info" -targetdir:artifacts/c) — 88cdf0c | 2026-10-15 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.02s (tests 96%, transform 2%, import 1%)) — 88cdf0c | 2026-10-15 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: lote atrasado de rodada anterior pode reexibir apostas até o próximo lote (ordem entre hubs); conclusão de aposta com Minhas apostas aberta relê só a página 1; cancelamento não relê o histórico; Tentar de novo após falha do Carregar mais relê a página 1; teste UT-02 frágil ao procurar 'disabled' nas classes; tabpanel sem tabIndex; sem teste de re-join na reconexão, de falha do JoinSalaBets e de descarte por geração; ordem das apostas novas não definida pela spec — 88cdf0c | 2026-10-15 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
