@@ -48,7 +48,7 @@ builder.Services.AddDataProtectionKeyRing();
 
 // ADR-0002/ADR-0028: Wolverine for the handlers and the transactional outbox between modules, its envelopes in the schema
 // `wolverine` of the same PostgreSQL — created at startup like the modules' migrations: with Database:MigrateOnStartup
-// (on in Production, SPEC-0065) or, when unset, in Development (local Aspire environment). Only the Host configures it; its lifecycle is the Host's too: it starts
+// (set by the published compose, SPEC-0065) or, when unset, in Development (local Aspire environment). Only the Host configures it; its lifecycle is the Host's too: it starts
 // once the database answers and the modules wait for IMessagingReadiness.
 builder.UseWolverine(options =>
 {
@@ -130,6 +130,9 @@ builder.Services.AddCors(options => options.AddPolicy(
     policy => policy.WithOrigins(gameOrigins).AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
+
+// SPEC-0065 (Emenda v3): a key directory that does not accept writes stops the startup here, naming it.
+DataProtectionKeyRing.EnsureKeysPathWritable(app.Configuration);
 
 // CORS before authentication/authorization: preflights and the hub negotiation get the CORS headers even when denied.
 app.UseCors(GameCorsPolicy);
