@@ -12,15 +12,15 @@
 
   <!-- Code quality (ADR-0012) -->
   <ItemGroup>
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.294" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.303" />
   </ItemGroup>
 
   <!-- Tests (ADR-0009, ADR-0001) -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageVersion Include="xunit.v3.mtp-off" Version="4.0.1" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
-    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.mtp-off" Version="4.0.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.2" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
     <!-- Official SignalR client for the hub integration tests only (ADR-0005 amendment of 2026-10-09, SPEC-0008): Microsoft, MIT, same version as ASP.NET Core. -->
@@ -28,9 +28,9 @@
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
     <PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.4" />
     <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.4" />
-    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
-    <PackageVersion Include="Testcontainers.Redis" Version="4.15.0" />
-    <PackageVersion Include="Testcontainers.Keycloak" Version="4.15.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.16.0" />
+    <PackageVersion Include="Testcontainers.Keycloak" Version="4.16.0" />
     <!-- Test clients for the TestKit's own tests (SPEC-0003 IT-02); verified on nuget.org on 2026-10-08. -->
     <PackageVersion Include="Npgsql" Version="10.0.3" />
     <!-- Log capture of the TestKit (SPEC-0003): platform logging abstractions, MIT; verified on nuget.org on 2026-10-08. -->
@@ -39,9 +39,9 @@
 
   <!-- Runtime, messaging and outbox (ADR-0002) -->
   <ItemGroup>
-    <PackageVersion Include="WolverineFx" Version="6.48.1" />
-    <PackageVersion Include="WolverineFx.Postgresql" Version="6.48.1" />
-    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.48.1" />
+    <PackageVersion Include="WolverineFx" Version="6.50.2" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="6.50.2" />
+    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.50.2" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <!-- Build-time OpenAPI document (ADR-0008, SPEC-0006): companion of Microsoft.AspNetCore.OpenApi, MIT; verified on nuget.org on 2026-10-08. -->
     <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.13" />
@@ -52,7 +52,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-    <PackageVersion Include="StackExchange.Redis" Version="3.3.1" />
+    <PackageVersion Include="StackExchange.Redis" Version="3.4.5" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.13" />
   </ItemGroup>
 
