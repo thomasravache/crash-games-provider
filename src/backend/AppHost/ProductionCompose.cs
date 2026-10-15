@@ -36,7 +36,14 @@ internal static class ProductionCompose
         Type = "volume",
     };
 
-    /// <summary>Memory limit of a service, so the production does not starve the shared VPS (ADR-0029).</summary>
-    public static void LimitMemory(Service service, string memory) =>
+    /// <summary>
+    /// Memory limit of a service, so the production does not starve the shared VPS (ADR-0029), and its restart policy: the
+    /// compose only orders the start (no health wait), so a service that starts before PostgreSQL answers (the api migrates
+    /// on its start) or fails later comes back by itself.
+    /// </summary>
+    public static void LimitMemory(Service service, string memory)
+    {
         service.Deploy = new() { Resources = new() { Limits = new() { Memory = memory } } };
+        service.Restart = "unless-stopped";
+    }
 }
