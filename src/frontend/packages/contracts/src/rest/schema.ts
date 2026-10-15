@@ -37,6 +37,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/me/bets": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The bets of the session player, most recent first, paged by an opaque cursor. */
+    get: operations["GetMyBets"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/meta": {
     parameters: {
       query?: never;
@@ -207,6 +224,30 @@ export interface components {
     Money: Money;
     /** Format: multiplier */
     Multiplier: Multiplier;
+    MyBetItem: {
+      amount: components["schemas"]["Money"];
+      autoCashOut: null | components["schemas"]["Multiplier"];
+      /** Format: uuid */
+      betId: string;
+      currency: string;
+      multiplier: null | components["schemas"]["Multiplier"];
+      /** Format: int32 */
+      panel: number;
+      payout: null | components["schemas"]["Money"];
+      /** Format: date-time */
+      placedAt: string;
+      /** Format: uuid */
+      roundId: null | string;
+      /** Format: int64 */
+      roundNumber: null | number;
+      status: components["schemas"]["MyBetStatus"];
+    };
+    MyBetsPage: {
+      items: components["schemas"]["MyBetItem"][];
+      nextCursor: null | string;
+    };
+    /** @enum {unknown} */
+    MyBetStatus: "placed" | "queued" | "active" | "cashed_out" | "lost" | "cancelled" | "refunded";
     ProblemDetails: {
       detail?: null | string;
       instance?: null | string;
@@ -308,6 +349,47 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["GameSummaryResponse"][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ErrorResponse"];
+        };
+      };
+    };
+  };
+  GetMyBets: {
+    parameters: {
+      query?: {
+        before?: string;
+        limit?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MyBetsPage"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/problem+json": components["schemas"]["ErrorResponse"];
         };
       };
       /** @description Unauthorized */

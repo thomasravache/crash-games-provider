@@ -1,7 +1,10 @@
 using Apogeu.Betting.Features.CancelBet;
 using Apogeu.Betting.Features.CashOut;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.PlaceBet;
+using Apogeu.Betting.Features.RoundEvents;
 using Apogeu.Betting.Features.Sessions;
+using Apogeu.BuildingBlocks.Contracts;
 using Apogeu.BuildingBlocks.Security;
 using Apogeu.Operators.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +18,14 @@ namespace Apogeu.Betting.Features.Hubs;
 /// whose message is the code (<c>BettingErrorCodes</c>).
 /// </summary>
 [Authorize(Policy = SecurityPolicies.PlayerSession)]
-public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet, CashOutUseCase cashOut, IOperatorLimits limits, TimeProvider time)
+public sealed class BetsHub(
+    PlaceBetUseCase placeBet,
+    CancelBetUseCase cancelBet,
+    CashOutUseCase cashOut,
+    IOperatorLimits limits,
+    LiveBetsBatcher liveBets,
+    IRoundFeed feed,
+    TimeProvider time)
     : Hub<IBetsClient>
 {
     public const string Path = "/hubs/bets";
@@ -52,6 +62,26 @@ public sealed class BetsHub(PlaceBetUseCase placeBet, CancelBetUseCase cancelBet
         var owner = Session.Owner;
         var betLimits = limits.Get(owner.OperatorId, owner.Currency);
         return Task.FromResult(new BetLimitsResponse(betLimits.Currency.Code, betLimits.MinBet, betLimits.MaxBet, betLimits.MaxWin));
+    }
+
+    /// <summary>
+    /// Joins the group of the session's room for <c>LiveBetsBatch</c> and answers the bets of its current round (SPEC-0025
+    /// §6); takes no argument: the room is the session's.
+    /// </summary>
+    public async Task<LiveBetsSnapshot> JoinSalaBets()
+    {
+        var salaId = Session.SalaId;
+
+        // Joined before the snapshot is read, so no batch falls between the two (a repeated bet in both is the same betRef).
+        await Groups.AddToGroupAsync(Context.ConnectionId, LiveBetsFeed.GroupOf(salaId)).ConfigureAwait(false);
+        var current = await feed.CurrentAsync(salaId, Context.ConnectionAborted).ConfigureAwait(false);
+        if (current is not null && liveBets.SnapshotOf(salaId) is { } snapshot && current.RoundId.Value == snapshot.RoundId)
+        {
+            return snapshot;
+        }
+
+        // A round without bets yet: empty, of the current round; no current round: empty, never the previous round's bets.
+        return new LiveBetsSnapshot(current?.RoundId.Value ?? Guid.Empty, 0, 0, new Money(0.00m), []);
     }
 
     private BettingSession Session => BettingSession.From(Context.User);

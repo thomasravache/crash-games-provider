@@ -169,9 +169,25 @@ internal sealed class BettingHost : IAsyncDisposable
 
     public static Currency Brl => new(BettingSessions.Currency);
 
-    /// <summary>A real SignalR client of <c>/hubs/bets</c> with the session of <paramref name="player"/> (long polling, in memory).</summary>
-    public HubConnection CreateBetsConnection(string player, string mode = "demo") =>
-        Connection("hubs/bets", BettingSessions.Issue(_signingKey, player, mode));
+    /// <summary>
+    /// A real SignalR client of <c>/hubs/bets</c> with the session of <paramref name="player"/> (long polling, in memory); the
+    /// session carries the claim <c>nick</c> when <paramref name="nickname"/> is given (SPEC-0025) and belongs to
+    /// <paramref name="operatorId"/> (<see cref="BettingSessions.Operator"/> by default).
+    /// </summary>
+    public HubConnection CreateBetsConnection(string player, string mode = "demo", string? nickname = null, string operatorId = BettingSessions.Operator) =>
+        Connection("hubs/bets", BettingSessions.Issue(_signingKey, player, mode, nickname, operatorId));
+
+    /// <summary>A session token of <paramref name="player"/> signed with this host's key (SPEC-0009 §4), for the REST API.</summary>
+    public string SessionOf(string player, string? nickname = null, string operatorId = BettingSessions.Operator) =>
+        BettingSessions.Issue(_signingKey, player, "demo", nickname, operatorId);
+
+    /// <summary>An HTTP client of the Host that sends the session of <paramref name="player"/> as a bearer token.</summary>
+    public HttpClient CreatePlayerHttpClient(string player, string? nickname = null)
+    {
+        var client = _factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", SessionOf(player, nickname));
+        return client;
+    }
 
     /// <summary>A real SignalR client of <c>/hubs/bets</c> without any session.</summary>
     public HubConnection CreateAnonymousBetsConnection() => Connection("hubs/bets", session: null);

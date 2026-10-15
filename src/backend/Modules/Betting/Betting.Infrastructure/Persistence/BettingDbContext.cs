@@ -17,6 +17,9 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
     /// <summary>At most one queued bet (or reservation of one) per panel of a player (both for the next round).</summary>
     public const string QueuedPanelIndex = "ux_bets_queued_panel";
 
+    /// <summary>The personal history of a player, most recent first (SPEC-0025 §6).</summary>
+    public const string PlayerHistoryIndex = "ix_bets_player_history";
+
     public DbSet<BetRecord> Bets => Set<BetRecord>();
 
     /// <summary>The immutable summaries of the settled rounds (SPEC-0024).</summary>
@@ -82,6 +85,7 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
             bet.HasIndex(b => b.CreatedAt).HasFilter("status = 'pending'").HasDatabaseName("ix_bets_pending_created_at");
 
             MapCashOut(bet);
+            MapHistory(bet);
         });
 
         MapSettlement(modelBuilder);
@@ -114,6 +118,12 @@ internal sealed class BettingDbContext(DbContextOptions<BettingDbContext> option
             closure.Property(c => c.ClosedAt).HasColumnName("closed_at");
         });
     }
+
+    /// <summary>The personal history of a player (SPEC-0025): by acceptance instant and id, descending, paged by keyset.</summary>
+    private static void MapHistory(EntityTypeBuilder<BetRecord> bet) =>
+        bet.HasIndex(b => new { b.OperatorId, b.PlayerId, b.CreatedAt, b.Id })
+            .IsDescending(false, false, true, true)
+            .HasDatabaseName(PlayerHistoryIndex);
 
     /// <summary>The cash-out of a bet (SPEC-0023): its multiplier, payout and credit, and a manual request waiting for the leader.</summary>
     private static void MapCashOut(EntityTypeBuilder<BetRecord> bet)

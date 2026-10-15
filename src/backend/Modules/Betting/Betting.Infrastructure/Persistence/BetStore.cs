@@ -53,6 +53,25 @@ internal sealed partial class BetStore(BettingDbContext db, IServiceScopeFactory
         return [.. records.Select(ToDomain)];
     }
 
+    public async Task<IReadOnlyList<PlayerBet>> ListPlayerBetsAsync(BetOwner owner, PlayerBetsCursor? before, int limit, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(owner);
+        var bets = db.Bets.AsNoTracking().Where(b => b.OperatorId == owner.OperatorId.Value && b.PlayerId == owner.PlayerId.Value && b.Status != Pending);
+        if (before is not null)
+        {
+            // Keyset on (created_at, id), the index ix_bets_player_history: one page costs the same at any depth.
+            bets = bets.Where(b => EF.Functions.LessThan(ValueTuple.Create(b.CreatedAt, b.Id), ValueTuple.Create(before.PlacedAt, before.BetId)));
+        }
+
+        var records = await bets
+            .OrderByDescending(b => b.CreatedAt)
+            .ThenByDescending(b => b.Id)
+            .Take(limit)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        return [.. records.Select(r => new PlayerBet(ToDomain(r), r.CreatedAt))];
+    }
+
     public async Task ReserveAsync(Bet bet, string salaId, DateTimeOffset now, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(bet);

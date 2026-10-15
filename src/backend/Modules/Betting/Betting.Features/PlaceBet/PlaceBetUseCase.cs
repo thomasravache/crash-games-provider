@@ -1,6 +1,7 @@
 using Apogeu.Betting.Contracts;
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.RoundEvents;
 using Apogeu.Betting.Features.Sessions;
 using Apogeu.Betting.Features.Wallet;
@@ -31,6 +32,7 @@ public sealed class PlaceBetUseCase(
     IOperatorWallet wallet,
     ICashOutArbiter arbiter,
     BetsNotifier notifier,
+    LiveBetsFeed live,
     BettingMetrics metrics,
     IOptions<BettingOptions> options,
     IServiceScopeFactory scopes,
@@ -87,6 +89,9 @@ public sealed class PlaceBetUseCase(
         var outcome = await DebitAndConfirmAsync(bet, session.SalaId, ct).ConfigureAwait(false);
         if (outcome.Value is not null)
         {
+            // The room sees the bet (SPEC-0025), with the nickname of the session only.
+            live.Accepted(session.SalaId, bet, session.Nickname);
+
             // Not tied to the caller: the accepted bet catches up with the round even if the connection is gone.
             await CatchUpAsync(bet, session.SalaId, current, CancellationToken.None).ConfigureAwait(false);
             metrics.BetReached(outcome.Value.Status == BetAcceptedStatus.Placed ? "placed" : "queued");
@@ -359,6 +364,7 @@ public sealed class PlaceBetUseCase(
         {
             foreach (var activated in await store.ActivateQueuedAsync(salaId, opened, bet.Id, ct).ConfigureAwait(false))
             {
+                live.Activated(salaId, activated);
                 await notifier.BetActivatedAsync(activated).ConfigureAwait(false);
             }
         }

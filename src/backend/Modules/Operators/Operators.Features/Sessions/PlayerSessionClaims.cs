@@ -14,6 +14,12 @@ public static class PlayerSessionClaims
 
     public const string Mode = "mode";
 
+    /// <summary>
+    /// Optional nickname of the launch (SPEC-0025 §6, Emenda v2): present only when the operator sent one; read by Betting
+    /// for the live bets, never sent by the client.
+    /// </summary>
+    public const string Nickname = "nick";
+
     /// <summary>Lifetime of a session (ADR-0015: ≤ 8 h).</summary>
     public static readonly TimeSpan Lifetime = TimeSpan.FromHours(8);
 
