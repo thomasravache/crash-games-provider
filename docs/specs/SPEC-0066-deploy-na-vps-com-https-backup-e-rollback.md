@@ -9,7 +9,7 @@ created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0047]
 consumes_contract: [SPEC-0065@3]
-contract_version: 5
+contract_version: 6
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
 touches: ["infra/caddy/**", "infra/vps/**", "tools/deploy/**", "docs/runbooks/**", "tests/deploy/**"]
 adrs: [ADR-0029, ADR-0013, ADR-0014, ADR-0018]
@@ -114,13 +114,13 @@ tools/deploy/backup | restore <arquivo>
 - N/A — infraestrutura nova.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dado o `Caddyfile` com o host de teste, quando validado pelo `caddy validate` (imagem 2.11.7) e inspecionado, então só existem os três sites, `/casino/*` vai para o demo-casino, a API para `api:8080`, HTTP redireciona para HTTPS, os cabeçalhos de segurança estão presentes e os `X-Forwarded-*` que chegam da internet são descartados e reescritos pelo proxy (sem `trusted_proxies`; a API confia em `X-Forwarded-*` — Emenda v3); o log de acesso não grava tokens: `lt` e `access_token` da query são apagados (filtro no formato do log), além de Cookie e Authorization (Emenda v4); nenhuma saída do proxy (`docker logs`) contém tokens — nem o log de erros (502 com o backend fora do ar), nem o `Referer`, nem o `Location` do redirecionamento http→https (308) —, provado também com o backend fora do ar e com uma requisição `http://` com `?lt=` (Emenda v5).
+- **UT-01** — Dado o `Caddyfile` com o host de teste, quando validado pelo `caddy validate` (imagem 2.11.7) e inspecionado, então só existem os três sites, `/casino/*` vai para o demo-casino, a API para `api:8080`, HTTP redireciona para HTTPS, os cabeçalhos de segurança estão presentes e os `X-Forwarded-*` que chegam da internet são descartados e reescritos pelo proxy (sem `trusted_proxies`; a API confia em `X-Forwarded-*` — Emenda v3); o log de acesso não grava tokens: `lt` e `access_token` da query são apagados (filtro no formato do log), além de Cookie e Authorization (Emenda v4); nenhuma saída do proxy (`docker logs`) contém tokens — nem o log de erros (502 com o backend fora do ar), nem o `Referer`, nem o `Location` do redirecionamento http→https (308) —, provado também com o backend fora do ar, com uma requisição `http://` com `?lt=` e com um `Host` que nenhum site cobre (Emenda v5/v6).
 - **UT-02** — Dado um diretório de deploy sem `.env`, quando o `vps-deploy` prepara a versão, então cria o `.env` com todos os segredos aleatórios e permissão 600, não os imprime, e numa segunda execução mantém os mesmos valores.
 
 ### 7.3 Testes de Integração
 <!-- Com as dependências reais (containers/emuladores), não mocks. -->
 - **IT-01** — Dado um projeto compose de teste na máquina (portas e certificados de teste), quando a versão A e depois a B são publicadas, então B fica no ar; com B sem saúde, o script volta sozinho para A; e o `vps-rollback` volta de B para A.
-- **IT-02** — Dado um Postgres com dados e o volume `dataprotection-keys` com chaves, quando o `backup` roda e o `restore` carrega o arquivo num Postgres limpo e num volume limpo, então as contagens das tabelas de cada módulo coincidem e as chaves restauradas são idênticas (sem elas as sementes não reveladas ficam ilegíveis — Emenda v3); com um arquivo de chaves corrompido ou sem nenhuma chave, o `restore` recusa antes de tocar no banco e no volume, e as chaves atuais continuam intactas (Emenda v4/v5); as chaves são importadas antes do banco (Emenda v5).
+- **IT-02** — Dado um Postgres com dados e o volume `dataprotection-keys` com chaves, quando o `backup` roda e o `restore` carrega o arquivo num Postgres limpo e num volume limpo, então as contagens das tabelas de cada módulo coincidem e as chaves restauradas são idênticas (sem elas as sementes não reveladas ficam ilegíveis — Emenda v3); com um arquivo de chaves corrompido ou sem nenhuma chave, o `restore` recusa antes de tocar no banco e no volume, e as chaves atuais continuam intactas (Emenda v4/v5); as chaves são importadas antes do banco (Emenda v5), e só depois de o dump ser validado (`pg_restore --list`): com um dump corrompido, o `restore` recusa sem trocar as chaves (Emenda v6).
 
 ### 7.4 Testes de Contrato
 <!-- Obrigatório (CT-xx) se esta spec consome contrato de outra ou se outra spec consome o contrato desta. -->
@@ -233,6 +233,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0066`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 6 | 2026-10-15 | Filtro do `Location` também no log padrão (308 de host desconhecido); `restore` valida o dump antes de trocar as chaves | Review G4 3ª rodada da SPEC-0066 (APPROVED com N1 e N2; ADR-0014 exige nenhum token em log, sem exceção) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 5 | 2026-10-15 | Nenhuma saída do proxy com tokens: filtro também no log padrão/de erros (URI e `Referer`) e no `Location` do 308; UT-01 com backend fora do ar (502) e com `http://` com `?lt=` (308); restore recusa arquivo de chaves sem chaves e importa as chaves antes do banco; runbook só com `tmux`; fixture do `keys-init` igual ao real (`network_mode: none`, `chown` sem `-R`) | Review G4 2ª rodada da SPEC-0066 (B1 ainda aberto; N1, N3, N4, N5) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 4 | 2026-10-15 | Log de acesso do Caddy sem tokens (`lt`, `access_token`); deploy recusa serviço fora do `proxy` com portas publicadas; `restore` valida o arquivo de chaves antes de apagar as atuais; `APOGEU_BIND_ADDRESS` (testes em `127.0.0.1`); rotação dos logs do Docker; runbook com `tmux`/`systemd-run` e clone por https | Review G4 da SPEC-0066 (B1 e não-bloqueantes 1, 2, 3, 4, 6, 7) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 3 | 2026-10-15 | Backup e restauração incluem o volume `dataprotection-keys` junto com o Postgres; o proxy descarta e reescreve `X-Forwarded-*`; consome SPEC-0065@3 (serviço `keys-init`) | Review G4 da SPEC-0065 (N2, N6) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
