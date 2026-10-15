@@ -23,7 +23,7 @@ Toda mudança em produção (deploy, rollback, restore, firewall) é feita com a
 | `~/apogeu-deploy/src/` | checkout da última versão buscada (fora do repositório de trabalho) |
 | `~/apogeu-deploy/releases/<commit>/` | compose, `compose.proxy.yaml` e `release.env` (nomes das imagens) de cada versão |
 | `~/apogeu-deploy/state/current`, `previous` | versão no ar e a anterior (alvo do rollback) |
-| `~/apogeu-deploy/backups/apogeu-*.dump` | dumps diários do Postgres (7 dias) |
+| `~/apogeu-deploy/backups/apogeu-<carimbo>.dump` + `apogeu-keys-<carimbo>.tar.gz` | backup diário: dump do Postgres e chaves do Data Protection (7 dias) |
 | imagens `apogeu-api`, `apogeu-demo-casino`, `apogeu-proxy` | tag = 12 primeiros caracteres do commit |
 
 **Segredos.** O `.env` tem `OPERATORS_DEMO_KEY_ID`, `OPERATORS_DEMO_KEY_SECRET`, `PLAYER_SESSION_SIGNING_KEY`,
@@ -122,25 +122,39 @@ ignoradas, para que o rollback nunca suba as imagens novas de novo.
 Backup manual (o timer faz o mesmo todo dia às 06:15 UTC):
 
 ```bash
-tools/deploy/backup        # última linha: caminho do dump em ~/apogeu-deploy/backups
+tools/deploy/backup        # última linha: caminho do dump em ~/apogeu-deploy/backups (as chaves ficam ao lado)
 journalctl --user -u apogeu-backup.service --since today
 ```
 
-`pg_dump` em formato custom do banco `apogeu`, dentro do container do Postgres (a senha é lida do próprio container),
-permissão 600; dumps `apogeu-*` com mais de 7 dias são apagados. O backup fica na mesma VPS (dívida registrada no
-ADR-0029: copie os dumps para fora quando importar).
+Cada backup grava **dois arquivos com o mesmo carimbo UTC**, ambos com permissão 600 (Emenda v3):
 
-Restauração (substitui os objetos do dump no banco `apogeu`, criando o banco se não existir):
+- `apogeu-<carimbo>.dump`: `pg_dump` em formato custom do banco `apogeu`, feito dentro do container do Postgres (a senha
+  é lida do próprio container);
+- `apogeu-keys-<carimbo>.tar.gz`: o conteúdo do volume `apogeu_dataprotection-keys` (chaves do Data Protection da API),
+  com dono (1654, o usuário da API) e modo preservados.
+
+**As chaves fazem parte do backup.** As sementes não reveladas ficam cifradas no banco com essas chaves: restaurar só o
+banco, sem o arquivo de chaves do mesmo carimbo, deixa essas sementes ilegíveis. Por isso o `restore` recusa um dump sem
+o `apogeu-keys-<carimbo>.tar.gz` ao lado, e quem copiar backups para fora da VPS precisa copiar os dois arquivos juntos.
+Os arquivos `apogeu-*` (dumps e chaves) com mais de 7 dias são apagados; outros arquivos do diretório ficam. O backup fica
+na mesma VPS (dívida registrada no ADR-0029: copie os pares para fora quando importar).
+
+Restauração (substitui os objetos do dump no banco `apogeu`, criando o banco se não existir, e **substitui o conteúdo**
+do volume de chaves pelo arquivo do mesmo carimbo):
 
 ```bash
 docker compose -p apogeu stop api demo-casino          # ninguém escrevendo durante a restauração
-tools/deploy/restore ~/apogeu-deploy/backups/apogeu-<data>.dump
+tools/deploy/restore ~/apogeu-deploy/backups/apogeu-<carimbo>.dump   # o apogeu-keys-<carimbo>.tar.gz tem de estar ao lado
 docker compose -p apogeu start api demo-casino
 tools/deploy/smoke
 ```
 
-Para ensaiar sem tocar em produção, restaure num Postgres descartável:
-`APOGEU_POSTGRES_CONTAINER=<id> tools/deploy/restore <dump>` (o IT-02 da SPEC-0066 faz exatamente isso).
+O volume de chaves tem de existir (o compose o cria na subida; num host novo, `docker compose ... up --no-start`
+primeiro). Outros volumes: `APOGEU_KEYS_VOLUME=<volume>`.
+
+Para ensaiar sem tocar em produção, restaure num Postgres e num volume descartáveis:
+`APOGEU_POSTGRES_CONTAINER=<id> APOGEU_KEYS_VOLUME=<volume> tools/deploy/restore <dump>` (o IT-02 da SPEC-0066 faz
+exatamente isso).
 
 ## Problemas comuns
 
@@ -149,4 +163,5 @@ Para ensaiar sem tocar em produção, restaure num Postgres descartável:
 | certificado não sai | 80/443 abertos no UFW e no provedor; `docker compose -p apogeu logs proxy`; limite de emissão do Let's Encrypt por domínio (sslip.io é compartilhado) |
 | `vps-deploy` recusa o compose | a mensagem nomeia o serviço, volume ou variável que falta (contrato SPEC-0065@2) |
 | smoke falha em `/casino/play/pipa` | `docker compose -p apogeu logs demo-casino api`; operador demo e carteira seamless (SPEC-0065) |
+| `restore` recusa o dump | falta o `apogeu-keys-<carimbo>.tar.gz` do mesmo carimbo ao lado; sem as chaves as sementes não reveladas ficam ilegíveis |
 | outro deploy em andamento | só um `vps-deploy`/`vps-rollback` por vez (trava em `~/apogeu-deploy/.lock`) |
