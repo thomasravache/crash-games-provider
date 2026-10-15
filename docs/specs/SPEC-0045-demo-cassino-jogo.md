@@ -149,7 +149,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 92551a4 | 2026-10-10 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:06.48]     Dada a requisição real de lançamento do DemoCasino, quando val) — ad10f10 | 2026-10-15 |
-| G2 Green | FAIL | build exit 0 (✓ built in 271ms); test exit 1 ([xUnit.net 00:01:56.73]     Dada uma aposta X cujo débito fica retido até depois da varred); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7c9409e | 2026-10-15 |
+| G2 Green | PASS | build exit 0 (✓ built in 249ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7c9409e | 2026-10-15 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
