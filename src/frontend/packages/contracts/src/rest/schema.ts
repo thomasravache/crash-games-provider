@@ -27,7 +27,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** The games enabled for the calling operator, with their currencies. */
+    /** The games enabled for the calling operator, with their currencies and the art of their visual kit. */
     get: operations["ListGames"];
     put?: never;
     post?: never;
@@ -192,9 +192,11 @@ export interface components {
       title: string;
     };
     GameSummaryResponse: {
+      bannerUrl: string;
       code: string;
       currencies: string[];
       name: string;
+      thumbnailUrl: string;
     };
     LaunchRequest: {
       currency: null | string;

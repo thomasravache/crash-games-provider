@@ -35,17 +35,31 @@ internal sealed class DemoCasinoHost : IAsyncDisposable
 
     public IServiceProvider Services => _factory.Services;
 
-    /// <summary>Starts the casino; <paramref name="configureServices"/> runs after the application's own registrations.</summary>
-    public static DemoCasinoHost Start(Action<IServiceCollection>? configureServices = null)
+    /// <summary>
+    /// Starts the casino; <paramref name="configureServices"/> runs after the application's own registrations.
+    /// <paramref name="settings"/> adds configuration (SPEC-0044: <c>DemoCasino:Lobby:NewGames</c>, …) and
+    /// <paramref name="operatorKeyId"/>/<paramref name="operatorSecret"/> replace the generated demo operator key (SPEC-0044:
+    /// the key the real Apogeu of the test knows).
+    /// </summary>
+    public static DemoCasinoHost Start(
+        Action<IServiceCollection>? configureServices = null,
+        IReadOnlyDictionary<string, string>? settings = null,
+        string? operatorKeyId = null,
+        string? operatorSecret = null)
     {
-        var keyId = "demo-it-" + Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(8));
-        var secret = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
+        var keyId = operatorKeyId ?? "demo-it-" + Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(8));
+        var secret = operatorSecret ?? Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
 
         var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
         {
             host.UseSetting("Apogeu:BaseUrl", ApogeuBaseUrl.ToString());
             host.UseSetting("Apogeu:OperatorKeyId", keyId);
             host.UseSetting("Apogeu:OperatorSecret", secret);
+            foreach (var (key, value) in settings ?? new Dictionary<string, string>(StringComparer.Ordinal))
+            {
+                host.UseSetting(key, value);
+            }
+
             if (configureServices is not null)
             {
                 host.ConfigureTestServices(configureServices);
