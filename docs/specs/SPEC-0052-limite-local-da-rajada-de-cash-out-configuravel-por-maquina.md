@@ -4,7 +4,7 @@ title: Limites locais dos testes de desempenho configuráveis por máquina
 tier: lite
 type: fix
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-13
 parent: SPEC-0019
 depends_on: []
@@ -86,14 +86,14 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 - [x] Red: UT-01 com a tag `SPEC-0052:UT-01` falhando pelo motivo certo (resolvedor ainda sem a variável)
 - [x] Emenda v2 — Red: UT-01 reescrito para o fator, com a tag `SPEC-0052:UT-01`, falhando pelo motivo certo
 - [x] Emenda v2 — Green: resolvedor no TestKit e os oito testes usando o fator; `CLAUDE.md`
-- [ ] Green: resolvedor + `CashOutLatencyTests` usando-o; `CLAUDE.md` documenta a variável
+- [x] Green: resolvedor + `CashOutLatencyTests` usando-o; `CLAUDE.md` documenta a variável
 - [x] Validar: build + suíte afetada + arquitetura (G2/G3), com a máquina ociosa e fator 1
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012
-- [ ] Relatório de Entrega e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012
+- [x] Relatório de Entrega e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -107,7 +107,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | MANUAL: CI do PR #31 verde (run 38676137955, commit 32cbe33): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; backend verde na 3ª tentativa e e2e Firefox na 2ª, após falhas de tempo conhecidas sem relação com a onda (LateDebitReusedClientBetIdTests, E2E Firefox de aposta perdida/dupla, troca de rodada no teste do líder impedido, alerta de conciliação verificado sem espera em SettlementRaceTests; os dois últimos passam 3/3 localmente); local em 54f8b85: build 0 avisos, arquitetura 19/19 + front, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
 | H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 963954a | 2026-10-15 |
 
 ## 9. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -118,28 +118,34 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
 
 ### O que foi entregue
+Os limites locais dos testes de desempenho são multiplicados pelo fator da máquina `APOGEU_PERF_BUDGET_SCALE` (decimal > 0; sem a variável vale 1, a máquina de referência; ignorada na CI). Oito testes de tempo usam o resolvedor compartilhado, e a mensagem de falha diz de onde veio o limite.
 
 ### Como foi feito
+v1 (red 3a364df, green 58546c6) tinha uma variável só para o cash-out; a Emenda v2 generalizou para o fator único `PerformanceBudget` no TestKit (scaffold 0882431, red 3a5f57f, green 4f9a124). O diagnóstico foi corrigido em 2026-10-14: a lentidão vinha de outros projetos na mesma VM, e com a máquina ociosa tudo passa com fator 1.
 
 ### Prova de Correção
 <!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+Red: UT-01 em 3a5f57f falhava em 8/8 casos com NotImplementedException (G1 PASS registrado nesse commit). Green: 4f9a124, UT-01 8/8; suíte `Category=Performance` toda verde com fator 1 e a máquina ociosa.
 
 ### Verificação
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dado o ambiente com GITHUB_ACTIONS=true (com ou sem APOGEU_PERF_BUDGET_SCALE=5), sem nenhuma das duas, com só … | PASS | G2 do registro de gates; CI do PR #31 verde (run 38676137955 em 32cbe33 e run 38683588402 em 0bb3111), merge 25c6d4e |
 
 ### Definição de Pronto
-- [ ] Teste de regressão falhou antes e passa depois da correção
-- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão existente mantido
-- [ ] Disponível no ambiente-alvo via pipeline (G6)
-- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
-- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [x] Teste de regressão falhou antes e passa depois da correção
+- [x] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão existente mantido
+- [x] Disponível no ambiente-alvo via pipeline (G6) — N/A até a SPEC-0012; em main pelo PR #31
+- [x] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [x] Outras ocorrências registradas como novas specs (ou nenhuma)
 
 ### Deploy
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #31 (merge 25c6d4e, 2026-10-15).
 
 ### Pendências
+Minors da 2ª revisão: fator enorme gera OverflowException sem nomear a variável; `GITHUB_ACTIONS` comparado com distinção de caixa; `static readonly` embrulha o erro de configuração; o prazo (b) do IT-10 fica sem fator; o UT-01 tem nome de cash-out. A dependência de ordem do teste de latência ficou registrada na SPEC-0048.
 
 ## 11. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->

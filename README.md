@@ -13,6 +13,7 @@ Provedor B2B de crash games (primeiro jogo: Pipa). Monólito modular .NET 10 com
 ```text
 src/backend/{Host,BuildingBlocks,Modules/<Modulo>/<Modulo>.<Camada>}
 src/frontend/{apps/<app>,packages/<pkg>}
+src/demo/DemoCasino          (cassino demo: operador externo, só HTTP assinado com a Apogeu)
 tests/backend/<Projeto>.Tests, tests/e2e
 docs/{adr,specs}
 ```
@@ -93,4 +94,4 @@ O backend é a fonte única (ADR-0008): o build do Host gera `artifacts/openapi/
 
 ## CI
 
-GitHub Actions (`.github/workflows`): `ci` em todo PR e push na `main` (jobs `backend`, `frontend`, `e2e`, `security`, `contracts` e `sdd`, com filtro de caminhos), `images` no merge (imagens como artefato `container-images`) e `nightly` (simulação de RTP e mutação). Os checks são informativos: o repositório é privado no GitHub Free, sem proteção de branch (SPEC-0015), e o merge acontece só com a CI verde. Os testes live do pipeline (`Category=CiLive`) abrem PRs de prova; veja `tests/ci/README.md`.
+GitHub Actions (`.github/workflows`): `ci` em todo PR e push na `main` (jobs `backend`, `frontend`, `e2e`, `security`, `contracts` e `sdd`, com filtro de caminhos), `images` no merge (imagens como artefato `container-images`) e `nightly` (simulação de RTP e mutação). Os checks são informativos (sem proteção de branch, SPEC-0015) e o merge acontece só com a CI verde. O repositório está público temporariamente (desde 2026-10-15, até concluir a jornada do jogador) porque a cota gratuita de Actions do repositório privado acabou; ao voltar a privado, a CI passa para o runner próprio da SPEC-0059 (variável `CI_RUNNER`). Os testes live do pipeline (`Category=CiLive`) abrem PRs de prova; veja `tests/ci/README.md`.
