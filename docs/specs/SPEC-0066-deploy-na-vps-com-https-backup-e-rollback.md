@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0065]
-consumes_contract: [SPEC-0065@1]
+consumes_contract: [SPEC-0065@2]
 contract_version: 1
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
 touches: ["infra/caddy/**", "infra/vps/**", "tools/deploy/**", "docs/runbooks/**", "tests/deploy/**"]

@@ -9,9 +9,9 @@ created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0047]
 consumes_contract: []
-contract_version: 1
+contract_version: 2
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
-touches: ["src/backend/AppHost/**", "src/backend/Host/**", "src/backend/Modules/Fairness/Fairness.Infrastructure/**", "src/backend/Modules/Operators/Operators.Features/Development/**", "src/backend/Modules/Operators/Operators.Infrastructure/**", "src/backend/Modules/Wallet/Wallet.Infrastructure/**", "tests/backend/AppHost.Tests/**", "tests/backend/Modules/Fairness.Tests/**", "tests/backend/Modules/Operators.Tests/**", "Directory.Packages.props", "infra/compose/**"]
+touches: ["src/backend/AppHost/**", "src/backend/Host/**", "src/backend/Modules/Fairness/Fairness.Infrastructure/**", "src/backend/Modules/Operators/Operators.Features/Development/**", "src/backend/Modules/Operators/Operators.Infrastructure/**", "src/backend/Modules/Wallet/Wallet.Infrastructure/**", "tests/backend/AppHost.Tests/**", "tests/backend/Modules/Fairness.Tests/**", "tests/backend/Modules/Operators.Tests/**", "tests/backend/Modules/Wallet.Tests/**", "Directory.Packages.props", "infra/compose/**", "src/backend/Modules/Fairness/Fairness.Features/**", "src/backend/Modules/Rounds/Rounds.Features/**", "src/backend/Modules/Betting/Betting.Features/**", "src/backend/Modules/Wallet/Wallet.Features/**"]
 adrs: [ADR-0029, ADR-0003, ADR-0014, ADR-0016]
 external: []
 size: M
@@ -76,10 +76,10 @@ O AppHost passa a publicar a plataforma como um Docker Compose de produção (`a
 
 ```text
 ```text
-Serviços: api, demo-casino, postgres, redis, keycloak (rede interna; sem ports no host)
+Serviços: api, demo-casino, postgres, redis (rede interna; sem ports no host). Keycloak fica fora da produção até o backoffice ser publicado (SPEC-0036); a API recebe Security__Backoffice__Authority do parâmetro backoffice-authority (Emenda v1)
 Volumes: postgres-data, dataprotection-keys
-Variáveis do .env (sem valor no repositório): OPERATORS_DEMO_KEY_ID, OPERATORS_DEMO_KEY_SECRET, PLAYER_SESSION_SIGNING_KEY, POSTGRES_PASSWORD, KEYCLOAK_ADMIN_PASSWORD, PUBLIC_API_URL (https://api.143-95-218-240.sslip.io), PUBLIC_GAME_URL (https://jogo.143-95-218-240.sslip.io), imagens/tag da versão
-API em Production: migra os módulos na subida; Operators:Demo:Enabled=true garante operador demo, catálogo e limites; Wallet:Operators:demo:Mode=Seamless → http://demo-casino; DataProtection:KeysPath=/keys
+Variáveis do `.env` gerado pelo Aspire, sem valores (Emenda v1): OPERATORS_DEMO_KEY_ID, OPERATORS_DEMO_KEY_SECRET, PLAYER_SESSION_SIGNING_KEY, POSTGRES_PASSWORD, REDIS_PASSWORD, BACKOFFICE_AUTHORITY, PUBLIC_API_URL (https://api.143-95-218-240.sslip.io), PUBLIC_GAME_URL (https://jogo.143-95-218-240.sslip.io), API_IMAGE e DEMO_CASINO_IMAGE (imagens da versão)
+API em Production: migra os módulos na subida (inclusive o armazenamento do Wolverine); Operators:Demo:Enabled=true garante operador demo, catálogo e limites; Wallet:Operators:demo:Mode=Seamless → http://demo-casino, liberado por `Wallet:Operators:demo:AllowHttpHosts=[demo-casino]` (http só para hosts listados; o padrão continua: http só no loopback, https no resto — Emenda v1); DataProtection:KeysPath=/keys
 Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcançáveis pelo nome
 ```
 ```
@@ -106,8 +106,8 @@ Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcanç
 - N/A — o modo run do AppHost segue coberto pelos testes do `AppHost.Tests`, que continuam passando.
 
 ### 7.2 Testes Unitários
-- **UT-01** — Dado o AppHost em modo publish, quando o compose é gerado, então tem api, demo-casino, postgres, redis e keycloak, os volumes de dados e de chaves, `ASPNETCORE_ENVIRONMENT=Production`, limites de memória, nenhuma porta publicada no host e nenhum valor de segredo literal (só referências a variáveis).
-- **UT-02** — Dados os parâmetros `public-game-url` e `public-api-url`, quando o compose é gerado, então a API recebe `Operators__GameBaseUrl` e `Cors__GameOrigins__0` com o endereço público do jogo e a carteira seamless do operador demo aponta para `http://demo-casino`.
+- **UT-01** — Dado o AppHost em modo publish, quando o compose é gerado, então tem api, demo-casino, postgres e redis (sem keycloak), os volumes de dados e de chaves, `ASPNETCORE_ENVIRONMENT=Production`, limites de memória, nenhuma porta publicada no host e nenhum valor de segredo literal (só referências a variáveis).
+- **UT-02** — Dados os parâmetros `public-game-url` e `public-api-url`, quando o compose é gerado, então a API recebe `Operators__GameBaseUrl` e `Cors__GameOrigins__0` com o endereço público do jogo, a carteira seamless do operador demo aponta para `http://demo-casino` com `Wallet__Operators__demo__AllowHttpHosts__0=demo-casino`, e a carteira aceita http para um host listado e recusa http para um host não listado (Emenda v1).
 
 ### 7.3 Testes de Integração
 <!-- Com as dependências reais (containers/emuladores), não mocks. -->
@@ -120,7 +120,7 @@ Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcanç
 
 ### 7.5 Testes E2E
 <!-- Obrigatório (E2E-xx) quando user_facing: true: jornada nova ou atualização do E2E que já cobre a jornada. Poucos e significativos. -->
-- N/A — sem jornada nova; a jornada contra o ambiente publicado é o E2E-01 da SPEC-0066.
+- N/A — sem jornada nova; a jornada contra o ambiente publicado é o E2E da SPEC-0066.
 
 ### 7.6 Outros
 - N/A
@@ -179,6 +179,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G1 | spec | §7.5 cita E2E-01 com ID (lido como teste da 0065); REDIS_PASSWORD e bind mount do realm do Keycloak fora do contrato do §6; nomes das variáveis de imagem e do arquivo .env indefinidos; carteira seamless recusa http fora do loopback (http://demo-casino); migrações de Development nos *.Features fora do touches | test-writer escreveu UT-01, UT-02, IT-01, IT-02 e CT-01 (red c89e314, 32096f8) e validou as asserções contra um esboço descartado | architect | Emenda v2 (contrato): sem Keycloak, REDIS_PASSWORD, AllowHttpHosts, nomes de imagem e .env | 2026-10-15 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -219,3 +220,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0065`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 2 | 2026-10-15 | Keycloak fora do compose de produção (backoffice não publicado; `BACKOFFICE_AUTHORITY` como parâmetro); `REDIS_PASSWORD` no contrato; variáveis de imagem `API_IMAGE`/`DEMO_CASINO_IMAGE` e arquivo `.env` sem valores; carteira seamless aceita http só para hosts listados em `AllowHttpHosts` (demo-casino na rede interna); armazenamento do Wolverine criado na subida de produção; `*.Features` dos módulos no `touches` (migrações); §7.5 sem ID de teste de outra spec | Test-writer (SPEC_DEFECT, IMP-01) | SPEC-0066 (contrato do compose: 4 serviços e variáveis novas) | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
