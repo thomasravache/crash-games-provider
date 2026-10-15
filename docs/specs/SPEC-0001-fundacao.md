@@ -118,7 +118,7 @@ Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com e
 ## 10. Registro de Impedimentos
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
-| IMP-01 | 2026-10-14 | G5 | externo | CI da PR #31 (onda 1) não roda: GitHub Actions recusa iniciar jobs ('recent account payments have failed or your spending limit needs to be increased'); cota gratuita de minutos do repo privado provavelmente esgotada e limite de gasto em zero | run 38661010467: changes, sdd e security falham em 3 s sem iniciar; anotação do check-run confirma cobrança; última CI verde em 2026-10-13 | thomas |  |  |
+| IMP-01 | 2026-10-14 | G5 | externo | CI da PR #31 (onda 1) não roda: GitHub Actions recusa iniciar jobs ('recent account payments have failed or your spending limit needs to be increased'); cota gratuita de minutos do repo privado provavelmente esgotada e limite de gasto em zero | run 38661010467: changes, sdd e security falham em 3 s sem iniciar; anotação do check-run confirma cobrança; última CI verde em 2026-10-13 | thomas | repositório tornado público por decisão do thomas (2026-10-15, até finalizar a jornada do jogador); CI volta a rodar nos runners do GitHub (run 38675903437); runner próprio fica para a SPEC-0059 quando voltar a privado | 2026-10-15 |
 
 ## 11. Relatório de Entrega
 
