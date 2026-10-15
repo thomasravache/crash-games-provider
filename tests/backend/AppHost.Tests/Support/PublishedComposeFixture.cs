@@ -19,6 +19,9 @@ public sealed class PublishedComposeFixture : IAsyncLifetime
     /// <summary>Address of the game given as the <c>public-game-url</c> parameter.</summary>
     public const string PublicGameUrl = "https://jogo.canary.apogeu.test";
 
+    /// <summary>Authority of the backoffice tokens given as the <c>backoffice-authority</c> parameter (§6, Emenda v2).</summary>
+    public const string BackofficeAuthority = "https://auth.canary.apogeu.test/realms/apogeu";
+
     /// <summary>Address of the API given as the <c>public-api-url</c> parameter.</summary>
     public const string PublicApiUrl = "https://api.canary.apogeu.test";
 
@@ -26,15 +29,13 @@ public sealed class PublishedComposeFixture : IAsyncLifetime
 
     /// <summary>
     /// Parameters given secret canary values: the §6 secrets by the parameter name of their variable (lower case, dashes),
-    /// plus the generated passwords Aspire would add by default.
+    /// the PostgreSQL and Redis passwords included.
     /// </summary>
     private static readonly string[] SecretParameters =
     [
         "operators-demo-key-secret",
         "player-session-signing-key",
         "postgres-password",
-        "keycloak-admin-password",
-        "keycloak-password",
         "redis-password",
     ];
 
@@ -71,6 +72,7 @@ public sealed class PublishedComposeFixture : IAsyncLifetime
             "--output-path", OutputDirectory,
             $"--Parameters:public-game-url={PublicGameUrl}",
             $"--Parameters:public-api-url={PublicApiUrl}",
+            $"--Parameters:backoffice-authority={BackofficeAuthority}",
             .. Canaries.Select(canary => $"--Parameters:{canary.Key}={canary.Value}"),
         ];
 
@@ -91,17 +93,16 @@ public sealed class PublishedComposeFixture : IAsyncLifetime
     }
 
     /// <summary>
-    /// The example environment file written next to the compose file: <c>.env.example</c> (§6) or, failing that, the
-    /// <c>.env</c> Aspire writes. Fails when there is none.
+    /// The environment file Aspire writes next to the compose file, without values (§6, Emenda v2: <c>.env</c>). Fails when
+    /// there is none.
     /// </summary>
     public string EnvTemplatePath()
     {
-        string[] candidates = [Path.Combine(OutputDirectory, ".env.example"), Path.Combine(OutputDirectory, ".env")];
-        var found = candidates.FirstOrDefault(File.Exists);
+        var path = Path.Combine(OutputDirectory, ".env");
         Assert.True(
-            found is not null,
-            $"The AppHost publish wrote neither .env.example nor .env to {OutputDirectory}. Files: {string.Join(", ", Files())}.");
-        return found;
+            File.Exists(path),
+            $"The AppHost publish wrote no .env to {OutputDirectory}. Files: {string.Join(", ", Files())}.");
+        return path;
     }
 
     /// <summary>Every file the publish wrote, relative to the output directory.</summary>

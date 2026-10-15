@@ -14,9 +14,9 @@ public sealed partial class ComposePublishTests(PublishedComposeFixture publishe
     private const string Api = "api";
     private const string DemoCasino = "demo-casino";
     private const string KeysPath = "/keys";
-    private static readonly string[] ContractServices = [Api, DemoCasino, "postgres", "redis", "keycloak"];
+    private static readonly string[] ContractServices = [Api, DemoCasino, "postgres", "redis"];
 
-    [Fact(DisplayName = "Dado o AppHost em modo publish, quando o compose é gerado, então tem api, demo-casino, postgres, redis e keycloak, os volumes de dados e de chaves, ambiente Production, limites de memória, nenhuma porta publicada no host e nenhum segredo literal")]
+    [Fact(DisplayName = "Dado o AppHost em modo publish, quando o compose é gerado, então tem api, demo-casino, postgres e redis (sem keycloak), os volumes de dados e de chaves, ambiente Production, limites de memória, nenhuma porta publicada no host e nenhum segredo literal")]
     [Trait("Spec", "SPEC-0065:UT-01")]
     public void GivenAppHostInPublishModeWhenComposeIsGeneratedThenItIsTheProductionComposeWithoutPortsOrSecrets()
     {
@@ -27,6 +27,9 @@ public sealed partial class ComposePublishTests(PublishedComposeFixture publishe
         Assert.True(
             missing.Count == 0,
             $"The compose lacks the services {string.Join(", ", missing)}. Services: {string.Join(", ", compose.ServiceNames)}.");
+
+        // Emenda v2: the Keycloak stays out of production until the backoffice is published (SPEC-0036).
+        Assert.False(compose.HasService("keycloak"), "The production compose must not run the keycloak (Emenda v2).");
 
         // Data volumes: the PostgreSQL data and the Data Protection key ring of the api (DataProtection:KeysPath=/keys, §6).
         Assert.Contains("postgres-data", compose.VolumeNames, StringComparer.Ordinal);
@@ -52,7 +55,7 @@ public sealed partial class ComposePublishTests(PublishedComposeFixture publishe
         AssertNoLiteralSecrets(compose);
     }
 
-    [Fact(DisplayName = "Dados os parâmetros public-game-url e public-api-url, quando o compose é gerado, então a API recebe Operators__GameBaseUrl e Cors__GameOrigins__0 com o endereço público do jogo e a carteira seamless do operador demo aponta para http://demo-casino")]
+    [Fact(DisplayName = "Dados os parâmetros public-game-url e public-api-url, quando o compose é gerado, então a API recebe Operators__GameBaseUrl e Cors__GameOrigins__0 com o endereço público do jogo e a carteira seamless do operador demo aponta para http://demo-casino com AllowHttpHosts__0=demo-casino")]
     [Trait("Spec", "SPEC-0065:UT-02")]
     public void GivenPublicAddressesWhenComposeIsGeneratedThenApiUsesThePublicGameAddressAndTheSeamlessWalletIsTheDemoCasino()
     {
@@ -63,11 +66,15 @@ public sealed partial class ComposePublishTests(PublishedComposeFixture publishe
         Assert.Equal("${PUBLIC_GAME_URL}", Assert.Contains("Operators__GameBaseUrl", api));
         Assert.Equal("${PUBLIC_GAME_URL}", Assert.Contains("Cors__GameOrigins__0", api));
 
+        // §6 (Emenda v2): the authority of the backoffice tokens is a parameter too, not a keycloak of the compose.
+        Assert.Equal("${BACKOFFICE_AUTHORITY}", Assert.Contains("Security__Backoffice__Authority", api));
+
         // The demo operator is seamless and its wallet is the DemoCasino on the internal network (SPEC-0047), signed with
         // the demo operator key of the .env.
         Assert.Equal("Seamless", Assert.Contains("Wallet__Operators__demo__Mode", api));
         var walletUrl = Assert.Contains("Wallet__Operators__demo__WalletUrl", api);
         Assert.Matches(DemoCasinoUrl(), walletUrl);
+        Assert.Equal(DemoCasino, Assert.Contains("Wallet__Operators__demo__AllowHttpHosts__0", api));
         Assert.Equal("${OPERATORS_DEMO_KEY_ID}", Assert.Contains("Wallet__Operators__demo__KeyId", api));
         Assert.Equal("${OPERATORS_DEMO_KEY_SECRET}", Assert.Contains("Wallet__Operators__demo__Secret", api));
     }
@@ -75,7 +82,7 @@ public sealed partial class ComposePublishTests(PublishedComposeFixture publishe
     /// <summary>
     /// No secret value in the generated files: the canary values given to the AppHost appear in none of them; every
     /// credential-like variable and every password inside a connection string or URI is only a <c>${VARIABLE}</c>
-    /// reference; and the example environment file carries no value at all.
+    /// reference; and the .env carries no value at all.
     /// </summary>
     private void AssertNoLiteralSecrets(ComposeDocument compose)
     {
@@ -112,7 +119,7 @@ public sealed partial class ComposePublishTests(PublishedComposeFixture publishe
         var withValue = EnvFile.Read(envTemplate).Where(variable => variable.Value.Length > 0).Select(variable => variable.Key).ToList();
         Assert.True(
             withValue.Count == 0,
-            $"{Path.GetFileName(envTemplate)} must be an example without values; it sets {string.Join(", ", withValue)}.");
+            $"{Path.GetFileName(envTemplate)} must carry no values; it sets {string.Join(", ", withValue)}.");
     }
 
     /// <summary>Plain http to the DemoCasino service by name (port 8080 of §6 or the default), any path.</summary>

@@ -4,6 +4,7 @@ using Apogeu.Operators.Infrastructure.Catalog;
 using Apogeu.Operators.Infrastructure.Persistence;
 using Apogeu.Operators.Tests.Support;
 using Apogeu.TestKit.Containers;
+using Npgsql;
 using Xunit;
 using static Apogeu.Operators.Tests.Support.CatalogExpectations;
 
@@ -19,7 +20,10 @@ public sealed class ProductionStartupTests(PostgreSqlContainerFixture postgres, 
     /// <summary>The schemas of the modules with migrations (ADR-0010).</summary>
     private static readonly string[] ModuleSchemas = ["betting", "fairness", "operators", "rounds", "wallet"];
 
-    [Fact(DisplayName = "Dado o Host em Production com banco vazio e Operators:Demo:Enabled=true, quando sobe, então as migrações de todos os módulos foram aplicadas, o operador demo, o catálogo e os limites existem, e /dev/launch-demo responde 404")]
+    /// <summary>The envelope tables of the Wolverine durable storage (inbox, outbox, dead letters).</summary>
+    private static readonly string[] WolverineTables = ["wolverine_incoming_envelopes", "wolverine_outgoing_envelopes", "wolverine_dead_letters"];
+
+    [Fact(DisplayName = "Dado o Host em Production com banco vazio e Operators:Demo:Enabled=true, quando sobe, então as migrações de todos os módulos (e o armazenamento do Wolverine) foram aplicadas, o operador demo, o catálogo e os limites existem, e /dev/launch-demo responde 404")]
     [Trait("Spec", "SPEC-0065:IT-02")]
     [Trait("Category", "Integration")]
     public async Task GivenProductionHostOnEmptyDatabaseWithDemoEnabledWhenStartedThenModulesAreMigratedAndDemoOperatorIsReady()
@@ -42,6 +46,20 @@ public sealed class ProductionStartupTests(PostgreSqlContainerFixture postgres, 
                 $"The migrations of {state.Context} (schema {state.Schema}) were not applied on the start: {state.Applied.Count} applied, pending: {string.Join(", ", state.Pending)}.");
         }
 
+        // §6 (Emenda v2): the message storage of Wolverine (schema wolverine, transactional outbox) is created on the start too.
+        var missingTables = new List<string>();
+        foreach (var table in WolverineTables)
+        {
+            if (!await TableExistsAsync(host.Database, "wolverine", table, ct))
+            {
+                missingTables.Add(table);
+            }
+        }
+
+        Assert.True(
+            missingTables.Count == 0,
+            $"The message storage of Wolverine was not created on the start in Production: missing wolverine.{string.Join(", wolverine.", missingTables)}.");
+
         var demo = await host.WithServiceAsync<IOperatorDirectory, OperatorRecord?>(directory => directory.FindAsync(Demo.Value, ct));
         Assert.True(demo is not null, "The demo operator was not ensured on the start in Production with Operators:Demo:Enabled=true.");
 
@@ -53,5 +71,20 @@ public sealed class ProductionStartupTests(PostgreSqlContainerFixture postgres, 
         using var client = host.CreateClient();
         using var response = await client.GetAsync(new Uri("/dev/launch-demo", UriKind.Relative), ct);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    private static async Task<bool> TableExistsAsync(string database, string schema, string table, CancellationToken ct)
+    {
+        var connection = new NpgsqlConnection(database);
+        await using (connection.ConfigureAwait(false))
+        {
+            await connection.OpenAsync(ct).ConfigureAwait(false);
+            var command = new NpgsqlCommand("SELECT to_regclass(@name) IS NOT NULL", connection);
+            await using (command.ConfigureAwait(false))
+            {
+                command.Parameters.AddWithValue("name", $"{schema}.{table}");
+                return await command.ExecuteScalarAsync(ct).ConfigureAwait(false) is true;
+            }
+        }
     }
 }
