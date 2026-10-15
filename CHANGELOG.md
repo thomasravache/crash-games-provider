@@ -12,6 +12,8 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 - ASP.NET Core, Extensions e EF Core 10.0.13 e SDK 10.0.402: corrige o CVE-2026-70159 (GHSA-334f-vvp4-7g6p), negação de serviço no SignalR; testes de guarda impedem voltar à faixa vulnerável (SPEC-0058)
 
 ### Added
+- Cassino demo: lobby com o catálogo da Apogeu — `GET /casino/games` no BFF (chamada assinada, cache de 60 s, 401 sem sessão e 502 PROVIDER_UNAVAILABLE com a Apogeu fora do ar), banner de destaque, abas Todos/Crash/Novidades e cartões com a arte do kit visual; o catálogo `GET /api/v1/games` passa a trazer `thumbnailUrl` e `bannerUrl` (SPEC-0044)
+- Abas de apostas da Pipa: "Todas as apostas" ao vivo com apelido anonimizado e totais da rodada, e "Minhas apostas" com o histórico do jogador e "Carregar mais" por cursor (SPEC-0031)
 - Cassino demo: backend próprio (`DemoCasino`, operador externo que fala com a Apogeu só por HTTP assinado) e tela de entrada com apelido e moeda, sessão em cookie e segredo HMAC só no servidor (SPEC-0043)
 - Carteira seamless: adaptador HTTP da carteira do próprio operador (assinatura HMAC, idempotência por transação, prazo, reenvio de crédito e estorno até confirmar pelo outbox, livro-razão espelho); modo de carteira por operador (SPEC-0046)
 - Apostas ao vivo e histórico pessoal: lotes a cada 200 ms (até 100 itens) com apelido anonimizado e `betRef` opaco, snapshot ao entrar na sala e `GET /api/v1/me/bets` com paginação por cursor; uma instância do Host (várias instâncias na SPEC-0056) (SPEC-0025)
