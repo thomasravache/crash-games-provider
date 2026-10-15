@@ -39,6 +39,7 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 - Estrutura do repositório e qualidade de código: solução .NET 10 em monólito modular (6 módulos), workspace pnpm com os apps e pacotes do front, análise estrita, lint/format e hooks de commit (SPEC-0002)
 
 ### Changed
+- A CI roda os testes .NET e os E2E quando o cassino demo muda (`src/demo/**`, `tests/demo/**`); antes esses PRs pulavam o job `backend` (SPEC-0060)
 - Gates locais G1/G2 rodam só os testes afetados pela mudança (`tools/ci/affected-tests`); backend, arquivos de apoio compartilhados e arquivos não mapeados continuam rodando a suíte inteira, e o G5 local e a CI do GitHub rodam tudo (SPEC-0051)
 
 ### Fixed

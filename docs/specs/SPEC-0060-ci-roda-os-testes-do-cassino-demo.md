@@ -57,15 +57,15 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-15). Cada fase começa pelos testes. -->
 
 **Fase 1: Regressão e correção**
-- [ ] Red: escrever UT-01 com a tag `SPEC-0060:UT-01` e confirmar que falha pelo motivo certo
-- [ ] Green: incluir `src/demo/**` no grupo `dotnet` e `tests/demo/**` no filtro `backend`
-- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+- [x] Red: escrever UT-01 com a tag `SPEC-0060:UT-01` e confirmar que falha pelo motivo certo
+- [x] Green: incluir `src/demo/**` no grupo `dotnet` e `tests/demo/**` no filtro `backend`
+- [x] Validar: build + testes afetados + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde, com o job `backend` rodando (G5), e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde, com o job `backend` rodando (G5), e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -90,28 +90,34 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
 
 ### O que foi entregue
+Mudanças no cassino demo (`src/demo/**`, `tests/demo/**`) passam a acionar os jobs `backend`, `e2e` e `contracts` da CI, então os testes .NET do DemoCasino rodam no GitHub em todo PR que mexe no cassino.
 
 ### Como foi feito
+Red 364cbd2 (UT-01 com o leitor mínimo `PathsFilter` do bloco `filters` do job `changes`: âncoras/aliases e globs no estilo picomatch); green 8768804 (`src/demo/**` no grupo `dotnet` e `tests/demo/**` no filtro `backend` do `ci.yml`).
 
 ### Prova de Correção
 <!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+Red 364cbd2: UT-01 falhando nos 2 casos ("a change only in `src/demo/DemoCasino/Program.cs` does not trigger the filter(s) `backend`, `e2e`, `contracts`" e o mesmo para `tests/demo/**` com `backend`). Green 8768804: UT-01 3/3 e Ci.Tests 49/49; na CI do PR #37 o job `backend` rodou (antes, no PR #36, `backend: skipped`).
 
 ### Verificação
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dado o `ci.yml`, quando os filtros do job `changes` são lidos, então uma mudança só em `src/demo/DemoCasino/Pr… | PASS | G2 do registro de gates; CI do PR #37 verde com o job backend (run 38762211508 em 858842e), merge a44a7f7 |
 
 ### Definição de Pronto
-- [ ] Teste de regressão falhou antes e passa depois da correção
-- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão existente mantido
-- [ ] Disponível no ambiente-alvo via pipeline (G6)
-- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
-- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [x] Teste de regressão falhou antes e passa depois da correção
+- [x] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão existente mantido
+- [x] Disponível no ambiente-alvo via pipeline (G6) — N/A até a SPEC-0012; em main pelo PR #37
+- [x] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [x] Outras ocorrências registradas como novas specs (ou nenhuma)
 
 ### Deploy
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #37 (merge a44a7f7, 2026-10-15).
 
 ### Pendências
+Minors do review (G4): alias de âncora inexistente vira glob literal sem erro; matcher sem `{a,b}`, `[...]` e `!` (documentar o subconjunto); Theory só com casos positivos.
 
 ## 11. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
