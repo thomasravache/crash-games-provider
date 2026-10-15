@@ -85,7 +85,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: lote atrasado de rodada anterior pode reexibir apostas até o próximo lote (ordem entre hubs); conclusão de aposta com Minhas apostas aberta relê só a página 1; cancelamento não relê o histórico; Tentar de novo após falha do Carregar mais relê a página 1; teste UT-02 frágil ao procurar 'disabled' nas classes; tabpanel sem tabIndex; sem teste de re-join na reconexão, de falha do JoinSalaBets e de descarte por geração; ordem das apostas novas não definida pela spec — 88cdf0c | 2026-10-15 |
 | G5 Integração & CI | PASS | MANUAL: MANUAL: CI do PR #34 verde (run 38717248741, commit 197fa3e): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; e2e verde na 2ª tentativa após 2 falhas de tempo no webkit-mobile em testes da SPEC-0026 (E2E-02 aposta perdida, E2E-04 aposta dupla: a aposta volta a APOSTAR antes de virar RETIRAR), o mesmo padrão intermitente já visto no Firefox na onda 1; local em 197fa3e: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #34, run 38717248741); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
-| G6 Deploy | PENDING | | |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 9. Registro de Impedimentos
