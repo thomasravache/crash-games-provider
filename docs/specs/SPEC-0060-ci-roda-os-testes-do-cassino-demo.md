@@ -76,7 +76,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 279ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 8768804 | 2026-10-15 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.04s (tests 96%, transform 2%, import 1%)) — 8768804 | 2026-10-15 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: alias de âncora inexistente vira glob literal sem erro (PathsFilter.cs:113-120); matcher não trata {a,b}, [...] nem ! (documentar o subconjunto); ExplicitCapture inócuo; Theory só com casos positivos (o Fact de sanidade cobre negativos); contracts acionado por src/demo é um pouco amplo, como decidido na spec — 8768804 | 2026-10-15 |
-| G5 Integração & CI | PENDING | | |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #37 verde (run 38762211508, commit 858842e) com o job backend rodando (suíte .NET completa + Performance) por causa do ci.yml alterado — prova da correção; frontend, contracts, e2e, security e sdd verdes; merge a44a7f7 | 2026-10-15 |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
 | G7 Pronto & Docs | PENDING | | |
