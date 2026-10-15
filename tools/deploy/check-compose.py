@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Contract SPEC-0065@2 of the published compose, as tools/deploy/vps-deploy reads it (SPEC-0066 CT-01).
+"""Contract SPEC-0065@3 of the published compose, as tools/deploy/vps-deploy reads it (SPEC-0066 CT-01).
 
 Reads `docker compose config --format json --no-interpolate` on stdin (references like ${VAR} kept, so no value of the
-.env is ever in memory here) and checks: every service and volume of the contract exists; the contract services share
-one single network, the one the proxy joins (infra/caddy/compose.proxy.yaml); no contract service publishes ports on
-the host; every variable the compose references without a default is defined in one of the --env-file files (only the
+.env is ever in memory here) and checks: every service and volume of the contract exists; the long-running services
+(--networked) share one single network, the one the proxy joins (infra/caddy/compose.proxy.yaml); no service of the
+compose publishes ports on the host (only the proxy does, and it is not in this file — SPEC-0066 Emenda v4); every
+variable the compose references without a default is defined in one of the --env-file files (only the
 names of those files are read, never their values).
 
 Exit 0 when the compose honours the contract; otherwise exit 1 and one line on stdout naming what is missing.
@@ -51,6 +52,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--services", required=True, help="space-separated services of the contract")
     parser.add_argument("--volumes", required=True, help="space-separated volumes of the contract")
+    parser.add_argument("--networked", required=True, help="space-separated services that must be on the proxy network")
     parser.add_argument("--env-file", action="append", default=[], help="files defining the variables")
     arguments = parser.parse_args()
 
@@ -74,15 +76,13 @@ def main() -> int:
     declared = set((compose.get("networks") or {}).keys()) - {"default"}
     if declared != {PROXY_NETWORK}:
         problems.append(f"expected the single network '{PROXY_NETWORK}', found: {', '.join(sorted(declared)) or 'none'}")
-    for name in arguments.services.split():
+    for name in arguments.networked.split():
         service = services.get(name)
-        if service is None:
-            continue
-        networks = service.get("networks") or {}
-        if PROXY_NETWORK not in networks:
+        if service is not None and PROXY_NETWORK not in (service.get("networks") or {}):
             problems.append(f"service {name} is not on the network '{PROXY_NETWORK}'")
-        if service.get("ports"):
-            problems.append(f"service {name} publishes ports on the host")
+    publishing = sorted(name for name, service in services.items() if (service or {}).get("ports"))
+    if publishing:
+        problems.append("only the proxy may publish ports on the host; publishing: " + ", ".join(publishing))
 
     defined = defined_names(arguments.env_file)
     undefined = sorted(

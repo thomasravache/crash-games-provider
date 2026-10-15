@@ -8,6 +8,7 @@
 #   APOGEU_DOMAIN           base domain of cassino., jogo. and api.
 #   APOGEU_HTTP_PORT        host ports of the proxy
 #   APOGEU_HTTPS_PORT
+#   APOGEU_BIND_ADDRESS     host address the proxy publishes those ports on (default 0.0.0.0)
 #   APOGEU_IMAGE_PREFIX     prefix of the image names of a version
 #
 # Rule of every script: no value of the .env is ever printed. Compose only gets the .env through --env-file, the
@@ -19,21 +20,24 @@ APOGEU_COMPOSE_PROJECT="${APOGEU_COMPOSE_PROJECT:-apogeu}"
 APOGEU_DOMAIN="${APOGEU_DOMAIN:-143-95-218-240.sslip.io}"
 APOGEU_HTTP_PORT="${APOGEU_HTTP_PORT:-80}"
 APOGEU_HTTPS_PORT="${APOGEU_HTTPS_PORT:-443}"
+APOGEU_BIND_ADDRESS="${APOGEU_BIND_ADDRESS:-0.0.0.0}"
 APOGEU_IMAGE_PREFIX="${APOGEU_IMAGE_PREFIX:-apogeu}"
 export APOGEU_DEPLOY_DIR APOGEU_DEPLOY_REPO APOGEU_COMPOSE_PROJECT APOGEU_DOMAIN APOGEU_HTTP_PORT APOGEU_HTTPS_PORT \
-  APOGEU_IMAGE_PREFIX
+  APOGEU_BIND_ADDRESS APOGEU_IMAGE_PREFIX
 
 env_file="$APOGEU_DEPLOY_DIR/.env"
 releases_dir="$APOGEU_DEPLOY_DIR/releases"
 state_dir="$APOGEU_DEPLOY_DIR/state"
 
-# Secrets of the .env (SPEC-0065@2 §6), generated on the first run.
+# Secrets of the .env (SPEC-0065@3 §6), generated on the first run.
 secret_names=(OPERATORS_DEMO_KEY_ID OPERATORS_DEMO_KEY_SECRET PLAYER_SESSION_SIGNING_KEY POSTGRES_PASSWORD REDIS_PASSWORD)
 # Variables of a version (release.env): they must come from the files of that version, never from the shell — an
 # exported API_IMAGE would win over --env-file and a rollback would run the new images again.
 release_names=(APOGEU_VERSION API_IMAGE DEMO_CASINO_IMAGE PROXY_IMAGE)
-# Contract SPEC-0065@2: services and volumes of the published compose.
-contract_services=(api demo-casino postgres redis)
+# Contract SPEC-0065@3: services and volumes of the published compose; keys-init is short-lived (it hands the keys
+# volume to the api user), the others are long-running on the network of the proxy.
+contract_services=(api demo-casino postgres redis keys-init)
+networked_services=(api demo-casino postgres redis)
 contract_volumes=(postgres-data dataprotection-keys)
 
 log() { printf '[%s] %s\n' "$script_name" "$*" >&2; }

@@ -7,7 +7,9 @@
 # objects of the dump (pg_restore --clean --if-exists), in one transaction, and the keys archive beside it
 # (apogeu-keys-<stamp>.tar.gz of tools/deploy/backup) into the Data Protection keys volume, replacing its files with the
 # owners (1654, the api user) and modes of the archive. A dump without its keys archive is refused before anything
-# changes: without the keys the unrevealed seeds are unreadable (Emenda v3). Stop the api first in production
+# changes: without the keys the unrevealed seeds are unreadable (Emenda v3). The keys archive is checked first: a corrupted
+# or truncated one is refused before the database is created or loaded and before the current keys are removed
+# (Emenda v4). Take a backup (tools/deploy/backup) before any restore in production. Stop the api first in production
 # (docker compose -p apogeu stop api demo-casino) so nothing writes during the restore; see the runbook.
 # Environment: APOGEU_POSTGRES_CONTAINER (default: the postgres service of the compose project), APOGEU_KEYS_VOLUME
 # (default <project>_dataprotection-keys), APOGEU_POSTGRES_USER.
@@ -25,6 +27,7 @@ dump="$1"
 [[ -s "$dump" ]] || die "$dump is not a dump file"
 keys_file="$(keys_archive_of "$dump")"
 [[ -s "$keys_file" ]] || die "no keys archive $(basename "$keys_file") beside the dump: refusing to restore the database without its Data Protection keys"
+keys_archive_valid "$keys_file" || die "the keys archive $(basename "$keys_file") is corrupted or truncated: nothing was restored"
 require_keys_volume
 
 container="$(postgres_container)"

@@ -9,8 +9,8 @@
 # 3. Runs the build hook there (APOGEU_DEPLOY_BUILD, default tools/deploy/build-release: `aspire publish` of the compose
 #    and the images), with the image names of the version: <prefix>-api, <prefix>-demo-casino, <prefix>-proxy, tagged
 #    with the commit.
-# 4. Checks the compose against the contract SPEC-0065@2 (services, volumes, single network, variables) and refuses it
-#    before anything goes up.
+# 4. Checks the compose against the contract SPEC-0065@3 (services, volumes, single network, variables, no published
+#    port outside the proxy) and refuses it, naming the service, before any container is created.
 # 5. Brings the version up with the proxy (infra/caddy/compose.proxy.yaml), waits for the health and runs the smoke.
 #    Success: the previous version is kept for vps-rollback. Any failure: exit ≠ 0 and the previous version back on the
 #    air.
@@ -49,7 +49,7 @@ checkout_ref() {
   printf '%s' "$commit"
 }
 
-# Contract SPEC-0065@2 of the published compose: services, volumes, the single network and the variables it references,
+# Contract SPEC-0065@3 of the published compose: services, volumes, the single network and the variables it references,
 # all present in the .env of the host or the release.env of the version. Reads the configuration in memory only.
 check_contract() {
   local release="$1" dir="$releases_dir/$1"
@@ -65,9 +65,10 @@ check_contract() {
       config --format json --no-interpolate 2>/dev/null |
       python3 -I "$script_dir/check-compose.py" \
         --services "${contract_services[*]}" --volumes "${contract_volumes[*]}" \
+        --networked "${networked_services[*]}" \
         --env-file "$env_file" --env-file "$dir/release.env"
   )" || {
-    log "compose of version $release refused (contract SPEC-0065@2): ${missing:-unreadable docker-compose.yaml}"
+    log "compose of version $release refused (contract SPEC-0065@3): ${missing:-unreadable docker-compose.yaml}"
     return 1
   }
 }

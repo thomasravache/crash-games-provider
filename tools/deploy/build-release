@@ -5,7 +5,7 @@
 #
 # Input (environment, set by vps-deploy): API_IMAGE, DEMO_CASINO_IMAGE, PROXY_IMAGE (names tagged with the commit),
 # APOGEU_VERSION, APOGEU_DOMAIN.
-# Output: infra/compose/out/docker-compose.yaml (`aspire publish` of the AppHost, contract SPEC-0065@2) and the three
+# Output: infra/compose/out/docker-compose.yaml (`aspire publish` of the AppHost, contract SPEC-0065@3) and the three
 # images in the local Docker engine. No secret is involved: the compose only references ${VARIABLES} of the .env.
 set -euo pipefail
 

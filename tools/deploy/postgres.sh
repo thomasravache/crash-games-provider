@@ -52,8 +52,14 @@ keys_export() {
     tar -czf - -C /keys .
 }
 
+# Fails unless the file is a complete, readable tar.gz (a truncated or corrupted archive is refused). Host tools only.
+keys_archive_valid() {
+  gzip --test "$1" 2>/dev/null && tar --list --gzip --file "$1" >/dev/null 2>&1
+}
+
 # Replaces the files of the keys volume by the archive on stdin (owners and modes of the archive, e.g. 1654 of the api).
+# The archive is extracted aside first; the current keys are removed only once that extraction succeeded.
 keys_import() {
   docker run --rm --interactive --network none --volume "$keys_volume:/keys" "$keys_helper_image" \
-    sh -c 'set -e; find /keys -mindepth 1 -delete; tar -xzpf - -C /keys'
+    sh -c 'set -e; staged="$(mktemp -d)"; tar -xzpf - -C "$staged"; find /keys -mindepth 1 -delete; cp -a "$staged/." /keys/'
 }
