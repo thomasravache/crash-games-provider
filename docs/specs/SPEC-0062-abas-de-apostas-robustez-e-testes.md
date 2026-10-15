@@ -4,7 +4,7 @@ title: "Abas de apostas: robustez e testes"
 tier: lite
 type: fix
 user_facing: true
-status: proposed
+status: approved
 created: 2026-10-15
 parent: SPEC-0061
 depends_on: [SPEC-0031]
@@ -13,8 +13,8 @@ touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**
 adrs: [ADR-0009, ADR-0019]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0062 — Abas de apostas: robustez e testes

@@ -3,13 +3,13 @@ id: SPEC-0061
 title: Melhorias pós-jornada do jogador
 tier: epic
 type: feature
-status: proposed
+status: approved
 created: 2026-10-15
 depends_on: [SPEC-0047]
 adrs: [ADR-0009, ADR-0025, ADR-0027]
 external: []
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0061 — Melhorias pós-jornada do jogador (Épico)

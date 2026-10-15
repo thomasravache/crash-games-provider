@@ -4,7 +4,7 @@ title: Robustez dos testes intermitentes
 tier: lite
 type: fix
 user_facing: false
-status: proposed
+status: approved
 created: 2026-10-15
 parent: SPEC-0061
 depends_on: [SPEC-0047]
@@ -13,8 +13,8 @@ touches: ["tests/backend/Modules/Betting.Tests/**", "tests/backend/Modules/Walle
 adrs: [ADR-0009]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0064 — Robustez dos testes intermitentes
