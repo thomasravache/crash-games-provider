@@ -10,7 +10,9 @@ AppHost (`aspire publish`, SPEC-0065) com `api`, `demo-casino`, `postgres` e `re
 | `https://jogo.143-95-218-240.sslip.io` | jogo Pipa (estáticos do `game-pipa`, build de produção, sem gancho de teste) |
 | `https://api.143-95-218-240.sslip.io` | API (`api:8080`, REST e `/hubs` por WebSocket) |
 
-HTTP redireciona para HTTPS; certificados do Let's Encrypt no volume `apogeu_caddy-data`. Painel do Aspire, Keycloak,
+HTTP redireciona para HTTPS; certificados do Let's Encrypt no volume `apogeu_caddy-data`. O log de acesso do Caddy
+(`docker compose -p apogeu logs proxy`, com rotação de 3 × 10 MB) não grava Cookie, Authorization, Referer nem os
+tokens `lt` e `access_token` da query (ADR-0014). Painel do Aspire, Keycloak,
 backoffice, banco e Redis não são expostos.
 
 Toda mudança em produção (deploy, rollback, restore, firewall) é feita com a confirmação de thomas (ADR-0013).
@@ -35,7 +37,8 @@ Opcional: `APOGEU_ACME_EMAIL=voce@exemplo.com` no `.env` registra a conta ACME c
 
 **Configuração dos scripts** (variáveis de ambiente, com os padrões da VPS): `APOGEU_DEPLOY_DIR` (`~/apogeu-deploy`),
 `APOGEU_DEPLOY_REPO` (`git@github.com:thomasravache/crash-games-provider.git`), `APOGEU_COMPOSE_PROJECT` (`apogeu`),
-`APOGEU_DOMAIN` (`143-95-218-240.sslip.io`), `APOGEU_HTTP_PORT`/`APOGEU_HTTPS_PORT` (80/443), `APOGEU_IMAGE_PREFIX`
+`APOGEU_DOMAIN` (`143-95-218-240.sslip.io`), `APOGEU_HTTP_PORT`/`APOGEU_HTTPS_PORT` (80/443), `APOGEU_BIND_ADDRESS`
+(`0.0.0.0`: endereço do host em que o proxy publica as portas), `APOGEU_IMAGE_PREFIX`
 (`apogeu`), `APOGEU_DEPLOY_HEALTH_TIMEOUT` (300 s), `APOGEU_SMOKE_TIMEOUT` (180 s). Referência: `tests/deploy/README.md`.
 
 ## Primeiro deploy (uma vez, com thomas)
@@ -43,9 +46,12 @@ Opcional: `APOGEU_ACME_EMAIL=voce@exemplo.com` no `.env` registra a conta ACME c
 Pré-requisitos na VPS: Docker com o plugin compose, .NET SDK do `global.json`, `git`, `python3`, `curl`, e o usuário no
 grupo `docker`. Node/pnpm não são necessários (os front-ends são compilados dentro da imagem do proxy).
 
-1. **Acesso ao repositório.** Com o repositório privado, a VPS precisa de uma chave de leitura: crie uma deploy key
-   *read-only* (`ssh-keygen -t ed25519 -f ~/.ssh/apogeu_deploy`), cadastre a pública no GitHub (Settings → Deploy keys)
-   e aponte-a em `~/.ssh/config` para `github.com`. Teste: `git ls-remote git@github.com:thomasravache/crash-games-provider.git main`.
+1. **Acesso ao repositório.** Enquanto o repositório for público, use o clone por https, que não precisa de chave:
+   `export APOGEU_DEPLOY_REPO=https://github.com/thomasravache/crash-games-provider.git` (no perfil do shell de quem
+   faz o deploy). Quando ele voltar a ser privado, a VPS precisa de uma chave de leitura: crie uma deploy key
+   *read-only* (`ssh-keygen -t ed25519 -f ~/.ssh/apogeu_deploy`), cadastre a pública no GitHub (Settings → Deploy keys),
+   aponte-a em `~/.ssh/config` para `github.com` e volte ao padrão SSH (`unset APOGEU_DEPLOY_REPO`). Teste:
+   `git ls-remote "${APOGEU_DEPLOY_REPO:-git@github.com:thomasravache/crash-games-provider.git}" main`.
 2. **Desligar o AppHost de desenvolvimento** (libera memória da VPS; as portas 5080/5173/5180 e os túneis deixam de
    responder):
    ```bash
@@ -53,7 +59,11 @@ grupo `docker`. Node/pnpm não são necessários (os front-ends são compilados 
    for t in ~/.cache/apogeu-demo/tun-*.pid; do [ -f "$t" ] && kill "$(cat "$t")"; done
    docker ps        # confira que não sobrou container do AppHost de desenvolvimento ocupando memória
    ```
-3. **Abrir 80/443 no UFW** (e no firewall do provedor, se houver). SSH continua aberto; nenhuma outra porta:
+3. **Abrir 80/443 no UFW** (e no firewall do provedor, se houver). Atenção: porta publicada pelo Docker passa por
+   cima do UFW (as regras do Docker no iptables vêm antes), então não é o UFW que limita o que a plataforma expõe —
+   quem limita é o compose, em que só o `proxy` publica portas (80 e 443, em `APOGEU_BIND_ADDRESS`); o `vps-deploy`
+   recusa uma versão em que outro serviço publique porta. O UFW continua cobrindo o resto do host (SSH aberto, nada mais)
+   e as regras abaixo documentam a intenção:
    ```bash
    sudo ufw allow 80/tcp comment 'apogeu caddy (http->https, ACME)'
    sudo ufw allow 443/tcp comment 'apogeu caddy (https)'
@@ -81,9 +91,16 @@ grupo `docker`. Node/pnpm não são necessários (os front-ends são compilados 
 
 ## Deploy de uma versão
 
+Rode o deploy (e o rollback) dentro de `tmux` ou de um escopo do systemd, para que uma queda do SSH não interrompa o
+script no meio — principalmente durante a volta automática à versão anterior:
+
 ```bash
+tmux new -s deploy                                        # e, dentro dele:
 tools/deploy/vps-deploy            # main
 tools/deploy/vps-deploy <ref>      # branch, tag ou commit
+
+# ou, sem tmux (o processo sobrevive ao fim da sessão SSH; saída no journal):
+systemd-run --user --scope --unit apogeu-deploy tools/deploy/vps-deploy <ref>
 ```
 
 O script (pode ser rodado do repositório de trabalho ou de `~/apogeu-deploy/src/tools/deploy/`):
@@ -93,7 +110,7 @@ O script (pode ser rodado do repositório de trabalho ou de `~/apogeu-deploy/src
 3. roda `tools/deploy/build-release` da versão: `aspire publish` do AppHost (`infra/compose/out/docker-compose.yaml`),
    imagens `apogeu-api` e `apogeu-demo-casino` (publish de container do SDK .NET) e `apogeu-proxy`
    (`infra/caddy/Dockerfile`), todas com a tag do commit;
-4. confere o compose contra o contrato SPEC-0065@2 (serviços, volumes, rede única `aspire`, variáveis definidas no
+4. confere o compose contra o contrato SPEC-0065@3 (serviços, volumes, rede única `aspire`, variáveis definidas no
    `.env`) e recusa antes de subir qualquer coisa, dizendo o que falta;
 5. sobe a versão com o `proxy`, espera a saúde e roda `tools/deploy/smoke` (HTTPS e cabeçalhos dos três endereços,
    redirecionamento HTTP → HTTPS, `/health` da API, entrada no cassino e lançamento da Pipa);
@@ -109,7 +126,7 @@ precise mexer no banco.
 ## Rollback
 
 ```bash
-tools/deploy/vps-rollback
+tools/deploy/vps-rollback          # dentro do tmux, como o deploy
 ```
 
 Sobe a versão anterior com as imagens e o compose dela (sem rebuild), espera a saúde e roda o smoke — em menos de 2
@@ -142,7 +159,12 @@ na mesma VPS (dívida registrada no ADR-0029: copie os pares para fora quando im
 Restauração (substitui os objetos do dump no banco `apogeu`, criando o banco se não existir, e **substitui o conteúdo**
 do volume de chaves pelo arquivo do mesmo carimbo):
 
+Antes de qualquer restauração em produção, faça um backup do estado atual (é a volta se a restauração for a errada).
+O `restore` confere o arquivo de chaves antes de tudo: se ele estiver corrompido ou truncado, sai com erro sem criar
+nem carregar o banco e sem apagar as chaves atuais.
+
 ```bash
+tools/deploy/backup                                    # backup do estado atual, antes de restaurar
 docker compose -p apogeu stop api demo-casino          # ninguém escrevendo durante a restauração
 tools/deploy/restore ~/apogeu-deploy/backups/apogeu-<carimbo>.dump   # o apogeu-keys-<carimbo>.tar.gz tem de estar ao lado
 docker compose -p apogeu start api demo-casino
@@ -160,8 +182,8 @@ exatamente isso).
 
 | Sintoma | Verificar |
 |---|---|
-| certificado não sai | 80/443 abertos no UFW e no provedor; `docker compose -p apogeu logs proxy`; limite de emissão do Let's Encrypt por domínio (sslip.io é compartilhado) |
-| `vps-deploy` recusa o compose | a mensagem nomeia o serviço, volume ou variável que falta (contrato SPEC-0065@2) |
+| certificado não sai | 80/443 alcançáveis da internet (firewall do provedor; UFW); `docker compose -p apogeu logs proxy`; limite de emissão do Let's Encrypt por domínio (sslip.io é compartilhado) |
+| `vps-deploy` recusa o compose | a mensagem nomeia o serviço, volume ou variável que falta (contrato SPEC-0065@3) |
 | smoke falha em `/casino/play/pipa` | `docker compose -p apogeu logs demo-casino api`; operador demo e carteira seamless (SPEC-0065) |
 | `restore` recusa o dump | falta o `apogeu-keys-<carimbo>.tar.gz` do mesmo carimbo ao lado; sem as chaves as sementes não reveladas ficam ilegíveis |
 | outro deploy em andamento | só um `vps-deploy`/`vps-rollback` por vez (trava em `~/apogeu-deploy/.lock`) |
