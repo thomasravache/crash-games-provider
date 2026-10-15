@@ -30,7 +30,7 @@ O AppHost passa a publicar a plataforma como um Docker Compose de produção (`a
 **Motivação:** Hoje a plataforma só sobe em modo de desenvolvimento: as migrações e o operador demo dependem do setup de Development, as chaves do Data Protection ficam no contêiner (um reinício torna as sementes do provably fair ilegíveis) e não existe artefato de produção (ADR-0029).
 
 **Objetivos (dentro do escopo):**
-- Ambiente Docker Compose no AppHost só no modo publish (`AddDockerComposeEnvironment`), com `aspire publish -o infra/compose/out` (saída não versionada) gerando `docker-compose.yaml` + `.env` de exemplo sem valores.
+- Ambiente Docker Compose no AppHost só no modo publish (`AddDockerComposeEnvironment`), com `aspire publish -o infra/compose/out` (saída não versionada) gerando `docker-compose.yaml` + `.env` sem valores.
 - Em publish: API e demo-casino em `Production`; front-ends (Vite) fora do compose (servidos pelo Caddy, SPEC-0066); nenhuma porta publicada no host (só o proxy da 0066 publica); volumes para Postgres e para as chaves do Data Protection; limites de memória por serviço.
 - Configuração de produção: `Operators:GameBaseUrl` e CORS a partir de parâmetros do Aspire (`public-game-url`, `public-api-url`), carteira seamless do operador demo apontando para o demo-casino na rede interna.
 - Subida em produção aplica as migrações de todos os módulos e garante o operador demo, catálogo e limites quando `Operators:Demo:Enabled=true` (hoje só no setup de Development).
@@ -72,7 +72,7 @@ O AppHost passa a publicar a plataforma como um Docker Compose de produção (`a
 - **Custo:** zero (VPS própria).
 
 ## 6. Artefato A — Contrato
-**Interface:** `aspire publish` → `infra/compose/out/docker-compose.yaml` + `.env.example`
+**Interface:** `aspire publish` → `infra/compose/out/docker-compose.yaml` + `.env` (sem valores)
 
 ```text
 ```text
@@ -96,7 +96,7 @@ Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcanç
 | Reinício | Host reinicia com o mesmo volume de chaves | sementes cifradas antes continuam legíveis | IT-01 |
 | Subida em produção | banco vazio, `Production`, demo ligado | migrações aplicadas, operador demo e catálogo presentes, `/dev/launch-demo` 404 | IT-02 |
 | Configuração | `public-game-url` e `public-api-url` | `Operators:GameBaseUrl` e CORS da API usam os endereços públicos; carteira seamless aponta para o demo-casino | UT-02 |
-| Contrato com a SPEC-0066 | compose + `.env.example` | `docker compose config` válido com os serviços, rede, volumes e variáveis do §6 | CT-01 |
+| Contrato com a SPEC-0066 | compose + `.env` sem valores | `docker compose config` válido com os serviços, rede, volumes e variáveis do §6 | CT-01 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
 <!-- Todo teste tem um ID e é escrito ANTES da implementação (Red). No código, cada teste carrega a tag `SPEC-0065:<ID>` — o G1 (`spec_graph.py verify`) verifica. Modo privado: sem tag no código; aponte o teste no fim da linha com `→ caminho::nome` (ex.: `→ tests/test_soma.py::test_soma`). Categoria sem testes: "N/A — motivo" SEM ID. Teste que protege comportamento existente e passa antes da mudança: marque `(guarda: passa antes da mudança)`. Estratégia completa: references/testing.md da skill. -->
@@ -116,7 +116,7 @@ Rede compartilhada com o proxy da SPEC-0066: api:8080 e demo-casino:8080 alcanç
 
 ### 7.4 Testes de Contrato
 <!-- Obrigatório (CT-xx) se esta spec consome contrato de outra ou se outra spec consome o contrato desta. -->
-- **CT-01** — Dado o compose gerado e o `.env.example`, quando validados pelo `docker compose config`, então o arquivo é válido e declara exatamente os serviços, a rede, os volumes e as variáveis do contrato que a SPEC-0066 consome (§6).
+- **CT-01** — Dado o compose gerado e o `.env` sem valores, quando validados pelo `docker compose config`, então o arquivo é válido e declara exatamente os serviços, a rede, os volumes e as variáveis do contrato que a SPEC-0066 consome (§6).
 
 ### 7.5 Testes E2E
 <!-- Obrigatório (E2E-xx) quando user_facing: true: jornada nova ou atualização do E2E que já cobre a jornada. Poucos e significativos. -->
