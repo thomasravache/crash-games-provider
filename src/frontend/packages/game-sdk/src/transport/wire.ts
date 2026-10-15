@@ -98,3 +98,11 @@ export interface MyBetsPage {
   items: MyBet[];
   nextCursor: string | null;
 }
+
+// ---- Live bets and history (SPEC-0025@4), consumed by the bets tabs (SPEC-0031). Taken from the generated contracts.
+
+/** JoinSalaBets result: the bets of the current round, up to 100, largest first (SPEC-0025@4). */
+export type LiveBetsSnapshot = Awaited<ReturnType<BetsHubServer["JoinSalaBets"]>>;
+
+/** LiveBetsBatch, sent to the sala every 200 ms when there is news (SPEC-0025@4). */
+export type LiveBetsBatch = Parameters<BetsHubClient["LiveBetsBatch"]>[0];

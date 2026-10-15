@@ -8,6 +8,8 @@ import type { Money, Multiplier } from "@apogeu/contracts";
 import { toBetErrorCode, type BetErrorCode } from "./state/bet-errors";
 import type { OpenBet, PanelNumber } from "./state/bets-state";
 import { createBetsStore, panelOf, type BetsStore } from "./state/bets-store";
+import { createLiveBetsStore, type LiveBetsStore } from "./state/live-bets";
+import { createMyBetsStore, type MyBetsStore } from "./state/my-bets";
 import { normalizeMoney } from "./state/money";
 import type { RoundState, RoundStateSource } from "./state/round-state";
 import {
@@ -73,6 +75,17 @@ export interface BetsClient {
   rechargeDemo(): Promise<void>;
   /** Reconnection reload: balance from the wallet, open bets from GET /api/v1/me/bets (404 keeps the panels). */
   reload(): Promise<void>;
+  /**
+   * "Todas as apostas" (SPEC-0031): the JoinSalaBets snapshot and the LiveBetsBatch messages of the sala; emptied by a
+   * RoundBetting of another round in the round store.
+   */
+  readonly liveBets: LiveBetsStore;
+  /** "Minhas apostas" (SPEC-0031): the player's bets of GET /api/v1/me/bets, paged by cursor. */
+  readonly myBets: MyBetsStore;
+  /** Reads the first page of GET /api/v1/me/bets (replaces the list). */
+  loadMyBets(): Promise<void>;
+  /** "Carregar mais": reads the next page by the cursor and appends it; nothing on the last page. */
+  loadMoreMyBets(): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -112,6 +125,9 @@ function openBetsOf(items: readonly MyBet[]): OpenBet[] {
 
 export function createBetsClient(options: BetsClientOptions): BetsClient {
   const store = createBetsStore();
+  // SCAFFOLD (SPEC-0031): the tabs stores exist; the client does not feed them yet.
+  const liveBets = createLiveBetsStore();
+  const myBets = createMyBetsStore();
   const apiBaseUrl = options.apiBaseUrl.replace(/\/+$/u, "");
   const fetchImpl: FetchLike = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
   const connectHub = options.connectHub ?? createSignalRBetsConnection;
@@ -297,6 +313,14 @@ export function createBetsClient(options: BetsClientOptions): BetsClient {
       }
     },
     reload,
+    liveBets,
+    myBets,
+    loadMyBets() {
+      return Promise.reject(new Error("SPEC-0031: loadMyBets is not implemented yet"));
+    },
+    loadMoreMyBets() {
+      return Promise.reject(new Error("SPEC-0031: loadMoreMyBets is not implemented yet"));
+    },
     async stop() {
       stopped = true;
       unfollowRounds?.();
