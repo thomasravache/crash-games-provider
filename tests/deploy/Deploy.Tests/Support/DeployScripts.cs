@@ -31,6 +31,9 @@ internal static class DeployScripts
 
     public const string HttpsPortVariable = "APOGEU_HTTPS_PORT";
 
+    /// <summary>Host address the proxy publishes its ports on (default 0.0.0.0 on the VPS; 127.0.0.1 in the tests). Emenda v4.</summary>
+    public const string BindAddressVariable = "APOGEU_BIND_ADDRESS";
+
     /// <summary>Prefix of the image names of a version: <c>{prefix}-api</c>, <c>{prefix}-demo-casino</c>, <c>{prefix}-proxy</c>, tagged with the commit.</summary>
     public const string ImagePrefixVariable = "APOGEU_IMAGE_PREFIX";
 

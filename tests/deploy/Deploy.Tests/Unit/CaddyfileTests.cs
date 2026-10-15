@@ -12,7 +12,8 @@ namespace Apogeu.Deploy.Tests.Unit;
 /// to api:8080, static files with SPA fallback for the casino and the game, automatic HTTPS with the HTTP redirect on,
 /// and the security headers on every site. Emenda v3: the X-Forwarded-* headers that come from the internet are dropped
 /// and rewritten by the proxy (no trusted_proxies; the api trusts X-Forwarded-*), shown through the real Caddyfile in
-/// front of an echo backend.
+/// front of an echo backend. Emenda v4: the access log of the proxy keeps no token: the launch token <c>lt</c> of the game
+/// and the <c>access_token</c> of the SignalR hubs are erased from the logged query, as Cookie and Authorization.
 /// </summary>
 public sealed class CaddyfileTests
 {
@@ -95,18 +96,54 @@ public sealed class CaddyfileTests
         var config = await AdaptAsync(TestDomain);
         Assert.DoesNotContain(Nodes(config), node => node.ContainsKey("trusted_proxies"));
 
-        await using var proxy = await ForwardedHeadersProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
+        await using var proxy = await ProxyProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
         foreach (var (site, path) in new[] { ("api", "/echo.cgi"), ("cassino", "/casino/echo.cgi") })
         {
             var host = $"{site}.{TestDomain}";
             var seen = await proxy.EchoAsync(host, path, cancellationToken);
 
             Assert.True(seen.TryGetValue("XFF", out var forwardedFor) && forwardedFor.Length > 0, $"{host}: no X-Forwarded-For at the backend");
-            Assert.DoesNotContain(ForwardedHeadersProbe.ForgedFor, forwardedFor, StringComparison.Ordinal);
+            Assert.DoesNotContain(ProxyProbe.ForgedFor, forwardedFor, StringComparison.Ordinal);
             Assert.True(
                 seen.TryGetValue("XFH", out var forwardedHost) && forwardedHost.StartsWith(host, StringComparison.Ordinal),
                 $"{host}: X-Forwarded-Host at the backend is '{forwardedHost}', not the host of the request");
             Assert.Equal("https", seen.GetValueOrDefault("XFP"));
+        }
+    }
+
+    [Fact(DisplayName = "Dados tokens na query (lt, access_token), cookie e Authorization, quando passam pelo proxy, então o log de acesso não os grava")]
+    [Trait("Category", "Unit")]
+    [Trait("Spec", "SPEC-0066:UT-01")]
+    public async Task GivenTokensInTheRequestWhenProxiedThenTheAccessLogDoesNotKeepThem()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string launchToken = "LT-SEGREDO-5d1f0c";
+        const string accessToken = "AT-SEGREDO-9b7e22";
+        const string cookie = "CK-SEGREDO-41aa07";
+        const string authorization = "AZ-SEGREDO-c3e815";
+        string[] headers = ["Cookie: casino_session=" + cookie, "Authorization: Bearer " + authorization];
+
+        await using var proxy = await ProxyProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
+        await proxy.GetAsync($"jogo.{TestDomain}", $"/?lt={launchToken}&lang=pt-BR", headers, cancellationToken);
+        await proxy.GetAsync($"api.{TestDomain}", $"/hubs/x?id=abc&access_token={accessToken}", headers, cancellationToken);
+        await proxy.GetAsync($"cassino.{TestDomain}", $"/casino/echo.cgi?lt={launchToken}", headers, cancellationToken);
+
+        // The requests are in the access log (the test is not passing on an empty log) …
+        string logs = string.Empty;
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (DateTime.UtcNow < deadline && !logs.Contains("/hubs/x", StringComparison.Ordinal))
+        {
+            await Task.Delay(250, cancellationToken);
+            logs = await proxy.LogsAsync(cancellationToken);
+        }
+
+        Assert.Contains("/hubs/x", logs, StringComparison.Ordinal);
+        Assert.Contains("lang=pt-BR", logs, StringComparison.Ordinal);
+
+        // … and none of the secrets.
+        foreach (var secret in new[] { launchToken, accessToken, cookie, authorization })
+        {
+            Assert.False(logs.Contains(secret, StringComparison.Ordinal), $"the access log of the proxy keeps {secret}:\n{logs}");
         }
     }
 

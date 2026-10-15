@@ -13,7 +13,8 @@ namespace Apogeu.Deploy.Tests.Integration;
 /// <c>apogeu-keys-&lt;stamp&gt;.tar.gz</c> with the same stamp, and prints the path of the dump;
 /// <c>tools/deploy/restore &lt;dump&gt;</c> loads the dump into a clean PostgreSQL and the keys archive beside it into a
 /// clean volume: the row counts of every table match and the keys are identical (content and owner, the api user 1654).
-/// Without the keys the unrevealed seeds stay unreadable. The backup keeps 7 days: older files of the directory go,
+/// Without the keys the unrevealed seeds stay unreadable. A corrupted keys archive is refused before the database and
+/// the volume are touched, and the current keys stay (Emenda v4). The backup keeps 7 days: older files of the directory go,
 /// newer ones and other files stay.
 /// </summary>
 public sealed class BackupRestoreTests : IAsyncLifetime
@@ -86,6 +87,33 @@ public sealed class BackupRestoreTests : IAsyncLifetime
         var restored = await CountsAsync(WithDatabase(_target.GetConnectionString()), cancellationToken);
         Assert.Equal(expected, restored);
         Assert.Equal(expectedKeys, await KeysOfAsync(_targetKeys));
+    }
+
+    [Fact(DisplayName = "Dado um arquivo de chaves corrompido ao lado do dump, quando o restore roda, então recusa antes de tocar no banco e no volume, e as chaves atuais continuam intactas")]
+    [Trait("Category", "Integration")]
+    [Trait("Spec", "SPEC-0066:IT-02")]
+    public async Task GivenACorruptedKeysArchiveWhenRestoredThenNothingIsTouched()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var backup = await RunAsync(DeployScripts.Backup, [], _source, _sourceKeys, cancellationToken);
+        Assert.True(backup.Succeeded, "backup failed. " + backup.Describe());
+        var dump = DumpPathOf(backup);
+        var keysArchive = KeysArchiveOf(dump);
+        Assert.True(File.Exists(keysArchive), "no keys archive beside the dump. " + backup.Describe());
+
+        // A truncated archive: the gzip stream ends in the middle (copy cut short, disk full).
+        var bytes = await File.ReadAllBytesAsync(keysArchive, cancellationToken);
+        await File.WriteAllBytesAsync(keysArchive, bytes[..(bytes.Length / 2)], cancellationToken);
+        // The keys the api of the target uses now.
+        await SeedKeysAsync(_targetKeys);
+        var currentKeys = await KeysOfAsync(_targetKeys);
+
+        var restore = await RunAsync(DeployScripts.Restore, [dump], _target, _targetKeys, cancellationToken);
+
+        Assert.False(restore.Succeeded, "restore accepted a corrupted keys archive. " + restore.Describe());
+        Assert.True(restore.ExitCode > 0, "restore did not run. " + restore.Describe());
+        Assert.False(await DatabaseExistsAsync(_target.GetConnectionString(), cancellationToken), "restore touched the database before refusing the keys archive");
+        Assert.Equal(currentKeys, await KeysOfAsync(_targetKeys));
     }
 
     [Fact(DisplayName = "Dados dumps com mais e menos de 7 dias, quando o backup roda, então só os mais antigos que 7 dias são apagados")]

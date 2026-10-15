@@ -3,12 +3,13 @@ using Apogeu.Repository.Tests.Support;
 namespace Apogeu.Deploy.Tests.Support;
 
 /// <summary>
-/// SPEC-0066 UT-01 (Emenda v3): the real Caddyfile in caddy:2.11.7 in front of an echo backend (busybox httpd running a
+/// SPEC-0066 UT-01 (Emendas v3 and v4): the real Caddyfile in caddy:2.11.7 in front of an echo backend (busybox httpd running a
 /// CGI that prints the X-Forwarded-* it received), reachable as <c>api</c> and <c>demo-casino</c> on a network of its own.
-/// The client sends forged X-Forwarded-For/Host/Proto; the echo tells what the backend got. Disposing removes the
+/// The client sends forged X-Forwarded-For/Host/Proto; the echo tells what the backend got. The access log of the proxy
+/// is the output of its container (docker logs). Disposing removes the
 /// containers, the network and the temporary files.
 /// </summary>
-internal sealed class ForwardedHeadersProbe : IAsyncDisposable
+internal sealed class ProxyProbe : IAsyncDisposable
 {
     public const string ForgedFor = "1.2.3.4";
 
@@ -23,7 +24,7 @@ internal sealed class ForwardedHeadersProbe : IAsyncDisposable
     private readonly string _name;
     private readonly string _directory;
 
-    private ForwardedHeadersProbe(string name, string directory)
+    private ProxyProbe(string name, string directory)
     {
         _name = name;
         _directory = directory;
@@ -31,11 +32,11 @@ internal sealed class ForwardedHeadersProbe : IAsyncDisposable
 
     private int Port { get; set; }
 
-    public static async Task<ForwardedHeadersProbe> StartAsync(string caddyfile, string domain, CancellationToken cancellationToken)
+    public static async Task<ProxyProbe> StartAsync(string caddyfile, string domain, CancellationToken cancellationToken)
     {
         var name = "apogeu-test-ut01-" + Guid.NewGuid().ToString("N")[..12];
         var directory = Path.Combine(Path.GetTempPath(), name);
-        var probe = new ForwardedHeadersProbe(name, directory);
+        var probe = new ProxyProbe(name, directory);
         Directory.CreateDirectory(Path.Combine(directory, "www", "casino"));
         await File.WriteAllTextAsync(Path.Combine(directory, "httpd.conf"), "*.cgi:/bin/sh\n", cancellationToken).ConfigureAwait(false);
         foreach (var script in new[] { Path.Combine(directory, "www", "echo.cgi"), Path.Combine(directory, "www", "casino", "echo.cgi") })
@@ -97,6 +98,44 @@ internal sealed class ForwardedHeadersProbe : IAsyncDisposable
 
             await Task.Delay(500, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>GET through the proxy with the given headers (any status); retries while the proxy is not answering yet.</summary>
+    public async Task GetAsync(string host, string path, IEnumerable<string> headers, CancellationToken cancellationToken)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        while (true)
+        {
+            var result = await ProcessRunner.RunAsync(
+                "curl",
+                [
+                    "--silent", "--insecure", "--max-time", "5", "--output", "/dev/null",
+                    "--resolve", $"{host}:{Port}:127.0.0.1",
+                    .. headers.SelectMany(header => new[] { "--header", header }),
+                    $"https://{host}:{Port}{path}",
+                ],
+                RepositoryRoot.Path,
+                ProcessRunner.ShortTimeout,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (result.Succeeded)
+            {
+                return;
+            }
+
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new Xunit.Sdk.XunitException($"the proxy did not answer {host}{path}. " + result.Describe());
+            }
+
+            await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Everything the proxy container wrote (standard output and error): its access log.</summary>
+    public async Task<string> LogsAsync(CancellationToken cancellationToken)
+    {
+        var result = await DockerCli.RunAsync(["logs", _name + "-proxy"], cancellationToken).ConfigureAwait(false);
+        return result.Output;
     }
 
     public async ValueTask DisposeAsync()

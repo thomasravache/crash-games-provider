@@ -52,9 +52,8 @@ public sealed class ComposeContractTests
             Assert.True(string.IsNullOrWhiteSpace(ports.StandardOutput), $"{service} publishes ports on the host: {ports.StandardOutput}");
         }
 
-        var proxyPorts = await DockerCli.RunAsync(["port", containers["proxy"]], cancellationToken);
-        Assert.Contains($":{deployment.HttpsPort}", proxyPorts.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains($":{deployment.HttpPort}", proxyPorts.StandardOutput, StringComparison.Ordinal);
+        await AssertProxyPublishesOnlyOnTheBindAddressAsync(deployment, containers["proxy"], cancellationToken);
+        await AssertProxyLogsRotateAsync(containers["proxy"], cancellationToken);
 
         // The proxy reaches api:8080 and demo-casino:8080 by name.
         var api = await DockerCli.RunAsync(["exec", containers["proxy"], "wget", "-q", "-O", "-", "http://api:8080/version"], cancellationToken);
@@ -67,22 +66,60 @@ public sealed class ComposeContractTests
         await AssertContractVolumesExistAsync(deployment, cancellationToken);
     }
 
-    [Fact(DisplayName = "Dado um compose sem um serviço do contrato SPEC-0065@3, quando o vps-deploy o lê, então recusa antes de subir e aponta o serviço")]
+    [Theory(DisplayName = "Dado um compose fora do contrato SPEC-0065@3 (serviço faltando, inclusive o keys-init, ou porta publicada fora do proxy), quando o vps-deploy o lê, então recusa antes de subir e aponta o serviço")]
     [Trait("Category", "Contract")]
     [Trait("Spec", "SPEC-0066:CT-01")]
-    public async Task GivenAComposeWithoutAContractServiceWhenDeployedThenItIsRefusedBeforeAnythingGoesUp()
+    [InlineData("demo-casino", null)]
+    [InlineData("keys-init", null)]
+    [InlineData(null, "api")]
+    [InlineData(null, "debug")]
+    public async Task GivenAComposeOutsideTheContractWhenDeployedThenItIsRefusedBeforeAnythingGoesUp(string? without, string? portsOn)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
+        var service = without ?? portsOn!;
         await using var deployment = await TestDeployment.CreateAsync(
-            "ct01b", [new Release("release-broken", "A", WithoutService: "demo-casino")], cancellationToken);
+            "ct01b", [new Release("release-broken", "A", WithoutService: without, PortsOn: portsOn)], cancellationToken);
 
         var deploy = await deployment.DeployAsync("release-broken", cancellationToken);
 
-        Assert.False(deploy.Succeeded, "vps-deploy accepted a compose without demo-casino. " + deploy.Describe());
+        var problem = without is null ? $"{service} publishing ports on the host" : $"a compose without {service}";
+        Assert.False(deploy.Succeeded, $"vps-deploy accepted {problem}. " + deploy.Describe());
         Assert.True(deploy.ExitCode > 0, "vps-deploy did not run. " + deploy.Describe());
-        Assert.Contains("demo-casino", deploy.Output, StringComparison.Ordinal);
-        var containers = await DockerCli.ServiceContainersAsync(deployment.Project, cancellationToken);
-        Assert.Empty(containers);
+        Assert.Contains(service, deploy.Output, StringComparison.Ordinal);
+        var created = await DockerCli.RunAsync(
+            ["ps", "--all", "--quiet", "--filter", "label=com.docker.compose.project=" + deployment.Project],
+            cancellationToken);
+        Assert.True(string.IsNullOrWhiteSpace(created.StandardOutput), $"containers were created for {problem}: {created.StandardOutput}");
+    }
+
+    /// <summary>
+    /// Emenda v4: the proxy publishes the test ports only on APOGEU_BIND_ADDRESS (127.0.0.1 in the tests), never on every
+    /// address of the host (a port published by Docker goes around the UFW).
+    /// </summary>
+    private static async Task AssertProxyPublishesOnlyOnTheBindAddressAsync(
+        TestDeployment deployment, string proxy, CancellationToken cancellationToken)
+    {
+        var ports = await DockerCli.RunAsync(["port", proxy], cancellationToken).ConfigureAwait(false);
+        var bindings = ports.StandardOutput
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split(" -> ", 2)[^1])
+            .ToList();
+        string[] expected =
+        [
+            $"{TestDeployment.BindAddress}:{deployment.HttpPort}",
+            $"{TestDeployment.BindAddress}:{deployment.HttpsPort}",
+        ];
+        Assert.Equal(expected.Order(StringComparer.Ordinal), bindings.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>Emenda v4: the Docker logs of the proxy rotate (max-size and max-file), so they never fill the shared VPS.</summary>
+    private static async Task AssertProxyLogsRotateAsync(string proxy, CancellationToken cancellationToken)
+    {
+        var options = await DockerCli.RunAsync(
+            ["inspect", "--format", "{{range $key, $value := .HostConfig.LogConfig.Config}}{{$key}}={{$value}} {{end}}", proxy],
+            cancellationToken).ConfigureAwait(false);
+        Assert.Contains("max-size=", options.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("max-file=", options.StandardOutput, StringComparison.Ordinal);
     }
 
     /// <summary>

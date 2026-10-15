@@ -12,6 +12,9 @@ internal sealed class TestDeployment : IAsyncDisposable
 {
     public const string Domain = "localhost";
 
+    /// <summary>Address the proxy of a test deployment publishes on (Emenda v4): the loopback only.</summary>
+    public const string BindAddress = "127.0.0.1";
+
     private static readonly string[] CopiedFromWorkingTree = ["infra/caddy", "infra/vps", "tools/deploy"];
 
     private readonly Dictionary<string, string> _commits = new(StringComparer.Ordinal);
@@ -53,6 +56,7 @@ internal sealed class TestDeployment : IAsyncDisposable
         [DeployScripts.DomainVariable] = Domain,
         [DeployScripts.HttpPortVariable] = HttpPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
         [DeployScripts.HttpsPortVariable] = HttpsPort.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        [DeployScripts.BindAddressVariable] = BindAddress,
         [DeployScripts.ImagePrefixVariable] = ImagePrefix,
         [DeployScripts.BuildHookVariable] = "deploy-fixture/build",
         [DeployScripts.SmokeVariable] = FixturePath("smoke"),
@@ -142,6 +146,7 @@ internal sealed class TestDeployment : IAsyncDisposable
     {
         var kept = new List<string>();
         var skipping = false;
+        var dependency = false;
         foreach (var line in compose.Split('\n'))
         {
             var isServiceHeader = line.StartsWith("  ", StringComparison.Ordinal) && !line.StartsWith("   ", StringComparison.Ordinal) && line.TrimEnd().EndsWith(':');
@@ -150,6 +155,19 @@ internal sealed class TestDeployment : IAsyncDisposable
                 skipping = string.Equals(line.TrimEnd(), $"  {service}:", StringComparison.Ordinal);
             }
 
+            // depends_on entry of another service on the removed one: "      <service>:" and its "        condition: …".
+            if (string.Equals(line.TrimEnd(), $"      {service}:", StringComparison.Ordinal))
+            {
+                dependency = true;
+                continue;
+            }
+
+            if (dependency && line.StartsWith("        ", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            dependency = false;
             if (!skipping)
             {
                 kept.Add(line);
@@ -157,6 +175,29 @@ internal sealed class TestDeployment : IAsyncDisposable
         }
 
         return string.Join('\n', kept);
+    }
+
+    /// <summary>
+    /// The compose of the contract with a port published on the host by <paramref name="service"/>: a <c>ports:</c> entry
+    /// on a service of the compose, or an extra busybox service with a port when the name is not in the compose.
+    /// </summary>
+    private static string ComposeWithPortsOn(string compose, string service)
+    {
+        var header = $"\n  {service}:\n";
+        var ports = "    ports:\n      - \"127.0.0.1::8080\"\n";
+        if (compose.Contains(header, StringComparison.Ordinal))
+        {
+            return compose.Replace(header, header + ports, StringComparison.Ordinal);
+        }
+
+        var extra = header + "    image: \"busybox:1.37.0\"\n    command: [\"sleep\", \"3600\"]\n" + ports + "    networks:\n      - aspire\n";
+        return compose.Replace("\n  postgres:\n", extra + "\n  postgres:\n", StringComparison.Ordinal);
+    }
+
+    private static string ComposeOf(string compose, Release release)
+    {
+        var result = release.WithoutService is { } without ? ComposeWithout(compose, without) : compose;
+        return release.PortsOn is { } service ? ComposeWithPortsOn(result, service) : result;
     }
 
     private async Task InitRepositoryAsync(IReadOnlyList<Release> releases, CancellationToken cancellationToken)
@@ -183,7 +224,7 @@ internal sealed class TestDeployment : IAsyncDisposable
             await File.WriteAllTextAsync(Path.Combine(fixture, "healthy"), release.Healthy ? "yes" : "no", cancellationToken).ConfigureAwait(false);
             await File.WriteAllTextAsync(
                 Path.Combine(fixture, "docker-compose.yaml"),
-                release.WithoutService is { } service ? ComposeWithout(compose, service) : compose,
+                ComposeOf(compose, release),
                 cancellationToken).ConfigureAwait(false);
             await GitAsync(["add", "--all"], cancellationToken).ConfigureAwait(false);
             await GitAsync(
