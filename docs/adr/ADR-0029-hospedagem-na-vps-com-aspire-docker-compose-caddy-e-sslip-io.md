@@ -1,7 +1,7 @@
 ---
 id: ADR-0029
 title: Hospedagem na VPS com Aspire, Docker Compose, Caddy e sslip.io
-status: proposed
+status: accepted
 origin: decision
 date: 2026-10-15
 pillars: [entrega, seguranca]

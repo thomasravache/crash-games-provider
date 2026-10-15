@@ -4,7 +4,7 @@ title: Publicação do AppHost para Docker Compose em produção
 tier: full
 type: foundation
 user_facing: false
-status: proposed
+status: in-progress
 created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0047]
@@ -15,8 +15,8 @@ touches: ["src/backend/AppHost/**", "src/backend/Host/**", "src/backend/Modules/
 adrs: [ADR-0029, ADR-0003, ADR-0014, ADR-0016]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0065 — Publicação do AppHost para Docker Compose em produção
@@ -146,6 +146,20 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 11. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
+
+<!-- Preenchido na fase PLAN (2026-10-15). Cada fase começa pelos testes. -->
+
+**Fase 1: Publicação e subida em produção**
+- [ ] Red: escrever UT-01, UT-02, IT-01, IT-02 e CT-01 com a tag `SPEC-0065:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Green: ambiente Compose no publish, configuração de produção, migrações e operador demo na subida, Data Protection persistido
+- [ ] Refactor mantendo tudo verde
+- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy (G6): primeiro uso no deploy da SPEC-0066
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->

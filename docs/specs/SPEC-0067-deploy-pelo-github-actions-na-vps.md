@@ -4,7 +4,7 @@ title: Deploy pelo GitHub Actions na VPS com aprovação e chave restrita
 tier: lite
 type: feature
 user_facing: false
-status: proposed
+status: approved
 created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0066]
@@ -13,8 +13,8 @@ touches: [".github/workflows/deploy-vps.yml", "tools/deploy/**", "infra/vps/**",
 adrs: [ADR-0029, ADR-0013]
 external: []
 size: S
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0067 — Deploy pelo GitHub Actions na VPS com aprovação e chave restrita
@@ -52,6 +52,22 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
+
+<!-- Preenchido na fase PLAN (2026-10-15). Cada fase começa pelos testes. -->
+
+**Fase 1: Workflow e chave restrita**
+- [ ] Red: escrever UT-01, UT-02 e IT-01 com a tag `SPEC-0067:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Green: `deploy-vps.yml`, `deploy-gate`, usuário `deploy` e `authorized_keys` restrito (`infra/vps/`)
+- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+
+**Fase 2: Ativação (com a autorização de thomas: credencial)**
+- [ ] Chave Ed25519 dedicada, secrets e Environment `production` com thomas como aprovador
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Primeiro deploy pela Action aprovado por thomas (G6)
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->

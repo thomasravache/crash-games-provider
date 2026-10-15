@@ -3,13 +3,13 @@ id: SPEC-0012
 title: "Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io)"
 tier: epic
 type: foundation
-status: proposed
+status: in-progress
 created: 2026-10-07
 depends_on: [SPEC-0004, SPEC-0047]
 adrs: [ADR-0029, ADR-0013, ADR-0014, ADR-0017, ADR-0018]
 external: []
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0012 — Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io) (Épico)

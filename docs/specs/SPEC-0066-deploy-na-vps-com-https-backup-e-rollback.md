@@ -4,7 +4,7 @@ title: Deploy na VPS com HTTPS, backup e rollback
 tier: full
 type: foundation
 user_facing: true
-status: proposed
+status: approved
 created: 2026-10-15
 parent: SPEC-0012
 depends_on: [SPEC-0065]
@@ -15,8 +15,8 @@ touches: ["infra/caddy/**", "infra/vps/**", "tools/deploy/**", "docs/runbooks/**
 adrs: [ADR-0029, ADR-0013, ADR-0014, ADR-0018]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0066 — Deploy na VPS com HTTPS, backup e rollback
@@ -148,6 +148,23 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ## 11. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
+
+<!-- Preenchido na fase PLAN (2026-10-15). Cada fase começa pelos testes. -->
+
+**Fase 1: Proxy, scripts e backup**
+- [ ] Red: escrever UT-01, UT-02, IT-01, IT-02 e CT-01 com a tag `SPEC-0066:<ID>` e confirmar que falham pelo motivo certo
+- [ ] Green: imagem do Caddy com os estáticos, `vps-deploy`, `vps-rollback`, `backup`/`restore`, `smoke`, runbook
+- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+
+**Fase 2: Primeiro deploy (G6, com a confirmação de thomas)**
+- [ ] Portas 80/443 no UFW, AppHost de desenvolvimento desligado, `vps-deploy main`
+- [ ] E2E-01 contra os endereços públicos
+
+**Fase final: Integração, entrega e documentação**
+- [ ] Review independente (G4)
+- [ ] Integração + CI verde (G5) e aprovação (H2)
+- [ ] Deploy na VPS com smoke e E2E (G6)
+- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
