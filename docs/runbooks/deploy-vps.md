@@ -10,10 +10,10 @@ AppHost (`aspire publish`, SPEC-0065) com `api`, `demo-casino`, `postgres` e `re
 | `https://jogo.143-95-218-240.sslip.io` | jogo Pipa (estáticos do `game-pipa`, build de produção, sem gancho de teste) |
 | `https://api.143-95-218-240.sslip.io` | API (`api:8080`, REST e `/hubs` por WebSocket) |
 
-HTTP redireciona para HTTPS; certificados do Let's Encrypt no volume `apogeu_caddy-data`. O log de acesso do Caddy
-(`docker compose -p apogeu logs proxy`, com rotação de 3 × 10 MB) não grava Cookie, Authorization, Referer nem os
-tokens `lt` e `access_token` da query (ADR-0014). Painel do Aspire, Keycloak,
-backoffice, banco e Redis não são expostos.
+HTTP redireciona para HTTPS; certificados do Let's Encrypt no volume `apogeu_caddy-data`. Nenhuma saída do Caddy
+(`docker compose -p apogeu logs proxy`, com rotação de 3 × 10 MB) grava Cookie, Authorization, Referer nem os tokens
+`lt` e `access_token`: o filtro vale para o log de acesso (inclusive o `Location` do redirecionamento HTTP → HTTPS) e
+para o log de erros (ADR-0014). Painel do Aspire, Keycloak, backoffice, banco e Redis não são expostos.
 
 Toda mudança em produção (deploy, rollback, restore, firewall) é feita com a confirmação de thomas (ADR-0013).
 
@@ -91,16 +91,14 @@ grupo `docker`. Node/pnpm não são necessários (os front-ends são compilados 
 
 ## Deploy de uma versão
 
-Rode o deploy (e o rollback) dentro de `tmux` ou de um escopo do systemd, para que uma queda do SSH não interrompa o
-script no meio — principalmente durante a volta automática à versão anterior:
+Rode o deploy (e o rollback) sempre dentro do `tmux`, para que uma queda do SSH não interrompa o script no meio —
+principalmente durante a volta automática à versão anterior. Se a conexão cair, entre de novo e volte à sessão com
+`tmux attach -t deploy`:
 
 ```bash
-tmux new -s deploy                                        # e, dentro dele:
+tmux new -s deploy                 # e, dentro dele:
 tools/deploy/vps-deploy            # main
 tools/deploy/vps-deploy <ref>      # branch, tag ou commit
-
-# ou, sem tmux (o processo sobrevive ao fim da sessão SSH; saída no journal):
-systemd-run --user --scope --unit apogeu-deploy tools/deploy/vps-deploy <ref>
 ```
 
 O script (pode ser rodado do repositório de trabalho ou de `~/apogeu-deploy/src/tools/deploy/`):
@@ -156,12 +154,13 @@ o `apogeu-keys-<carimbo>.tar.gz` ao lado, e quem copiar backups para fora da VPS
 Os arquivos `apogeu-*` (dumps e chaves) com mais de 7 dias são apagados; outros arquivos do diretório ficam. O backup fica
 na mesma VPS (dívida registrada no ADR-0029: copie os pares para fora quando importar).
 
-Restauração (substitui os objetos do dump no banco `apogeu`, criando o banco se não existir, e **substitui o conteúdo**
-do volume de chaves pelo arquivo do mesmo carimbo):
+Restauração: primeiro **substitui o conteúdo** do volume de chaves pelo arquivo do mesmo carimbo e, só se isso der
+certo, substitui os objetos do dump no banco `apogeu` (criando o banco se não existir).
 
 Antes de qualquer restauração em produção, faça um backup do estado atual (é a volta se a restauração for a errada).
-O `restore` confere o arquivo de chaves antes de tudo: se ele estiver corrompido ou truncado, sai com erro sem criar
-nem carregar o banco e sem apagar as chaves atuais.
+O `restore` confere o arquivo de chaves antes de tudo: se ele estiver corrompido, truncado ou sem nenhuma chave, sai com
+erro sem criar nem carregar o banco e sem apagar as chaves atuais; se a gravação das chaves falhar, o banco não é
+tocado.
 
 ```bash
 tools/deploy/backup                                    # backup do estado atual, antes de restaurar
