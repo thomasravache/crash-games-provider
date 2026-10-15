@@ -28,6 +28,14 @@ export const gamePage = {
   about: /sobre o jogo/iu,
 } as const;
 
+/** Fixed "Sobre o jogo" data of the Pipa in the demo-site (SPEC-0045 §4, Emenda v1). */
+export const pipaAbout = {
+  rtp: /97\s?%/u,
+  maxWin: /10\.000\s?x/iu,
+  fairness: /comprovadamente justo/iu,
+  provider: /apogeu games/iu,
+} as const;
+
 /** The iframe sandbox of the contract (SPEC-0045 §6): the minimum the game needs. */
 export const gameSandbox = "allow-scripts allow-same-origin allow-popups";
 

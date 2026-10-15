@@ -7,6 +7,7 @@ import {
   gamePage,
   gameSandbox,
   lobby,
+  pipaAbout,
   pipaHud,
 } from "./support/demo-site";
 
@@ -106,6 +107,10 @@ test("SPEC-0045:E2E-01 o jogador abre a Pipa no lobby, vê uma rodada no iframe,
   await expect(
     page.getByRole("heading", { name: gamePage.about }),
   ).toBeVisible();
+  // "Sobre o jogo" of the Pipa: fixed data of the demo-site (Emenda v1); page locators never reach into the iframe.
+  for (const fact of Object.values(pipaAbout)) {
+    await expect(page.getByText(fact).first()).toBeVisible();
+  }
   await expectNoAxeViolations(page, "game", { frames: false });
 
   // Back to the lobby.
