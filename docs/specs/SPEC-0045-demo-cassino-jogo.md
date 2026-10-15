@@ -148,7 +148,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 92551a4 | 2026-10-10 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:06.48]     Dada a requisição real de lançamento do DemoCasino, quando val) — ad10f10 | 2026-10-15 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
