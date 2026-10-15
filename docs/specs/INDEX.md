@@ -4,7 +4,7 @@
 
 ## Saúde
 
-- Validação (G0): **3 erro(s), 36 aviso(s)** — rode `spec_graph.py validate`
+- Validação (G0): **2 erro(s), 36 aviso(s)** — rode `spec_graph.py validate`
 - Specs: proposed 4, approved 23, in-progress 2, implemented 31, deprecated 1
 - Impedimentos: **1 aberto(s)**, 28 resolvido(s)
 
@@ -76,7 +76,7 @@ Perfil: **rigoroso**
 | 8 | SPEC-0055 | Aviso de limite da rodada e regras na Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0054 |  |
 | 8 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0053; saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0054 |
 | 9 | SPEC-0040 | Backoffice: rodadas e auditoria provably fair | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0038; saiu da onda 8: arquivos em comum com SPEC-0039 |
-| 9 | SPEC-0067 | Deploy contínuo na VPS sem segredos no GitHub | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 8: max_parallel=3 |
+| 9 | SPEC-0067 | Deploy pelo GitHub Actions na VPS com aprovação e chave restrita | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 8: max_parallel=3 |
 | 10 | SPEC-0041 | Backoffice: busca de apostas | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0038; saiu da onda 8: arquivos em comum com SPEC-0039; saiu da onda 9: arquivos em comum com SPEC-0040 |
 | 11 | SPEC-0042 | Backoffice: relatórios e fechamento mensal | full/M | approved | ⛔ aguarda implementação de SPEC-0036; aguarda implementação de SPEC-0038; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 8: arquivos em comum com SPEC-0039; saiu da onda 9: arquivos em comum com SPEC-0040; saiu da onda 10: arquivos em comum com SPEC-0041 |
 | 12 | SPEC-0048 | Capacidade do cash-out em rajada na infraestrutura real | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0053; saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0054; saiu da onda 8: arquivos em comum com SPEC-0056; saiu da onda 9: arquivos em comum com SPEC-0040; saiu da onda 10: arquivos em comum com SPEC-0041; saiu da onda 11: arquivos em comum com SPEC-0042 |
@@ -118,7 +118,7 @@ flowchart LR
   subgraph E0012["SPEC-0012 · Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io)"]
     S0065["SPEC-0065<br/>Publicação do AppHost para Docker Compo…"]:::proposed
     S0066["SPEC-0066<br/>Deploy na VPS com HTTPS, backup e rollb…"]:::proposed
-    S0067["SPEC-0067<br/>Deploy contínuo na VPS sem segredos no …"]:::proposed
+    S0067["SPEC-0067<br/>Deploy pelo GitHub Actions na VPS com a…"]:::proposed
   end
   subgraph E0019["SPEC-0019 · Apostas e cash-out em demo"]
     S0020["SPEC-0020<br/>Catálogo de jogos e limites por operado…"]:::implemented
@@ -287,7 +287,7 @@ flowchart LR
 | [SPEC-0064](SPEC-0064-robustez-dos-testes-intermitentes.md) | Robustez dos testes intermitentes | lite | fix | in-progress | 2026-10-15 | SPEC-0061 | SPEC-0047 | — |
 | [SPEC-0065](SPEC-0065-publicacao-do-apphost-para-docker-compose-em-producao.md) | Publicação do AppHost para Docker Compose em produção | full | foundation | proposed | 2026-10-15 | SPEC-0012 | SPEC-0047 | — |
 | [SPEC-0066](SPEC-0066-deploy-na-vps-com-https-backup-e-rollback.md) | Deploy na VPS com HTTPS, backup e rollback | full | foundation | proposed | 2026-10-15 | SPEC-0012 | SPEC-0065 | SPEC-0065@1 |
-| [SPEC-0067](SPEC-0067-deploy-continuo-na-vps-sem-segredos-no-github.md) | Deploy contínuo na VPS sem segredos no GitHub | lite | feature | proposed | 2026-10-15 | SPEC-0012 | SPEC-0066 | — |
+| [SPEC-0067](SPEC-0067-deploy-pelo-github-actions-na-vps.md) | Deploy pelo GitHub Actions na VPS com aprovação e chave restrita | lite | feature | proposed | 2026-10-15 | SPEC-0012 | SPEC-0066 | — |
 
 ## ADRs
 

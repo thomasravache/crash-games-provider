@@ -17,13 +17,13 @@ approved_at:
 <!-- type: feature | migration | foundation (produto novo: ver references/greenfield.md). O épico não é executado: define visão, decisões, decomposição e entrega. Quem executa são as specs filhas (tier full ou lite, tamanho S/M, `parent: SPEC-0012`). A ordem de execução é calculada a partir do frontmatter das filhas (`spec_graph.py waves`). -->
 
 ## 1. Visão
-A jornada do jogador acessível de qualquer lugar, celular inclusive, em endereços fixos com HTTPS e sem custo: `https://cassino.143-95-218-240.sslip.io` (cassino demo), `https://jogo.143-95-218-240.sslip.io` (Pipa) e `https://api.143-95-218-240.sslip.io` (API pública da Apogeu), publicada pelo Aspire na VPS própria (ADR-0029). O G6 deixa de ser N/A: cada versão tem deploy, smoke e rollback em um passo. Pedido de thomas em 2026-10-15 ("quero deployar com o aspire aqui na vps com um domínio gratuito"); escolhas dele: sslip.io, só a jornada exposta, deploy por script na VPS com a confirmação dele e, depois, deploy pelo GitHub sem segredos.
+A jornada do jogador acessível de qualquer lugar, celular inclusive, em endereços fixos com HTTPS e sem custo: `https://cassino.143-95-218-240.sslip.io` (cassino demo), `https://jogo.143-95-218-240.sslip.io` (Pipa) e `https://api.143-95-218-240.sslip.io` (API pública da Apogeu), publicada pelo Aspire na VPS própria (ADR-0029). O G6 deixa de ser N/A: cada versão tem deploy, smoke e rollback em um passo. Pedido de thomas em 2026-10-15 ("quero deployar com o aspire aqui na vps com um domínio gratuito"); escolhas dele: sslip.io, só a jornada exposta, deploy por script na VPS com a confirmação dele e, depois, deploy pelo GitHub Actions por SSH com aprovação.
 
 ## 2. Escopo
 **Objetivos (dentro do escopo):**
 - SPEC-0065: o AppHost publica a plataforma como Docker Compose de produção (front-ends estáticos, ambiente `Production`, carteira seamless do cassino, chaves do Data Protection persistidas, segredos só como variáveis).
 - SPEC-0066: a VPS roda essa publicação atrás do Caddy com HTTPS, com deploy, rollback, backup e smoke por script.
-- SPEC-0067 (proposta, depois): deploy contínuo a partir da main sem segredo no GitHub.
+- SPEC-0067 (proposta, depois): deploy pelo GitHub Actions por SSH, com aprovação de thomas no Environment `production` e uma chave restrita ao comando de deploy.
 
 **Não-objetivos (fora do escopo):**
 - Backoffice, painel do Aspire e Keycloak acessíveis pela internet.
@@ -52,7 +52,7 @@ A SPEC-0065 entrega o compose e as imagens (contrato com a 0066: serviços, vari
 |---|---|---|---|---|---|---|
 | SPEC-0065 | Publicação do AppHost para Docker Compose em produção | full | foundation | M | SPEC-0047 | — |
 | SPEC-0066 | Deploy na VPS com HTTPS, backup e rollback | full | foundation | M | SPEC-0065 | — |
-| SPEC-0067 | Deploy contínuo na VPS sem segredos no GitHub | lite | foundation | S | SPEC-0066 | — |
+| SPEC-0067 | Deploy pelo GitHub Actions na VPS com aprovação e chave restrita | lite | foundation | S | SPEC-0066 | — |
 
 ## 5. Estratégia de Entrega
 - **Ambientes:** um ambiente de demonstração na VPS (produção demo); cada deploy com a confirmação de thomas até a SPEC-0067.
@@ -77,7 +77,7 @@ A SPEC-0065 entrega o compose e as imagens (contrato com a 0066: serviços, vari
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento. -->
 - [x] Qual domínio gratuito? — sslip.io (thomas, 2026-10-15)
 - [x] O que fica exposto? — só a jornada do jogador (thomas, 2026-10-15)
-- [x] Como fazer o deploy? — script na VPS com a confirmação de thomas; depois uma Action segura, sem segredo no GitHub (thomas, 2026-10-15)
+- [x] Como fazer o deploy? — script na VPS com a confirmação de thomas; depois uma Action segura (thomas, 2026-10-15); abordagem da Action: deploy por SSH com aprovação no Environment e chave restrita, o padrão de mercado para VPS (thomas, 2026-10-15)
 - [x] Nuvem e orçamento (pergunta do rascunho anterior)? — VPS própria, custo zero (ADR-0029)
 - [x] Residência dos dados (pergunta do rascunho anterior)? — N/A enquanto for só demonstração, sem jogador real (ADR-0020)
 

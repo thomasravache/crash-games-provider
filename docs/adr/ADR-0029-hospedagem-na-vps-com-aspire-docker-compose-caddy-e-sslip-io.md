@@ -23,7 +23,7 @@ A jornada do jogador está pronta e thomas quer jogá-la de qualquer lugar (celu
 ## Direcionadores da Decisão
 - Custo zero até o lançamento (regra de thomas).
 - Usar o Aspire também na publicação (ADR-0003), sem uma segunda descrição do sistema.
-- Nenhuma senha ou segredo no repositório (público) nem no GitHub (decisão de thomas, 2026-10-15).
+- Nenhuma senha da aplicação no repositório (público) nem no GitHub; a única credencial no GitHub é a chave de deploy restrita (decisão de thomas, 2026-10-15).
 - Expor só a jornada do jogador; painel, Keycloak, banco e Redis fechados.
 - A VPS é compartilhada: limites de memória e CPU por container.
 
@@ -33,10 +33,10 @@ A jornada do jogador está pronta e thomas quer jogá-la de qualquer lugar (celu
 - Túneis do cloudflared sobre o AppHost em modo de desenvolvimento (SPEC-0050)
 
 ## Resultado da Decisão
-**Opção escolhida:** **VPS própria com Aspire → Docker Compose, Caddy e sslip.io**, porque custa zero, reaproveita o AppHost como fonte única dos recursos e dá HTTPS de verdade num endereço fixo (`cassino.143-95-218-240.sslip.io`, `jogo.…`, `api.…`), sem conta nem token de DNS. Os segredos são gerados na própria VPS (`.env` com permissão 600, fora do repositório) e o deploy é um script na VPS rodado com a confirmação de thomas a cada versão; o deploy contínuo pelo GitHub vem depois, sem segredo no GitHub (decisão de thomas, 2026-10-15).
+**Opção escolhida:** **VPS própria com Aspire → Docker Compose, Caddy e sslip.io**, porque custa zero, reaproveita o AppHost como fonte única dos recursos e dá HTTPS de verdade num endereço fixo (`cassino.143-95-218-240.sslip.io`, `jogo.…`, `api.…`), sem conta nem token de DNS. Os segredos são gerados na própria VPS (`.env` com permissão 600, fora do repositório) e o deploy é um script na VPS rodado com a confirmação de thomas a cada versão; o deploy pelo GitHub vem depois, por SSH a partir de uma Action com aprovação no Environment `production` e uma chave restrita ao comando de deploy (decisão de thomas, 2026-10-15).
 
 **Regras (verificáveis):**
-- Nenhum segredo no repositório, nas imagens ou no GitHub; o compose publicado só referencia variáveis.
+- Nenhum segredo no repositório nem nas imagens; o compose publicado só referencia variáveis. No GitHub, só a chave SSH de deploy restrita (`command=` no `authorized_keys`) e o `known_hosts`, no Environment `production` com aprovação obrigatória; nenhuma senha da aplicação.
 - Só o Caddy publica portas (80/443); banco, Redis, Keycloak e o painel do Aspire ficam só na rede interna.
 - Produção roda em `Production`: rotas `/dev/*` não existem.
 - Deploy e rollback em um passo pelo `tools/deploy/`; a versão anterior fica disponível para voltar.
