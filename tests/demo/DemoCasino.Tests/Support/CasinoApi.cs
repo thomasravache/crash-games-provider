@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Apogeu.DemoCasino.Tests.Support;
 
-/// <summary>Calls of the casino BFF contract of SPEC-0043 §6 and SPEC-0044 §6 and the reading of its responses.</summary>
+/// <summary>Calls of the casino BFF contract of SPEC-0043 §6, SPEC-0044 §6 and SPEC-0045 §6 and the reading of its responses.</summary>
 internal static class CasinoApi
 {
     public const string SessionPath = "/casino/session";
@@ -16,6 +16,9 @@ internal static class CasinoApi
 
     /// <summary>The lobby catalog of SPEC-0044 §6.</summary>
     public const string GamesPath = "/casino/games";
+
+    /// <summary>The signed launch of SPEC-0045 §6: <c>POST /casino/play/{gameCode}</c>.</summary>
+    public static string PlayPath(string gameCode) => "/casino/play/" + Uri.EscapeDataString(gameCode);
 
     /// <summary>POST /casino/session with <c>{ nickname, currency }</c>.</summary>
     public static async Task<HttpResponseMessage> EnterAsync(HttpClient client, string nickname, string currency, CancellationToken ct)
@@ -64,6 +67,27 @@ internal static class CasinoApi
         using var json = JsonDocument.Parse(text);
         Assert.Equal(JsonValueKind.Array, json.RootElement.ValueKind);
         return [.. json.RootElement.EnumerateArray().Select(item => item.Clone())];
+    }
+
+    /// <summary>POST /casino/play/{gameCode} (SPEC-0045 §6), without a body: the player and the currency come from the session.</summary>
+    public static async Task<HttpResponseMessage> PlayAsync(HttpClient client, string gameCode, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        using var content = new ByteArrayContent([]);
+        return await client.PostAsync(new Uri(PlayPath(gameCode), UriKind.Relative), content, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Asserts a 200 JSON response of POST /casino/play/{gameCode} and returns its absolute <c>launchUrl</c> (SPEC-0045 §6).</summary>
+    public static async Task<Uri> ReadLaunchUrlAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        var body = await ReadOkJsonAsync(response, ct).ConfigureAwait(false);
+        Assert.True(
+            body.TryGetProperty("launchUrl", out var launchUrl) && launchUrl.ValueKind == JsonValueKind.String,
+            $"The play response must carry launchUrl: {body.GetRawText()}");
+        Assert.True(
+            Uri.TryCreate(launchUrl.GetString(), UriKind.Absolute, out var uri),
+            $"launchUrl must be an absolute URL, got '{launchUrl.GetString()}'.");
+        return uri;
     }
 
     public static async Task<HttpResponseMessage> LogoutAsync(HttpClient client, CancellationToken ct)
