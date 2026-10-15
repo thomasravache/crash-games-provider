@@ -1,0 +1,13 @@
+{
+  // SPEC-0066 E2E-01 against the published environment, run by tests/deploy/e2e/playwright.config.ts (never by the PR suite).
+  // Outside the pnpm workspace: the test packages resolve from src/frontend/node_modules, as tests/e2e/demo-site.
+  "extends": "../../../src/frontend/tsconfig.base.json",
+  "compilerOptions": {
+    "types": [],
+    "paths": {
+      "@playwright/test": ["../../../src/frontend/node_modules/@playwright/test"],
+      "@axe-core/playwright": ["../../../src/frontend/node_modules/@axe-core/playwright"]
+    }
+  },
+  "include": ["**/*.ts", "../../e2e/demo-site/support/**/*.ts"]
+}
