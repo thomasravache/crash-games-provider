@@ -9,7 +9,7 @@ created: 2026-10-09
 parent: SPEC-0019
 depends_on: [SPEC-0025, SPEC-0026]
 consumes_contract: [SPEC-0025@4]
-touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "tests/frontend/pipa/bets-tabs/**", "tests/e2e/pipa/bets-tabs/**"]
+touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "tests/frontend/pipa/bets-tabs/**", "tests/e2e/pipa/bets-tabs/**", "tests/frontend/integration/pipa/bets-tabs/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019]
 external: []
 size: S
@@ -43,7 +43,7 @@ Não muda: os painéis de aposta, o saldo e o contrato da SPEC-0025.
 - Caracterização: N/A — código novo; os painéis são cobertos pela SPEC-0026.
 - **UT-01** — Dado um `LiveBetsSnapshot` seguido de lotes, quando aplicados ao store, então a aba "Todas as apostas" mostra as apostas da rodada com apelido anonimizado e os totais; numa nova rodada a lista é zerada.
 - **UT-02** — Dadas duas páginas de `GET /api/v1/me/bets`, quando o jogador clica "carregar mais", então a segunda página é anexada pelo cursor, sem duplicar, e o botão some na última página.
-- **CT-01** — Dadas as mensagens reais de `LiveBetsSnapshot`, dos lotes e de `GET /api/v1/me/bets`, quando validadas contra os tipos gerados, então conferem (SPEC-0025@1).
+- **CT-01** — Dadas as mensagens reais de `LiveBetsSnapshot`, dos lotes e de `GET /api/v1/me/bets`, quando validadas contra os tipos gerados, então conferem (SPEC-0025@4). Roda no projeto vitest `integration` contra o Host real (`pnpm test:integration`), no padrão do CT-01 da SPEC-0026, em `tests/frontend/integration/pipa/bets-tabs/` (Emenda v1).
 - **E2E-01** — Dado o jogo aberto pelo lançamento demo, quando o jogador aposta R$ 10,00, retira no voo e depois perde outra aposta, então "Todas as apostas" mostrou a aposta durante a rodada e "Minhas apostas" lista as duas (cashed_out com o ganho e lost); axe sem violações nas duas abas.
 
 ## 5. Questões em Aberto
@@ -92,6 +92,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G1 | spec | CT-01 exige mensagens reais do Host, mas o touches não tem tests/frontend/integration/pipa/bets-tabs/** (padrão do CT-01 da SPEC-0026, projeto vitest integration); CT-01 cita SPEC-0025@1 em vez de @4; sinal de nova rodada que zera as listas não definido | test-writer leu a spec, o CT-01 da SPEC-0026 e a config do vitest; parou antes de escrever | Architect | Emenda v1 — CT-01 no projeto integration, touches ampliado, contrato @4, sinal de nova rodada = RoundBetting | 2026-10-15 |
 
 ## 10. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
@@ -126,3 +127,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 | 2026-10-15 | CT-01 roda no projeto vitest `integration` contra o Host (padrão do CT-01 da SPEC-0026), com `tests/frontend/integration/pipa/bets-tabs/**` no `touches`; versão do contrato corrigida para SPEC-0025@4; o sinal de nova rodada que zera "Todas as apostas" é o `RoundBetting` de outra rodada vindo do store de rodadas | Test-writer (SPEC_DEFECT, IMP-01): mensagens reais exigem o Host e o caminho de integração estava fora do `touches` | Nenhuma | decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) |
