@@ -80,7 +80,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — f79c3c6 | 2026-10-09 |
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯) — 76732c5 | 2026-10-15 |
-| G2 Green | PENDING | | |
+| G2 Green | PASS | build exit 0 (✓ built in 270ms); test exit 0 ($ pnpm -C src/frontend test); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:src/frontend/coverage/lcov.info" -targetdir:artifacts/c) — 88cdf0c | 2026-10-15 |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
 | G5 Integração & CI | PENDING | | |
