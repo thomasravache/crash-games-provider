@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Backup of the database of the VPS deployment (SPEC-0066, ADR-0018/ADR-0029): run daily by the systemd timer of
+# infra/vps (apogeu-backup.timer) or by hand. Runbook: docs/runbooks/deploy-vps.md.
+#
+# Usage: tools/deploy/backup
+#
+# pg_dump (custom format) of the database apogeu, taken inside the PostgreSQL container, into
+# $APOGEU_BACKUP_DIR/apogeu-<UTC timestamp>.dump (mode 600); the path of the file is the last line of the output. Then
+# removes the apogeu-* files of that directory older than 7 days (other files stay).
+# Environment: APOGEU_POSTGRES_CONTAINER (default: the postgres service of the compose project), APOGEU_BACKUP_DIR
+# (default $APOGEU_DEPLOY_DIR/backups), APOGEU_POSTGRES_USER (default postgres), APOGEU_BACKUP_RETENTION_DAYS (7).
+set -euo pipefail
+
+script_name="backup"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/deploy/lib.sh
+source "$script_dir/lib.sh"
+# shellcheck source=tools/deploy/postgres.sh
+source "$script_dir/postgres.sh"
+
+[[ $# -eq 0 ]] || { sed -n '5p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+backup_dir="${APOGEU_BACKUP_DIR:-$APOGEU_DEPLOY_DIR/backups}"
+retention_days="${APOGEU_BACKUP_RETENTION_DAYS:-7}"
+umask 077
+mkdir -p "$backup_dir"
+
+container="$(postgres_container)"
+file="$backup_dir/apogeu-$(date -u +%Y%m%dT%H%M%SZ).dump"
+partial="$file.partial"
+trap 'rm -f "$partial"' EXIT
+
+log "dumping the database $database"
+pg_exec "$container" pg_dump --username "$postgres_user" --dbname "$database" --format custom --compress 6 >"$partial"
+[[ -s "$partial" ]] || die "empty dump"
+mv "$partial" "$file"
+chmod 600 "$file"
+log "dump of $(du -h "$file" | cut -f1)"
+
+# Retention: only the dumps (apogeu-*) older than the retention, in this directory only.
+find "$backup_dir" -maxdepth 1 -type f -name 'apogeu-*' -mmin "+$((retention_days * 24 * 60))" -print -delete |
+  sed 's/^/[backup] removed old dump /' >&2
+
+printf '%s\n' "$file"

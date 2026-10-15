@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# Build of a version (SPEC-0066): the default build hook of tools/deploy/vps-deploy (APOGEU_DEPLOY_BUILD), run from the
+# root of the checkout of the version, on the VPS. Needs the .NET SDK of global.json and a Docker engine (the front-ends
+# are built inside the proxy image, so no Node.js on the host).
+#
+# Input (environment, set by vps-deploy): API_IMAGE, DEMO_CASINO_IMAGE, PROXY_IMAGE (names tagged with the commit),
+# APOGEU_VERSION, APOGEU_DOMAIN.
+# Output: infra/compose/out/docker-compose.yaml (`aspire publish` of the AppHost, contract SPEC-0065@2) and the three
+# images in the local Docker engine. No secret is involved: the compose only references ${VARIABLES} of the .env.
+set -euo pipefail
+
+: "${API_IMAGE:?API_IMAGE not set by vps-deploy}"
+: "${DEMO_CASINO_IMAGE:?DEMO_CASINO_IMAGE not set by vps-deploy}"
+: "${PROXY_IMAGE:?PROXY_IMAGE not set by vps-deploy}"
+domain="${APOGEU_DOMAIN:-143-95-218-240.sslip.io}"
+
+log() { printf '[build-release] %s\n' "$*" >&2; }
+
+export DOTNET_NOLOGO=true DOTNET_CLI_TELEMETRY_OPTOUT=true DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+
+case "$(uname -m)" in
+  x86_64) runtime="linux-x64" ;;
+  aarch64 | arm64) runtime="linux-arm64" ;;
+  *) log "unsupported architecture $(uname -m)"; exit 1 ;;
+esac
+
+# Only the projects of the images and of the publish, from their lock files (locked mode).
+projects=(src/backend/AppHost/AppHost.csproj src/backend/Host/Host.csproj src/demo/DemoCasino/DemoCasino.csproj)
+for project in "${projects[@]}"; do
+  log "restore $project (locked mode)"
+  dotnet restore "$project" --locked-mode
+done
+
+# 1. The compose of production: the AppHost in publish mode (`aspire publish`), as SPEC-0065 describes it. The parameters
+#    are the public addresses only; every secret stays a ${VARIABLE} filled by the .env of the host.
+log "aspire publish → infra/compose/out"
+dotnet build src/backend/AppHost/AppHost.csproj -c Release --no-restore
+# The output path is absolute: Aspire resolves a relative one against the AppHost directory.
+out_dir="$PWD/infra/compose/out"
+rm -rf "$out_dir"
+dotnet run --project src/backend/AppHost/AppHost.csproj -c Release --no-build --no-launch-profile -- \
+  --environment Production --operation publish --step publish --output-path "$out_dir" \
+  "--Parameters:public-game-url=https://jogo.$domain" \
+  "--Parameters:public-api-url=https://api.$domain" \
+  "--Parameters:backoffice-authority=https://auth.$domain/realms/apogeu"
+test -f "$out_dir/docker-compose.yaml"
+
+# 2. The api and the DemoCasino images: .NET SDK container publish (as the images workflow, SPEC-0004).
+publish_container() {
+  local project="$1" image="$2"
+  log "image $image"
+  dotnet publish "$project" -c Release --no-restore \
+    -t:PublishContainer \
+    -p:ContainerRuntimeIdentifier="$runtime" \
+    -p:ContainerRepository="${image%:*}" \
+    -p:ContainerImageTag="${image##*:}"
+}
+publish_container src/backend/Host/Host.csproj "$API_IMAGE"
+publish_container src/demo/DemoCasino/DemoCasino.csproj "$DEMO_CASINO_IMAGE"
+
+# 3. The proxy: Caddy with the production builds of the demo-site and the game (infra/caddy/Dockerfile).
+log "image $PROXY_IMAGE"
+docker build --file infra/caddy/Dockerfile --build-arg "APOGEU_DOMAIN=$domain" --tag "$PROXY_IMAGE" .
