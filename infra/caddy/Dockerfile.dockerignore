@@ -1,0 +1,11 @@
+# Build context of infra/caddy/Dockerfile (the root of the repository): only the front-end sources and the Caddyfile.
+# Nothing else gets in — no .env, no deployment directory, no build output, no installed packages.
+*
+!infra/caddy/Caddyfile
+!src/frontend
+src/frontend/**/node_modules
+src/frontend/**/dist
+src/frontend/**/test-results
+src/frontend/**/playwright-report
+src/frontend/**/.env*
+src/frontend/**/*.tsbuildinfo

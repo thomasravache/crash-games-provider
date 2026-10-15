@@ -1,0 +1,59 @@
+# Proxy of the published platform (SPEC-0066, ADR-0029): the only entry point on the VPS. Three sites on the base domain
+# of APOGEU_DOMAIN (default 143-95-218-240.sslip.io), automatic HTTPS (Let's Encrypt for the public names, Caddy's
+# internal CA for *.localhost in the tests), HTTP redirected to HTTPS, certificates in /data (volume caddy-data).
+#
+#   cassino.<domain>  /casino/* → demo-casino:8080 (prefix kept); the rest, static demo-site with SPA fallback
+#   jogo.<domain>     static game-pipa with SPA fallback
+#   api.<domain>      → api:8080 (REST and the /hubs WebSocket: reverse_proxy upgrades connections by itself)
+#
+# APOGEU_CADDY_ACME (optional) holds whole global options for the ACME account, e.g. "email ops@example.org"; the proxy
+# service of infra/caddy/compose.proxy.yaml fills it from APOGEU_ACME_EMAIL. Empty, the account has no e-mail.
+{
+	{$APOGEU_CADDY_ACME}
+	# Only the internal CA of the test names would be installed; never touch a trust store in the container.
+	skip_install_trust
+}
+
+# Security headers of every site. HSTS without includeSubDomains/preload: sslip.io is a shared domain.
+(security) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	# Access log on stderr (docker logs); Caddy redacts the Cookie and Authorization headers by default.
+	log
+}
+
+# Static single-page app from a directory of the image: unknown paths fall back to index.html; hashed assets are
+# cached for a long time, everything else is revalidated.
+(spa) {
+	root * {args[0]}
+	encode zstd gzip
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	header ?Cache-Control "no-cache"
+	try_files {path} /index.html
+	file_server
+}
+
+cassino.{$APOGEU_DOMAIN:143-95-218-240.sslip.io} {
+	import security
+	handle /casino/* {
+		reverse_proxy demo-casino:8080
+	}
+	handle {
+		import spa /srv/cassino
+	}
+}
+
+jogo.{$APOGEU_DOMAIN:143-95-218-240.sslip.io} {
+	import security
+	import spa /srv/jogo
+}
+
+api.{$APOGEU_DOMAIN:143-95-218-240.sslip.io} {
+	import security
+	reverse_proxy api:8080
+}
