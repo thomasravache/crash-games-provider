@@ -9,7 +9,7 @@ created: 2026-10-09
 parent: SPEC-0019
 depends_on: [SPEC-0025, SPEC-0026]
 consumes_contract: [SPEC-0025@4]
-touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "tests/frontend/pipa/bets-tabs/**", "tests/e2e/pipa/bets-tabs/**", "tests/frontend/integration/pipa/bets-tabs/**"]
+touches: ["src/frontend/packages/game-sdk/**", "src/frontend/packages/game-ui/**", "src/frontend/apps/game-pipa/src/hud/**", "src/frontend/apps/game-pipa/src/App.tsx", "tests/frontend/pipa/bets-tabs/**", "tests/e2e/pipa/bets-tabs/**", "tests/frontend/integration/pipa/bets-tabs/**"]
 adrs: [ADR-0004, ADR-0008, ADR-0019]
 external: []
 size: S
@@ -79,7 +79,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — f79c3c6 | 2026-10-09 |
-| G1 Red | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯) — 76732c5 | 2026-10-15 |
 | G2 Green | PENDING | | |
 | G3 Arquitetura | PENDING | | |
 | G4 Review | PENDING | | |
@@ -93,6 +93,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
 | IMP-01 | 2026-10-15 | G1 | spec | CT-01 exige mensagens reais do Host, mas o touches não tem tests/frontend/integration/pipa/bets-tabs/** (padrão do CT-01 da SPEC-0026, projeto vitest integration); CT-01 cita SPEC-0025@1 em vez de @4; sinal de nova rodada que zera as listas não definido | test-writer leu a spec, o CT-01 da SPEC-0026 e a config do vitest; parou antes de escrever | Architect | Emenda v1 — CT-01 no projeto integration, touches ampliado, contrato @4, sinal de nova rodada = RoundBetting | 2026-10-15 |
+| IMP-02 | 2026-10-15 | G2 | spec | O Hud só é montado em apps/game-pipa/src/App.tsx, fora do touches; sem ligar as abas ali o E2E-01 não passa | Implementer isolou a mudança de 2 linhas no commit 13f7a59 | architect | Emenda v2: App.tsx no touches | 2026-10-15 |
 
 ## 10. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
@@ -128,3 +129,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
 | 1 | 2026-10-15 | CT-01 roda no projeto vitest `integration` contra o Host (padrão do CT-01 da SPEC-0026), com `tests/frontend/integration/pipa/bets-tabs/**` no `touches`; versão do contrato corrigida para SPEC-0025@4; o sinal de nova rodada que zera "Todas as apostas" é o `RoundBetting` de outra rodada vindo do store de rodadas | Test-writer (SPEC_DEFECT, IMP-01): mensagens reais exigem o Host e o caminho de integração estava fora do `touches` | Nenhuma | decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) |
+| 2 | 2026-10-15 | `src/frontend/apps/game-pipa/src/App.tsx` entra no `touches` (só o import e o slot `betsTabs` do `Hud`) | Implementer (IMP-02): o `Hud` só é montado no `App.tsx`; sem ligar as abas ali o E2E-01 não passa | Nenhuma | decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) |
