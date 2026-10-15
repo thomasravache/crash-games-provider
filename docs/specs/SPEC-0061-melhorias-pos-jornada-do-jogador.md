@@ -72,6 +72,7 @@ Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com e
 <!-- Problemas que envolvem várias filhas (conflito de integração da onda, CI quebrado, decisão transversal). Impedimento que trava uma filha específica vai na própria filha. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G1 | decisão | Pausado por thomas em 2026-10-15 para focar no deploy na VPS (SPEC-0012); retomar quando ele pedir | Onda A em andamento: SPEC-0064 com CH-01 e prova commitados (31c6034); SPEC-0062 com testes em progresso não commitados no worktree | thomas |  |  |
 
 ## 11. Relatório de Entrega
 <!-- Preenchido ao fechar o épico: o que foi entregue, como (ondas e deploys com versão/data), resultado dos critérios de aceite com os testes que os provam, métricas pós-release, pendências como novas specs. `spec_graph.py report SPEC-0061` ajuda a montar. -->
