@@ -120,8 +120,8 @@ public sealed class CaddyfileTests
     public async Task GivenTokensInTheRequestWhenProxiedThenTheAccessLogDoesNotKeepThem()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        const string launchToken = "LT-SEGREDO-5d1f0c";
-        const string accessToken = "AT-SEGREDO-9b7e22";
+        const string launchToken = "LT-SEGREDO-5d1f0c"; // gitleaks:allow (fake token of the test)
+        const string accessToken = "AT-SEGREDO-9b7e22"; // gitleaks:allow (fake token of the test)
         const string cookie = "CK-SEGREDO-41aa07";
         const string authorization = "AZ-SEGREDO-c3e815";
         string[] headers = ["Cookie: casino_session=" + cookie, "Authorization: Bearer " + authorization];
@@ -156,8 +156,8 @@ public sealed class CaddyfileTests
     public async Task GivenTheBackendDownWhenARequestWithTokensFailsThenNoOutputOfTheProxyKeepsThem()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        const string accessToken = "AT-SEGREDO-502e1d";
-        const string launchToken = "LT-SEGREDO-502f7a";
+        const string accessToken = "AT-SEGREDO-502e1d"; // gitleaks:allow (fake token of the test)
+        const string launchToken = "LT-SEGREDO-502f7a"; // gitleaks:allow (fake token of the test)
 
         await using var proxy = await ProxyProbe.StartAsync(
             DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken, withBackend: false);
@@ -175,7 +175,7 @@ public sealed class CaddyfileTests
     public async Task GivenAnHttpRequestWithTheLaunchTokenWhenRedirectedThenNoOutputOfTheProxyKeepsIt()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        const string launchToken = "LT-SEGREDO-308c42";
+        const string launchToken = "LT-SEGREDO-308c42"; // gitleaks:allow (fake token of the test)
 
         await using var proxy = await ProxyProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
         var status = await proxy.GetAsync("http", $"jogo.{TestDomain}", $"/?lt={launchToken}&lang=pt-BR", [], cancellationToken);
@@ -191,8 +191,8 @@ public sealed class CaddyfileTests
     public async Task GivenAnHttpRequestForAnUnknownHostWithTokensWhenAnsweredThenNoOutputOfTheProxyKeepsThem()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        const string launchToken = "LT-SEGREDO-7a6b01";
-        const string accessToken = "AT-SEGREDO-7a6b02";
+        const string launchToken = "LT-SEGREDO-7a6b01"; // gitleaks:allow (fake token of the test)
+        const string accessToken = "AT-SEGREDO-7a6b02"; // gitleaks:allow (fake token of the test)
         const string unknownHost = "nope.example";
 
         await using var proxy = await ProxyProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
