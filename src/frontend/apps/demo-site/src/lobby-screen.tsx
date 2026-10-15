@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
+import { CasinoBalance } from "./casino-balance";
 import { listGames, type CasinoPlayer, type LobbyGame } from "./casino-api";
 import { provider as studio } from "./game-info";
 
@@ -145,6 +146,7 @@ export function LobbyScreen({ player, notice, opening, onPlay, onLeave }: LobbyS
           />
         </div>
         <div className="player">
+          <CasinoBalance onUnauthorized={onLeave} />
           <span className="nickname">
             <span className="visually-hidden">Jogador: </span>
             {player.nickname}

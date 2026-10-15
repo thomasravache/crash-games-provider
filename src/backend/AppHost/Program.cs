@@ -1,5 +1,6 @@
 using Aspire.Hosting.JavaScript;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -121,6 +122,19 @@ var demoCasino = builder.AddProject("demo-casino", "../../demo/DemoCasino/DemoCa
     .WithEnvironment("Apogeu__BaseUrl", api.GetEndpoint("http"))
     .WithEnvironment("Apogeu__OperatorKeyId", demoKeyId)
     .WithEnvironment("Apogeu__OperatorSecret", demoKeySecret);
+
+// SPEC-0047 (Emenda v1): in Development the demo operator is seamless and its wallet is the DemoCasino (public wallet
+// contract, SPEC-0021@4): the api calls the DemoCasino endpoint (plain http to the loopback is accepted), signed with the
+// demo operator key the casino already holds (Wallet:Operators:demo:*, the provisional settings of SPEC-0046). Endpoint
+// references only, no WaitFor: the DemoCasino depends on the api address, and a wallet call made before it is up is
+// uncertain like any other (resent or refused by the api).
+if (isRunMode && builder.Environment.IsDevelopment())
+{
+    api.WithEnvironment("Wallet__Operators__demo__Mode", "Seamless")
+        .WithEnvironment("Wallet__Operators__demo__WalletUrl", demoCasino.GetEndpoint("http"))
+        .WithEnvironment("Wallet__Operators__demo__KeyId", demoKeyId)
+        .WithEnvironment("Wallet__Operators__demo__Secret", demoKeySecret);
+}
 
 // SPEC-0043 (tools/ci/run-e2e.sh): the E2E runner fixes the demo-site port through AppHost__DemoSiteHttpPort, as for the
 // API; unset, the port stays dynamic.

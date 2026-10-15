@@ -1,5 +1,8 @@
+using System.Net;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,12 +24,19 @@ internal sealed class DemoCasinoHost : IAsyncDisposable
 
     private readonly WebApplicationFactory<Program> _factory;
 
-    private DemoCasinoHost(WebApplicationFactory<Program> factory, string operatorKeyId, string operatorSecret)
+    private DemoCasinoHost(WebApplicationFactory<Program> factory, string operatorKeyId, string operatorSecret, Uri? listeningUrl = null)
     {
         _factory = factory;
         OperatorKeyId = operatorKeyId;
         OperatorSecret = operatorSecret;
+        ListeningUrl = listeningUrl;
     }
+
+    /// <summary>
+    /// The real HTTP address of the casino on the loopback when started by <see cref="StartListening"/> (SPEC-0047: the
+    /// <c>walletUrl</c> the Apogeu calls); null for the in-memory casino.
+    /// </summary>
+    public Uri? ListeningUrl { get; }
 
     public string OperatorKeyId { get; }
 
@@ -77,6 +87,60 @@ internal sealed class DemoCasinoHost : IAsyncDisposable
         }
 
         return new DemoCasinoHost(factory, keyId, secret);
+    }
+
+    /// <summary>
+    /// Starts the casino on Kestrel, on a free loopback port (SPEC-0047 IT-01): the Apogeu reaches its wallet API over real
+    /// HTTP, as it reaches any operator wallet. Same parameters as <see cref="Start"/>.
+    /// </summary>
+    public static DemoCasinoHost StartListening(
+        Action<IServiceCollection>? configureServices = null,
+        IReadOnlyDictionary<string, string>? settings = null,
+        string? operatorKeyId = null,
+        string? operatorSecret = null)
+    {
+        var keyId = operatorKeyId ?? "demo-it-" + Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(8));
+        var secret = operatorSecret ?? Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
+
+        var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(host =>
+        {
+            host.UseSetting("Apogeu:BaseUrl", ApogeuBaseUrl.ToString());
+            host.UseSetting("Apogeu:OperatorKeyId", keyId);
+            host.UseSetting("Apogeu:OperatorSecret", secret);
+            foreach (var (key, value) in settings ?? new Dictionary<string, string>(StringComparer.Ordinal))
+            {
+                host.UseSetting(key, value);
+            }
+
+            if (configureServices is not null)
+            {
+                host.ConfigureTestServices(configureServices);
+            }
+        });
+        factory.UseKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+
+        try
+        {
+            factory.StartServer();
+            var address = factory.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First();
+            return new DemoCasinoHost(factory, keyId, secret, new Uri(address));
+        }
+        catch
+        {
+            factory.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// A browser-like client of the casino started by <see cref="StartListening"/>, over real HTTP (keeps the cookies; the
+    /// session cookie is not Secure over plain HTTP, so it is sent back).
+    /// </summary>
+    public HttpClient CreateLoopbackBrowserClient()
+    {
+        var baseAddress = ListeningUrl ?? throw new InvalidOperationException("The casino was not started on the loopback (StartListening).");
+        var handler = new HttpClientHandler { CookieContainer = new CookieContainer(), UseCookies = true, AllowAutoRedirect = false };
+        return new HttpClient(handler, disposeHandler: true) { BaseAddress = baseAddress };
     }
 
     /// <summary>A browser-like client: keeps the cookies the casino sets and sends them back.</summary>
