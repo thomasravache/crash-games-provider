@@ -29,6 +29,9 @@ public sealed partial class WorkflowRunnerTests
               - name: Install browsers
                 if: steps.browsers.outputs.cache-hit != 'true' && runner.environment == 'github-hosted'
                 run: pnpm exec playwright install --with-deps chromium
+              - name: Install browser system dependencies
+                if: steps.browsers.outputs.cache-hit == 'true' && runner.environment == 'github-hosted'
+                run: pnpm exec playwright install-deps chromium
               - name: System packages
                 if: runner.environment == 'github-hosted'
                 run: |
@@ -90,7 +93,7 @@ public sealed partial class WorkflowRunnerTests
         Assert.Empty(RunsOnViolations(LoadFixture(CompliantWorkflow)));
     }
 
-    [Fact(DisplayName = "Dados os workflows, quando os passos são lidos, então todo passo com sudo, apt-get ou --with-deps só roda no runner hospedado")]
+    [Fact(DisplayName = "Dados os workflows, quando os passos são lidos, então todo passo com sudo, apt-get, --with-deps ou install-deps só roda no runner hospedado")]
     [Trait("Spec", "SPEC-0059:UT-02")]
     public void GivenWorkflowsWhenStepsAreReadThenPrivilegedStepsRunOnlyOnHostedRunner()
     {
@@ -104,14 +107,15 @@ public sealed partial class WorkflowRunnerTests
 
         Assert.True(
             violations.Count == 0,
-            $"Steps using sudo, apt-get or --with-deps without `if: runner.environment == 'github-hosted'`:{Environment.NewLine}"
+            $"Steps using sudo, apt-get, --with-deps or install-deps without `if: runner.environment == 'github-hosted'`:{Environment.NewLine}"
             + string.Join(Environment.NewLine, violations));
     }
 
-    [Theory(DisplayName = "Dado um passo com sudo, apt-get ou --with-deps sem a condição, quando verificado, então reprova citando arquivo, job e passo")]
+    [Theory(DisplayName = "Dado um passo com sudo, apt-get, --with-deps ou install-deps sem a condição, quando verificado, então reprova citando arquivo, job e passo")]
     [Trait("Spec", "SPEC-0059:UT-02")]
     [InlineData("--with-deps sem if", "        if: steps.browsers.outputs.cache-hit != 'true' && runner.environment == 'github-hosted'\n", "", "Install browsers")]
-    [InlineData("--with-deps com outra condição", "&& runner.environment == 'github-hosted'", "", "Install browsers")]
+    [InlineData("--with-deps com outra condição", "!= 'true' && runner.environment == 'github-hosted'", "!= 'true'", "Install browsers")]
+    [InlineData("install-deps sem a condição", "== 'true' && runner.environment == 'github-hosted'", "== 'true'", "Install browser system dependencies")]
     [InlineData("sudo apt-get sem if", "        if: runner.environment == 'github-hosted'\n        run: |", "        run: |", "System packages")]
     [InlineData("condição invertida", "if: runner.environment == 'github-hosted'\n        run: |", "if: runner.environment != 'github-hosted'\n        run: |", "System packages")]
     public void GivenPrivilegedStepWithoutConditionWhenCheckedThenItFailsNamingFileJobAndStep(
@@ -194,7 +198,7 @@ public sealed partial class WorkflowRunnerTests
     private static bool IsBlankOrComment(string line) =>
         string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#');
 
-    [GeneratedRegex(@"\bsudo\b|\bapt-get\b|--with-deps\b", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"\bsudo\b|\bapt-get\b|--with-deps\b|\binstall-deps\b", RegexOptions.None, 1000)]
     private static partial Regex PrivilegedCommand();
 
     [GeneratedRegex(@"runner\.environment\s*==\s*'github-hosted'", RegexOptions.None, 1000)]
