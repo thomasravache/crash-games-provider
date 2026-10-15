@@ -4,7 +4,7 @@ title: "Cassino demo: página do jogo com lançamento assinado"
 tier: full
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0044]
@@ -155,7 +155,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | MANUAL: CI do PR #36 verde (run 38748728309, commit 68eca9a): frontend, contracts, e2e (Chromium, WebKit e Firefox, com os 3 E2E do cassino demo), security e sdd; o job backend foi pulado porque o filtro de mudanças da CI não inclui src/demo/** nem tests/demo/** (lacuna corrigida pela SPEC-0060); a suíte .NET completa, com os 47 testes do DemoCasino, passou no G2 local em 7c9409e; local em 68eca9a: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #36, run 38748728309); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 2447bf9 | 2026-10-15 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
