@@ -15,7 +15,7 @@ namespace Apogeu.Deploy.Tests.Integration;
 /// clean volume: the row counts of every table match and the keys are identical (content and owner, the api user 1654).
 /// Without the keys the unrevealed seeds stay unreadable. A corrupted keys archive, or one without keys, is refused
 /// before the database and the volume are touched, and the current keys stay (Emendas v4 and v5); the keys are imported
-/// before the database (Emenda v5). The backup keeps 7 days: older files of the directory go,
+/// before the database (Emenda v5), and the dump is checked before the keys are replaced (Emenda v6). The backup keeps 7 days: older files of the directory go,
 /// newer ones and other files stay.
 /// </summary>
 public sealed class BackupRestoreTests : IAsyncLifetime
@@ -175,6 +175,31 @@ public sealed class BackupRestoreTests : IAsyncLifetime
         {
             await DockerCli.RunAsync(["volume", "rm", "--force", broken], CancellationToken.None);
         }
+    }
+
+    [Fact(DisplayName = "Dado um dump corrompido ao lado de um arquivo de chaves válido, quando o restore roda, então recusa antes de trocar as chaves e não cria o banco")]
+    [Trait("Category", "Integration")]
+    [Trait("Spec", "SPEC-0066:IT-02")]
+    public async Task GivenACorruptedDumpWithValidKeysWhenRestoredThenTheKeysStayAndNoDatabaseIsCreated()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var backup = await RunAsync(DeployScripts.Backup, [], _source, _sourceKeys, cancellationToken);
+        Assert.True(backup.Succeeded, "backup failed. " + backup.Describe());
+        var dump = DumpPathOf(backup);
+        Assert.True(File.Exists(KeysArchiveOf(dump)), "no keys archive beside the dump. " + backup.Describe());
+
+        // A truncated dump (copy cut short, disk full) beside a valid keys archive.
+        var bytes = await File.ReadAllBytesAsync(dump, cancellationToken);
+        await File.WriteAllBytesAsync(dump, bytes[..(bytes.Length / 2)], cancellationToken);
+        await SeedKeysAsync(_targetKeys);
+        var currentKeys = await KeysOfAsync(_targetKeys);
+
+        var restore = await RunAsync(DeployScripts.Restore, [dump], _target, _targetKeys, cancellationToken);
+
+        Assert.False(restore.Succeeded, "restore accepted a corrupted dump. " + restore.Describe());
+        Assert.True(restore.ExitCode > 0, "restore did not run. " + restore.Describe());
+        Assert.Equal(currentKeys, await KeysOfAsync(_targetKeys));
+        Assert.False(await DatabaseExistsAsync(_target.GetConnectionString(), cancellationToken), "restore created the database for a corrupted dump");
     }
 
     [Fact(DisplayName = "Dados dumps com mais e menos de 7 dias, quando o backup roda, então só os mais antigos que 7 dias são apagados")]

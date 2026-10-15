@@ -15,7 +15,8 @@ namespace Apogeu.Deploy.Tests.Unit;
 /// front of an echo backend. Emenda v4: the access log of the proxy keeps no token: the launch token <c>lt</c> of the game
 /// and the <c>access_token</c> of the SignalR hubs are erased from the logged query, as Cookie and Authorization.
 /// Emenda v5: no output of the proxy (docker logs, stdout and stderr) holds a token: neither the error log of a 502 with
-/// the backend down (URI and Referer) nor the Location of the http→https redirect (308).
+/// the backend down (URI and Referer) nor the Location of the http→https redirect (308). Emenda v6: also the 308 of an
+/// unknown host, logged by the default logger.
 /// </summary>
 public sealed class CaddyfileTests
 {
@@ -182,6 +183,25 @@ public sealed class CaddyfileTests
         Assert.Equal(308, status);
         var logs = await LogsWithAsync(proxy, "308", cancellationToken);
         AssertNoSecret(logs, launchToken);
+    }
+
+    [Fact(DisplayName = "Dado um GET http:// de host desconhecido com lt e access_token, quando o proxy responde, então nenhuma saída do proxy contém os tokens")]
+    [Trait("Category", "Unit")]
+    [Trait("Spec", "SPEC-0066:UT-01")]
+    public async Task GivenAnHttpRequestForAnUnknownHostWithTokensWhenAnsweredThenNoOutputOfTheProxyKeepsThem()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        const string launchToken = "LT-SEGREDO-7a6b01";
+        const string accessToken = "AT-SEGREDO-7a6b02";
+        const string unknownHost = "nope.example";
+
+        await using var proxy = await ProxyProbe.StartAsync(DeployScripts.PathOf(DeployScripts.Caddyfile), TestDomain, cancellationToken);
+        // Readiness on a known site first, so the request below is not the one that waits for the proxy.
+        await proxy.GetAsync("http", $"jogo.{TestDomain}", "/", [], cancellationToken);
+        await proxy.GetAsync("http", unknownHost, $"/?lt={launchToken}&access_token={accessToken}&lang=pt-BR", [], cancellationToken);
+
+        var logs = await LogsWithAsync(proxy, unknownHost, cancellationToken);
+        AssertNoSecret(logs, launchToken, accessToken);
     }
 
     /// <summary>The output of the proxy once it holds <paramref name="expected"/> (the request is logged: the log stays useful).</summary>
