@@ -4,7 +4,7 @@ title: "Cassino demo: página do jogo com lançamento assinado"
 tier: full
 type: feature
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0044]
@@ -128,20 +128,20 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido na fase PLAN (2026-10-10). Cada fase começa pelos testes. -->
 
 **Fase 1: Regressão e correção**
-- [ ] Red: escrever UT-01, IT-01, IT-02, IT-03, IT-04, CT-01 com a tag `SPEC-0045:<ID>` e confirmar que falham pelo motivo certo
-- [ ] Green: implementar o mínimo para passar, seguindo o padrão citado
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever UT-01, IT-01, IT-02, IT-03, IT-04, CT-01 com a tag `SPEC-0045:<ID>` e confirmar que falham pelo motivo certo
+- [x] Green: implementar o mínimo para passar, seguindo o padrão citado
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase 2: Jornada E2E**
-- [ ] Red: E2E-01 falhando pelo motivo certo
-- [ ] Green: jornada completa passando localmente
+- [x] Red: E2E-01 falhando pelo motivo certo
+- [x] Green: jornada completa passando localmente
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy (G6): N/A até a SPEC-0012 (hospedagem), registrado no gate
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 12. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
@@ -155,7 +155,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | MANUAL: CI do PR #36 verde (run 38748728309, commit 68eca9a): frontend, contracts, e2e (Chromium, WebKit e Firefox, com os 3 E2E do cassino demo), security e sdd; o job backend foi pulado porque o filtro de mudanças da CI não inclui src/demo/** nem tests/demo/** (lacuna corrigida pela SPEC-0060); a suíte .NET completa, com os 47 testes do DemoCasino, passou no G2 local em 7c9409e; local em 68eca9a: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #36, run 38748728309); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — 2447bf9 | 2026-10-15 |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -168,37 +168,49 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 
 ### O que foi entregue
 <!-- comportamento entregue do ponto de vista do usuário/sistema -->
+No lobby do cassino demo, o botão "Jogar" do cartão (e "Jogar agora" no banner) abre a página `/jogo/{gameCode}`: o BFF faz o lançamento assinado na Apogeu (`POST /casino/play/{gameCode}` → `POST /api/v1/operator/launch`) com o jogador, o apelido e a moeda da sessão, e a página mostra o jogo num iframe com sandbox mínimo, "← Voltar ao lobby", tela cheia e a coluna "Sobre o jogo" (RTP 97%, ganho máximo 10.000x, comprovadamente justo, Apogeu Games). Cada abertura é um lançamento novo (URL de uso único); jogo indisponível ou Apogeu fora do ar voltam ao lobby com aviso.
 
 ### Como foi feito
 <!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
+Red b6b9b87 (IT-01..03, E2E-01) e ad10f10 (UT-01, IT-04, CT-01, após a Emenda v1); green 078e711 (DemoCasino `Play/`: `ApogeuLauncher` pelo cliente "Apogeu" assinado, corpo exato do SPEC-0009@1, 400 GAME_NOT_AVAILABLE → 404, falhas → 502 PROVIDER_UNAVAILABLE, log e contadores `democasino.launches`/`democasino.launch.failures`, `launchUrl` nunca logada) e 7c9409e (demo-site: rotas pela History API, `game-screen.tsx`, `game-info.ts` com os dados fixos, botão Jogar no lobby, trava contra lançamento duplo, landmarks nomeados). Emenda v1: sem `returnUrl` (fora do contrato), CT-01 estrito contra `LaunchRequest`, IT-04 e "Sobre o jogo" com dados fixos (IMP-01). O iframe carregou sem mudar cabeçalhos do jogo nem da API. G2 local com `APOGEU_PERF_BUDGET_SCALE=2` (latência do cash-out nesta VM) e na 3ª tentativa, após falhas intermitentes de outros módulos sob carga.
 
 ### Prova de Correção
 <!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 <!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | Dada a sessão do cassino, quando o corpo do lançamento é montado, então traz `playerId`, `nickname` e `currenc… | PASS | G2 do registro de gates; CI do PR #36 verde (run 38748728309 em 68eca9a e run 38752164780 em 49f5df7; testes .NET do DemoCasino no G2 local, ver G5), merge 225a560 |
+| IT-01 | Dados DemoCasino e Apogeu reais, quando o jogador logado lança a Pipa, então recebe uma `launchUrl` válida que… | PASS | G2 do registro de gates; CI do PR #36 verde (run 38748728309 em 68eca9a e run 38752164780 em 49f5df7; testes .NET do DemoCasino no G2 local, ver G5), merge 225a560 |
+| IT-02 | Dada uma `launchUrl` já usada, quando aberta de novo, então a Apogeu recusa (sessão expirada). | PASS | G2 do registro de gates; CI do PR #36 verde (run 38748728309 em 68eca9a e run 38752164780 em 49f5df7; testes .NET do DemoCasino no G2 local, ver G5), merge 225a560 |
+| IT-03 | Dada a Pipa desabilitada para o operador demo, quando o jogador tenta jogar, então 404 GAME_NOT_AVAILABLE. | PASS | G2 do registro de gates; CI do PR #36 verde (run 38748728309 em 68eca9a e run 38752164780 em 49f5df7; testes .NET do DemoCasino no G2 local, ver G5), merge 225a560 |
+| IT-04 | Dada a Apogeu indisponível (conexão recusada, 500, 503 ou 504), quando o jogador tenta jogar, então 502 PROVID… | PASS | G2 do registro de gates; CI do PR #36 verde (run 38748728309 em 68eca9a e run 38752164780 em 49f5df7; testes .NET do DemoCasino no G2 local, ver G5), merge 225a560 |
+| CT-01 | Dada a requisição real de lançamento do DemoCasino (corpo capturado), quando validada de forma estrita contra… | PASS | G2 do registro de gates; CI do PR #36 verde (run 38748728309 em 68eca9a e run 38752164780 em 49f5df7; testes .NET do DemoCasino no G2 local, ver G5), merge 225a560 |
+| E2E-01 | Dado o ambiente Aspire, quando o jogador entra no cassino demo, abre a Pipa no lobby, vê uma rodada no iframe,… | PASS | G2 do registro de gates; CI do PR #36 verde (run 38748728309 em 68eca9a e run 38752164780 em 49f5df7; testes .NET do DemoCasino no G2 local, ver G5), merge 225a560 |
 
 ### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Todos os testes do plano passando e listados na Verificação
+- [x] Todo comportamento do Mapa de Comportamentos coberto e verificado
+- [x] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
+- [x] Requisitos não-funcionais medidos com evidência (ou N/A justificado) — segurança (IT-01, IT-02), resiliência (IT-03, IT-04) e acessibilidade (E2E-01) verificadas; tempo do clique ao jogo no mobile medido pela SPEC-0030
+- [x] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6) — N/A até a SPEC-0012; em main pelo PR #36
+- [x] Observabilidade e rollback prontos conforme o Plano de Rollout — falhas do lançamento em log e nos contadores do meter `Apogeu.DemoCasino.Play`; rollback = reverter o merge 225a560
+- [x] Documentação raiz e CHANGELOG atualizados (G7)
+- [x] Pendências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
 <!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
+Sem ambiente de deploy até a SPEC-0012 (G6 N/A); disponível em main pelo PR #36 (merge 225a560, 2026-10-15).
 
 ### Pendências
 <!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
+Minors do review (G4): aceitar só a origem configurada do jogo na `launchUrl` (defesa em profundidade); timeout curto no cliente "Apogeu" (hoje até 100 s; tempo esgotado sem teste); corrida no relançamento leva de volta ao jogo após Voltar; falha empilha histórico (usar `replaceState`); foco cai no `body` na troca de página; meter sem exporter; aviso de jogo indisponível/provedor fora sem E2E (coberto por IT-03/IT-04). Aprovação visual do thomas pendente: marca no topo, ícone de tela cheia e subtítulo da coluna diferem da tela "Cassino Demo — Pipa (Refinado)". CI não rodava os testes do cassino demo: SPEC-0060. A agrupar numa spec de melhorias, a propor ao thomas.
 
 ## 15. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0045`. -->

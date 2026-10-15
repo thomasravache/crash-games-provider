@@ -55,6 +55,7 @@ jobs:
               - tools/ci/**
             dotnet: &dotnet
               - src/backend/**
+              - src/demo/**
               - Apogeu.slnx
               - Directory.Build.props
               - Directory.Packages.props
@@ -69,6 +70,7 @@ jobs:
               - *pipeline
               - *dotnet
               - tests/backend/**
+              - tests/demo/**
               - tests/ci/**
               - .githooks/**
               - .gitleaks.toml

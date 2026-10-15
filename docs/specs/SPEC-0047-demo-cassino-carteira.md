@@ -4,13 +4,13 @@ title: "Cassino demo: carteira própria (seamless)"
 tier: full
 type: feature
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0045, SPEC-0046]
 consumes_contract: [SPEC-0021@4]
 contract_version: 1
-touches: ["src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/frontend/apps/demo-site/**", "tests/e2e/demo-site/**"]
+touches: ["src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/frontend/apps/demo-site/**", "tests/e2e/demo-site/**", "src/backend/AppHost/Program.cs"]
 adrs: [ADR-0002, ADR-0003, ADR-0009, ADR-0025, ADR-0027]
 external: []
 size: M
@@ -66,7 +66,10 @@ O cassino demo passa a ter carteira própria e implementa o contrato público da
 ```text
 POST /apogeu/v1/balance|debit|credit|rollback (assinado pela Apogeu) → { status, balance, currency, transactionId }
 Regras: saldo inicial 3.000,00; débito sem saldo → INSUFFICIENT_FUNDS; mesmo transactionId → DUPLICATE com o resultado original; estorno sem débito → TRANSACTION_NOT_FOUND
-Cassino: GET /casino/balance → { balance, currency }
+Emenda v1: jogador desconhecido é provisionado com 3.000,00 no primeiro uso (vale para os jogadores do /dev/launch-demo e mantém os E2E da Pipa); `balance` como string decimal com 2 casas em todas as respostas, inclusive TRANSACTION_NOT_FOUND; o débito aceita `roundId: null`
+Assinatura (Emenda v1): a Apogeu assina e o DemoCasino verifica com a chave do operador demo que o cassino já usa (`Apogeu:OperatorKeyId`/`OperatorSecret`), sobre o caminho `/apogeu/v1/...` e os bytes exatos do corpo; chave desconhecida, segredo errado, corpo alterado ou timestamp fora de ±300 s (pelo TimeProvider do DI) → 401
+Cassino: GET /casino/balance → 200 { balance, currency } (exatamente esses campos) | 401 sem sessão; o saldo aparece no topo do lobby e da página do jogo, lido ao entrar no lobby, ao voltar do jogo e a cada 5 s
+Development (Emenda v1): o AppHost configura o Host com `Wallet__Operators__demo__Mode=Seamless`, `WalletUrl` = endpoint do recurso demo-casino, `KeyId`/`Secret` = os parâmetros da chave demo já existentes; a recarga do HUD da Pipa (carteira demo) não se aplica ao operador seamless
 ```
 
 **Design:** Stitch — projeto "Apogeu Games — Identidade e Backoffice" (1861192770945985645), design system "Apogeu — Lobby demo (cassino neutro)", telas "Cassino Demo — Lobby" e "Cassino Demo — Pipa (Refinado)" (saldo no topo).
@@ -161,6 +164,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G1 | spec | AppHost (configuração Wallet:Operators:demo:* do Development) fora do touches; política para jogadores desconhecidos não definida (afeta os E2E da Pipa do /dev/launch-demo); chave da assinatura, forma de GET /casino/balance e onde o saldo aparece não fixados | test-writer escreveu UT-01, IT-01, IT-02, CT-01 e E2E-01 (red dea8e7b); E2E-01 não passa sem o AppHost | architect | Emenda v1: AppHost no touches, jogador provisionado no primeiro uso, chave do operador demo e saldo no topo | 2026-10-15 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -203,3 +207,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0047`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-15 | `src/backend/AppHost/Program.cs` no `touches` (operador demo seamless no Development, URL e chave da carteira do cassino); jogador desconhecido provisionado com 3.000,00; assinatura com a chave do operador demo nos dois sentidos; `GET /casino/balance` exato e 401 sem sessão; saldo no topo do lobby e da página do jogo; recarga do HUD não se aplica ao seamless | Test-writer (SPEC_DEFECT, IMP-01): AppHost fora do `touches`, efeito nos E2E da Pipa do /dev/launch-demo e decisões não fixadas | Nenhuma | decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) |
