@@ -18,6 +18,18 @@ public static class WalletModule
     public const string ConnectionName = "apogeu";
 
     /// <summary>
+    /// Durable local queue of the resends to the operator wallets (SPEC-0046), which the Host routes
+    /// <c>ResendOperatorWallet</c> to (ADR-0028: only the Host configures Wolverine).
+    /// </summary>
+    public const string ResendQueue = "wallet-resends";
+
+    /// <summary>
+    /// Resends handled at once on <see cref="ResendQueue"/>: each one may wait for the whole deadline of an operator that does
+    /// not answer, so the queue is wide enough that slow operators do not hold the pending operations of the others (G4, M3).
+    /// </summary>
+    public const int ResendParallelism = 32;
+
+    /// <summary>
     /// Registers <c>IOperatorWallet</c> and <c>IDemoWallet</c> (demo adapter) on the PostgreSQL of
     /// <c>ConnectionStrings:apogeu</c>, read from the host configuration when first used, on a pool of the module's own bounded
     /// by <c>Wallet:MaxPoolSize</c>; the schema <c>wallet</c> is migrated at startup in Development only (ADR-0010).

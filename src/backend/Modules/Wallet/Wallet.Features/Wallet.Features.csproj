@@ -7,6 +7,8 @@
   <ItemGroup>
     <!-- The module's meter and activity source in the Host's OpenTelemetry pipeline (ADR-0017). -->
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <!-- Handler of the durable resend to the operator wallets (ADR-0002, SPEC-0046); only the Host configures Wolverine (ADR-0028). -->
+    <PackageReference Include="WolverineFx" />
   </ItemGroup>
 
   <ItemGroup>
