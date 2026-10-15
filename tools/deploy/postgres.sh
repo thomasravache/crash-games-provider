@@ -67,3 +67,10 @@ keys_import() {
   docker run --rm --interactive --network none --volume "$keys_volume:/keys" "$keys_helper_image" \
     sh -c 'set -e; staged="$(mktemp -d)"; tar -xzpf - -C "$staged"; find /keys -mindepth 1 -delete; cp -a "$staged/." /keys/'
 }
+
+# Fails unless the dump reads through to its end: pg_restore converts the whole archive to a script thrown away, inside
+# the PostgreSQL container, without touching any database (a truncated or corrupted dump is refused — Emenda v6).
+dump_valid() {
+  local container="$1" dump="$2"
+  docker exec --interactive "$container" pg_restore --file /dev/null <"$dump" >/dev/null 2>&1
+}
