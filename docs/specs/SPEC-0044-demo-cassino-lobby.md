@@ -157,7 +157,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:06.77]     Dados DemoCasino e Apogeu reais, quando o jogador logado pede ) — 301ec87 | 2026-10-15 |
 | G2 Green | PASS | build exit 0 (✓ built in 309ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 62a4c0f | 2026-10-15 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.08s (tests 95%, transform 3%, import 2%)) — 62a4c0f | 2026-10-15 |
-| G4 Review | PENDING | | |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: N1 URLs das artes string? no BFF x string no front (artes ausentes escondem a lista); N2 contador democasino.apogeu.failures sem exporter (só log); N3 sem timeout curto no cliente Apogeu (semáforo espera até 100 s); N4 gradiente do banner com rgb fixo em vez de token; N5 cartões Em breve não-crash na aba Crash; desvios visuais declarados (acento dourado em vez de #5B7FD6, aba inicial Todos, sem saldo/Jogar agora, rodapé ausente, artes PNG pesadas e banner de 512 px esticado) ficam para a aprovação visual do thomas — 62a4c0f | 2026-10-15 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
