@@ -246,7 +246,7 @@
         "tags": [
           "Operator"
         ],
-        "summary": "The games enabled for the calling operator, with their currencies.",
+        "summary": "The games enabled for the calling operator, with their currencies and the art of their visual kit.",
         "operationId": "ListGames",
         "responses": {
           "200": {
@@ -541,7 +541,9 @@
         "required": [
           "code",
           "name",
-          "currencies"
+          "currencies",
+          "thumbnailUrl",
+          "bannerUrl"
         ],
         "type": "object",
         "properties": {
@@ -556,6 +558,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "bannerUrl": {
+            "type": "string"
           }
         }
       },
