@@ -134,6 +134,38 @@ namespace Apogeu.Wallet.Infrastructure.Persistence.Migrations
                     b.ToTable("ledger_postings", "wallet");
                 });
 
+            modelBuilder.Entity("Apogeu.Wallet.Infrastructure.Persistence.ResendChainRecord", b =>
+                {
+                    b.Property<string>("TransactionId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("transaction_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("OperatorId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("operator_id");
+
+                    b.HasKey("TransactionId")
+                        .HasName("pk_resend_chains");
+
+                    b.ToTable("resend_chains", "wallet", t =>
+                        {
+                            t.HasCheckConstraint("ck_resend_chains_kind", "kind IN ('Credit', 'Rollback')");
+                        });
+                });
+
             modelBuilder.Entity("Apogeu.Wallet.Infrastructure.Persistence.LedgerPostingRecord", b =>
                 {
                     b.HasOne("Apogeu.Wallet.Infrastructure.Persistence.LedgerEntryRecord", null)

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Apogeu.Betting.Tests.Support;
+using Apogeu.TestKit.Performance;
 using Xunit;
 
 namespace Apogeu.Betting.Tests.Integration;
@@ -10,9 +11,11 @@ public sealed class PlaceBetLatencyTests(BettingContainers containers)
 {
     private const int Bets = 300;
     private const int WarmUp = 10;
-    private static readonly TimeSpan P99Budget = TimeSpan.FromMilliseconds(100);
+    // 100 ms on the reference machine, × the machine factor elsewhere (SPEC-0052).
+    private static readonly (TimeSpan Budget, string Source) P99Budget =
+        PerformanceBudget.Resolve(TimeSpan.FromMilliseconds(100), Environment.GetEnvironmentVariable);
 
-    [Fact(DisplayName = "Dadas 300 apostas sequenciais (carteira em memória), quando medidas do envio à resposta, então p99 ≤ 100 ms")]
+    [Fact(DisplayName = "Dadas 300 apostas sequenciais (carteira em memória), quando medidas do envio à resposta, então p99 ≤ 100 ms na máquina de referência")]
     [Trait("Spec", "SPEC-0022:IT-06")]
     [Trait("Category", "Integration")]
     [Trait("Category", "Performance")]
@@ -46,7 +49,7 @@ public sealed class PlaceBetLatencyTests(BettingContainers containers)
         var sorted = samples.Order().ToList();
         var p99 = sorted[(int)Math.Ceiling(0.99 * sorted.Count) - 1];
         Assert.True(
-            p99 <= P99Budget,
-            string.Create(CultureInfo.InvariantCulture, $"p99 of PlaceBet = {p99.TotalMilliseconds:0.0} ms (budget {P99Budget.TotalMilliseconds} ms); p50 {sorted[sorted.Count / 2].TotalMilliseconds:0.0} ms, max {sorted[^1].TotalMilliseconds:0.0} ms"));
+            p99 <= P99Budget.Budget,
+            string.Create(CultureInfo.InvariantCulture, $"p99 of PlaceBet = {p99.TotalMilliseconds:0.0} ms (budget {P99Budget.Budget.TotalMilliseconds} ms from {P99Budget.Source}); p50 {sorted[sorted.Count / 2].TotalMilliseconds:0.0} ms, max {sorted[^1].TotalMilliseconds:0.0} ms"));
     }
 }

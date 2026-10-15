@@ -5,7 +5,8 @@ namespace Apogeu.Betting.Features;
 
 /// <summary>
 /// Business metrics of the Betting module (SPEC-0022 §8), on a meter created by the host's <see cref="IMeterFactory"/>:
-/// <c>betting.bets{status}</c>, <c>betting.rejected{code}</c> and <c>betting.accept_latency</c>. Tags never carry a player.
+/// <c>betting.bets{status}</c>, <c>betting.rejected{code}</c>, <c>betting.accept_latency</c> and, for the live bets
+/// (SPEC-0025 §8), <c>betting.live_batches</c> and <c>betting.live_batch_size</c>. Tags never carry a player.
 /// </summary>
 public sealed class BettingMetrics
 {
@@ -31,6 +32,12 @@ public sealed class BettingMetrics
 
     public const string SettlementDuration = "betting.settlement_duration";
 
+    /// <summary>Batches of live bets sent to the group of a room (SPEC-0025 §8).</summary>
+    public const string LiveBatches = "betting.live_batches";
+
+    /// <summary>Items (bets and cash-outs) of each batch of live bets (SPEC-0025 §8).</summary>
+    public const string LiveBatchSize = "betting.live_batch_size";
+
     /// <summary>Activities of the module (a trace per <c>betId</c>, SPEC-0022 §8).</summary>
     internal static readonly ActivitySource Activities = new(MeterName);
 
@@ -44,6 +51,8 @@ public sealed class BettingMetrics
     private readonly Counter<long> _settled;
     private readonly UpDownCounter<long> _refundsPending;
     private readonly Histogram<long> _settlementDuration;
+    private readonly Counter<long> _liveBatches;
+    private readonly Histogram<long> _liveBatchSize;
 
     public BettingMetrics(IMeterFactory meterFactory)
     {
@@ -60,6 +69,8 @@ public sealed class BettingMetrics
         _settled = meter.CreateCounter<long>(Settled, unit: "{bet}", description: "Bets closed by the end of their round (lost, refunded), SPEC-0024.");
         _refundsPending = meter.CreateUpDownCounter<long>(RefundsPending, unit: "{refund}", description: "Refunds of annulled rounds not confirmed by the wallet yet.");
         _settlementDuration = meter.CreateHistogram<long>(SettlementDuration, unit: "ms", description: "From receiving the end of a round to its bets closed.");
+        _liveBatches = meter.CreateCounter<long>(LiveBatches, unit: "{batch}", description: "LiveBetsBatch sent to the group of a room (SPEC-0025).");
+        _liveBatchSize = meter.CreateHistogram<long>(LiveBatchSize, unit: "{item}", description: "Bets and cash-outs of each LiveBetsBatch (at most 100 of each).");
     }
 
     public void BetReached(string status, long count = 1)
@@ -95,4 +106,11 @@ public sealed class BettingMetrics
     public void RefundPending(long delta) => _refundsPending.Add(delta);
 
     public void SettledIn(TimeSpan duration) => _settlementDuration.Record((long)duration.TotalMilliseconds);
+
+    /// <summary>A <c>LiveBetsBatch</c> of <paramref name="items"/> bets and cash-outs was sent (SPEC-0025).</summary>
+    public void LiveBatchSent(int items)
+    {
+        _liveBatches.Add(1);
+        _liveBatchSize.Record(items);
+    }
 }

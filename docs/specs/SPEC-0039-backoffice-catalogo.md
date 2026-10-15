@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-10
 parent: SPEC-0034
 depends_on: [SPEC-0036, SPEC-0020]
-consumes_contract: [SPEC-0020@2]
+consumes_contract: [SPEC-0020@3]
 contract_version: 1
 touches: ["src/frontend/apps/backoffice/src/catalogo/**", "tests/frontend/backoffice/catalogo/**", "tests/e2e/backoffice/catalogo/**", "src/backend/Modules/Operators/**", "tests/backend/Modules/Operators.Tests/**", "src/backend/Modules/Backoffice/**", "tests/backend/Modules/Backoffice.Tests/**"]
 adrs: [ADR-0001, ADR-0008, ADR-0009, ADR-0015, ADR-0020, ADR-0025, ADR-0026]

@@ -4,6 +4,7 @@ using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features;
 using Apogeu.Betting.Features.CancelBet;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.RoundEvents;
 using Apogeu.Betting.Features.Sessions;
 using Apogeu.Betting.Infrastructure.Persistence;
@@ -122,6 +123,10 @@ public sealed class CancelRefundTests
             var bus = new TestMessageContext();
             services.AddSingleton<IMessageBus>(bus);
             services.AddSingleton<IMessageContext>(bus);
+
+            // The live bets of the room are a required dependency of the cancellation (SPEC-0025 Emenda v4).
+            services.AddSingleton<LiveBetsBatcher>();
+            services.AddSingleton<LiveBetsFeed>();
             return new Scenario(services.BuildServiceProvider(), state, logs, round);
         }
 

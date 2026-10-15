@@ -1,6 +1,7 @@
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.CashOut;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.Settlement;
 using Apogeu.Betting.Infrastructure.Persistence;
 using Apogeu.BuildingBlocks.Contracts;
@@ -21,6 +22,7 @@ public static class RoundEventsHandler
         IRoundFeed feed,
         IBetStore store,
         BetsNotifier notifier,
+        LiveBetsFeed live,
         BettingMetrics metrics,
         ILogger<RoundBettingOpened> logger,
         CancellationToken ct)
@@ -29,6 +31,7 @@ public static class RoundEventsHandler
         ArgumentNullException.ThrowIfNull(feed);
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(notifier);
+        ArgumentNullException.ThrowIfNull(live);
         ArgumentNullException.ThrowIfNull(metrics);
 
         // Applied before the activation (emenda 3), so a bet racing the opening already sees the round open.
@@ -44,6 +47,8 @@ public static class RoundEventsHandler
         metrics.BetReached("placed", activated.Count);
         foreach (var bet in activated)
         {
+            // The queued bet enters the room's live bets of its round (SPEC-0025).
+            live.Activated(opened.SalaId, bet);
             try
             {
                 await notifier.BetActivatedAsync(bet).ConfigureAwait(false);

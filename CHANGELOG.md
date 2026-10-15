@@ -9,6 +9,7 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 ## [Unreleased]
 
 ### Added
+- Jogo local no celular por túnel: com `AppHost:PublicApiUrl` e `AppHost:PublicGameUrl` o lançamento demo, a API e o CORS usam os endereços públicos dos túneis; sem eles nada muda (SPEC-0050)
 - Painel de aposta da Pipa: dois painéis com valor, fichas e cash-out automático, botões APOSTAR / CANCELAR / RETIRAR / PRÓXIMA, ganho, perda e estorno no painel, saldo demo com recarga, mensagens de erro em português e tremor do "PIPA CORTADA!" (SPEC-0026)
 - Liquidação da rodada: apostas não retiradas viram perdidas no crash, rodada anulada estorna as apostas, cash-out em andamento no crash é respeitado e cada rodada fecha um resumo único com o GGR (SPEC-0024)
 - Cash-out manual e automático: decisão pelo líder da sala no horário de recebimento (tolerância 0 ms), pagamento truncado em centavos e limitado ao ganho máximo, automático no alvo exato e reconciliado no crash, pedido pendente decidido pelo horário gravado e crédito durável com aviso de saldo (SPEC-0023)
@@ -27,5 +28,9 @@ Cada entrada cita a spec de origem (`SPEC-NNNN`); gere-as com `spec_graph.py rep
 - Harness de testes (Testcontainers, Vitest, Playwright com axe, cobertura, Stryker) e testes de arquitetura em .NET e no front que garantem os ADRs (SPEC-0003)
 - Estrutura do repositório e qualidade de código: solução .NET 10 em monólito modular (6 módulos), workspace pnpm com os apps e pacotes do front, análise estrita, lint/format e hooks de commit (SPEC-0002)
 
+### Changed
+- Gates locais G1/G2 rodam só os testes afetados pela mudança (`tools/ci/affected-tests`); backend, arquivos de apoio compartilhados e arquivos não mapeados continuam rodando a suíte inteira, e o G5 local e a CI do GitHub rodam tudo (SPEC-0051)
+
 ### Fixed
+- Placar da Pipa no topo da cena, compacto e sem fundo opaco: o multiplicador não cobre mais a pipa (SPEC-0049)
 - Teste de mutação do `Fairness.Domain` volta a medir de verdade: Stryker.NET com xUnit v3 e score ≥ 85% exigido no nightly (SPEC-0016)

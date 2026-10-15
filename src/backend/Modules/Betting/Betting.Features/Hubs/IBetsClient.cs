@@ -1,6 +1,6 @@
 namespace Apogeu.Betting.Features.Hubs;
 
-/// <summary>Methods the server calls on the connections of one player of <see cref="BetsHub"/> (SPEC-0022 §6, SPEC-0023 §6, SPEC-0024 §6).</summary>
+/// <summary>Methods the server calls on the connections of one player of <see cref="BetsHub"/> (SPEC-0022 §6, SPEC-0023 §6, SPEC-0024 §6), and on the group of a room (SPEC-0025 §6).</summary>
 public interface IBetsClient
 {
     Task BetActivated(BetActivatedMessage message);
@@ -19,4 +19,7 @@ public interface IBetsClient
 
     /// <summary>The bet's round was annulled and its amount refunded (SPEC-0024).</summary>
     Task BetRefunded(BetRefunded message);
+
+    /// <summary>The bets and cash-outs of the room in the last 200 ms window, with the round totals (SPEC-0025), to the room's group.</summary>
+    Task LiveBetsBatch(LiveBetsBatch batch);
 }

@@ -4,13 +4,13 @@ title: "Cassino demo: backend do cassino e entrada"
 tier: full
 type: feature
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0009]
 consumes_contract: [SPEC-0009@1]
 contract_version: 1
-touches: ["src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/frontend/apps/demo-site/**", "tests/e2e/demo-site/**", "src/backend/AppHost/Program.cs", "tests/backend/Architecture.Tests/DemoCasino/**"]
+touches: [src/demo/DemoCasino/**, tests/demo/DemoCasino.Tests/**, src/frontend/apps/demo-site/**, tests/e2e/demo-site/**, src/backend/AppHost/Program.cs, tests/backend/Architecture.Tests/DemoCasino/**, tools/ci/run-e2e.sh]
 adrs: [ADR-0002, ADR-0003, ADR-0009, ADR-0025, ADR-0027]
 external: []
 size: M
@@ -154,13 +154,13 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 8e78b2d | 2026-10-10 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:32.46]     Dado um campo novo num DTO sem regenerar, quando contracts:che) — c4f0154 | 2026-10-13 |
+| G2 Green | PASS | build exit 0 (✓ built in 146ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 6cfb8eb | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  760ms (tests 97%, transform 2%, import 1%)) — 6cfb8eb | 2026-10-13 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (6cfb8eb; minors: regex do apelido aceita \n final, assinatura usa caminho codificado vs verificador decodificado, Secure atrás de proxy, chaves do Data Protection sem persistência, foco no erro/lobby, logout ignora falha, --no-build do AddProject) — 6cfb8eb | 2026-10-13 |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #31 verde (run 38676137955, commit 32cbe33): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; backend verde na 3ª tentativa e e2e Firefox na 2ª, após falhas de tempo conhecidas sem relação com a onda (LateDebitReusedClientBetIdTests, E2E Firefox de aposta perdida/dupla, troca de rodada no teste do líder impedido, alerta de conciliação verificado sem espera em SettlementRaceTests; os dois últimos passam 3/3 localmente); local em 54f8b85: build 0 avisos, arquitetura 19/19 + front, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-15 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
@@ -209,3 +209,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0043`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-13 | `touches` inclui `tools/ci/run-e2e.sh`: o runner do E2E exporta `APOGEU_DEMO_SITE_URL` e espera o demo-site ficar pronto | Test-writer: a porta do demo-site sob o Aspire é dinâmica e o E2E-01 precisa dela | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |

@@ -21,7 +21,10 @@ internal sealed class ContractScalarSchemaTransformer : IOpenApiSchemaTransforme
             return Task.CompletedTask;
         }
 
-        schema.Type = scalar.IsNullable ? JsonSchemaType.String | JsonSchemaType.Null : JsonSchemaType.String;
+        // Money and Multiplier are components shared by T and T?: a property of type T? already wraps the reference in
+        // oneOf with null, so the component itself stays non-nullable (otherwise the first T? met would make every T nullable).
+        var nullable = scalar.IsNullable && string.Equals(scalar.Format, ContractScalars.DateTimeFormat, StringComparison.Ordinal);
+        schema.Type = nullable ? JsonSchemaType.String | JsonSchemaType.Null : JsonSchemaType.String;
         schema.Format = scalar.Format;
         schema.Pattern = scalar.Pattern;
         schema.Properties?.Clear();

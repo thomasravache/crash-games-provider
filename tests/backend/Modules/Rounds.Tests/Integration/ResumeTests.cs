@@ -5,6 +5,7 @@ using Apogeu.Fairness.Contracts;
 using Apogeu.Rounds.Contracts;
 using Apogeu.Rounds.Features;
 using Apogeu.Rounds.Tests.Support;
+using Apogeu.TestKit.Performance;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -16,12 +17,15 @@ namespace Apogeu.Rounds.Tests.Integration;
 public sealed class ResumeTests(RoundsContainers containers)
 {
     private static readonly TimeSpan RoundTimeout = TimeSpan.FromSeconds(90);
-    private static readonly TimeSpan CrashTolerance = TimeSpan.FromMilliseconds(250);
+
+    // ± 250 ms on the reference machine, × the machine factor elsewhere (SPEC-0052).
+    private static readonly (TimeSpan Budget, string Source) CrashTolerance =
+        PerformanceBudget.Resolve(TimeSpan.FromMilliseconds(250), Environment.GetEnvironmentVariable);
 
     // Slower growth and a low cap: flights last up to ln(2)/0.00002 ≈ 34.7 s, long enough to outlive a takeover (≤ 6 s).
     private static readonly SalaSettings LongFlights = new(GrowthK: "0.00002", Cap: "2.00");
 
-    [Fact(DisplayName = "Dado o líder derrubado no meio do voo, quando outra instância assume, então a rodada termina no mesmo crashPoint e em startedAt + t_c (± 250 ms)")]
+    [Fact(DisplayName = "Dado o líder derrubado no meio do voo, quando outra instância assume, então a rodada termina no mesmo crashPoint e em startedAt + t_c (± 250 ms na máquina de referência)")]
     [Trait("Spec", "SPEC-0008:IT-04")]
     [Trait("Category", "Integration")]
     [Trait("Category", "Performance")]
@@ -64,8 +68,8 @@ public sealed class ResumeTests(RoundsContainers containers)
             }
 
             Assert.True(
-                (crashedAt - expected).Duration() <= CrashTolerance,
-                $"The resumed round crashed at {crashedAt:O}, expected startedAt + t_c = {expected:O} (± {CrashTolerance.TotalMilliseconds} ms). Samples: {string.Join("; ", samples)}");
+                (crashedAt - expected).Duration() <= CrashTolerance.Budget,
+                $"The resumed round crashed at {crashedAt:O}, expected startedAt + t_c = {expected:O} (± {CrashTolerance.Budget.TotalMilliseconds} ms from {CrashTolerance.Source}). Samples: {string.Join("; ", samples)}");
             Assert.Single(recorder.Of("RoundCrashed", flying.RoundId));
 
             using var http = follower.CreateClient();
@@ -81,7 +85,7 @@ public sealed class ResumeTests(RoundsContainers containers)
 
     // From the G4 review of SPEC-0008: the room's configuration changes between leader A and leader B while a round flies.
     // The round keeps the parameters it started with: the crash point A read (original RTP/cap) and t_c with the original k.
-    [Fact(DisplayName = "Dada uma rodada em voo e a configuração da sala alterada entre o líder A e o líder B, quando B assume, então a rodada termina no crashPoint original e em startedAt + t_c com o growthK original (± 250 ms)")]
+    [Fact(DisplayName = "Dada uma rodada em voo e a configuração da sala alterada entre o líder A e o líder B, quando B assume, então a rodada termina no crashPoint original e em startedAt + t_c com o growthK original (± 250 ms na máquina de referência)")]
     [Trait("Spec", "SPEC-0008:IT-04")]
     [Trait("Category", "Integration")]
     [Trait("Category", "Performance")]
@@ -130,8 +134,8 @@ public sealed class ResumeTests(RoundsContainers containers)
                 crashPoint == expectedPoint,
                 $"The resumed round crashed at {crashPoint}, expected its original crash point {expectedPoint} (RTP {LongFlights.Rtp}, cap {LongFlights.Cap}). Samples: {string.Join("; ", samples)}");
             Assert.True(
-                (crashedAt - expectedAt).Duration() <= CrashTolerance,
-                $"The resumed round crashed at {crashedAt:O}, expected startedAt + t_c with the original k = {expectedAt:O} (± {CrashTolerance.TotalMilliseconds} ms). Samples: {string.Join("; ", samples)}");
+                (crashedAt - expectedAt).Duration() <= CrashTolerance.Budget,
+                $"The resumed round crashed at {crashedAt:O}, expected startedAt + t_c with the original k = {expectedAt:O} (± {CrashTolerance.Budget.TotalMilliseconds} ms from {CrashTolerance.Source}). Samples: {string.Join("; ", samples)}");
             return;
         }
 

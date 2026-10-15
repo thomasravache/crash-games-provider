@@ -5,6 +5,7 @@ using Apogeu.Fairness.Contracts;
 using Apogeu.Fairness.Domain;
 using Apogeu.Fairness.Tests.Support;
 using Apogeu.TestKit.Containers;
+using Apogeu.TestKit.Performance;
 using Xunit;
 
 namespace Apogeu.Fairness.Tests.Integration;
@@ -18,9 +19,11 @@ public sealed class FairnessRestartTimingTests(PostgreSqlContainerFixture postgr
     private const int WarmUps = 5;
     private static readonly Rtp DemoRtp = new(0.97m);
     private static readonly Multiplier DefaultCap = new(10000.00m);
-    private static readonly TimeSpan SeedBudget = TimeSpan.FromMilliseconds(20);
+    // 20 ms on the reference machine, × the machine factor elsewhere (SPEC-0052).
+    private static readonly (TimeSpan Budget, string Source) SeedBudget =
+        PerformanceBudget.Resolve(TimeSpan.FromMilliseconds(20), Environment.GetEnvironmentVariable);
 
-    [Fact(DisplayName = "Dado um processo que avança 3 rodadas e é reiniciado, quando NextRoundAsync é chamado, então o índice é 4 (sem repetir nem pular semente); e, após aquecimento, a mediana de 15 obtenções da semente a ~10.000 hashes do checkpoint é ≤ 20 ms")]
+    [Fact(DisplayName = "Dado um processo que avança 3 rodadas e é reiniciado, quando NextRoundAsync é chamado, então o índice é 4 (sem repetir nem pular semente); e, após aquecimento, a mediana de 15 obtenções da semente a ~10.000 hashes do checkpoint é ≤ 20 ms na máquina de referência")]
     [Trait("Spec", "SPEC-0007:IT-02")]
     [Trait("Category", "Performance")]
     [Trait("Category", "Integration")]
@@ -70,7 +73,7 @@ public sealed class FairnessRestartTimingTests(PostgreSqlContainerFixture postgr
         await AssertMedianSeedRetrievalAsync(restarted, chain.ChainId, revealedFourth.Seed, hashes, ct);
     }
 
-    /// <summary>After warm-up, the median of 15 seed retrievals (RevealAsync of round 4, each in its own DI scope) is ≤ 20 ms.</summary>
+    /// <summary>After warm-up, the median of 15 seed retrievals (RevealAsync of round 4, each in its own DI scope) is ≤ 20 ms on the reference machine.</summary>
     private static async Task AssertMedianSeedRetrievalAsync(FairnessTestHost host, ChainId chain, Seed expected, int hashes, CancellationToken ct)
     {
         for (var i = 0; i < WarmUps; i++)
@@ -91,9 +94,9 @@ public sealed class FairnessRestartTimingTests(PostgreSqlContainerFixture postgr
         var median = samples.Order().ElementAt(Samples / 2);
         var all = string.Join(", ", samples.Select(sample => sample.ToString("F2", CultureInfo.InvariantCulture)));
         Assert.True(
-            median <= SeedBudget.TotalMilliseconds,
+            median <= SeedBudget.Budget.TotalMilliseconds,
             string.Create(
                 CultureInfo.InvariantCulture,
-                $"Median seed retrieval ({hashes} hashes from the checkpoint) took {median:F2} ms, above {SeedBudget.TotalMilliseconds} ms. Samples (ms): {all}"));
+                $"Median seed retrieval ({hashes} hashes from the checkpoint) took {median:F2} ms, above the budget of {SeedBudget.Budget.TotalMilliseconds} ms from {SeedBudget.Source}. Samples (ms): {all}"));
     }
 }

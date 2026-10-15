@@ -1,6 +1,7 @@
 using Apogeu.Betting.Contracts;
 using Apogeu.Betting.Domain;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.RoundEvents;
 using Apogeu.Betting.Features.Sessions;
 using Apogeu.Betting.Features.Wallet;
@@ -24,7 +25,8 @@ public sealed class CancelBetUseCase(
     IOperatorWallet wallet,
     BettingMetrics metrics,
     TimeProvider time,
-    ILogger<CancelBetUseCase> logger)
+    ILogger<CancelBetUseCase> logger,
+    LiveBetsFeed live)
 {
     /// <summary>Attempts when the bet changes (a round event) between reading and cancelling it.</summary>
     private const int Attempts = 3;
@@ -62,6 +64,7 @@ public sealed class CancelBetUseCase(
             if (await store.TransitionAsync(bet, previous, ct).ConfigureAwait(false))
             {
                 metrics.BetReached("cancelled");
+                live.Cancelled(found.SalaId, bet);
                 var refund = await RefundAsync(bet, ct).ConfigureAwait(false);
                 return Answer(bet, await RecordAsync(bet, refund).ConfigureAwait(false));
             }

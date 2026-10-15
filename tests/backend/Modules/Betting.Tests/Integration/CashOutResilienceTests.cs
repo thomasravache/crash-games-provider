@@ -1,6 +1,7 @@
 using Apogeu.Betting.Tests.Support;
 using Apogeu.Rounds.Features.CashOut;
 using Apogeu.Rounds.Tests.Support;
+using Apogeu.TestKit.Performance;
 using Apogeu.Wallet.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -15,6 +16,11 @@ namespace Apogeu.Betting.Tests.Integration;
 public sealed class CashOutResilienceTests(BettingContainers containers)
 {
     private static readonly TimeSpan RoundTimeout = TimeSpan.FromSeconds(60);
+
+    // RoundCrashed processed by Betting with 300 automatic credits failing: 2 s on the reference machine, × the machine factor
+    // elsewhere (SPEC-0052).
+    private static readonly (TimeSpan Budget, string Source) CrashProcessingBudget =
+        PerformanceBudget.Resolve(TimeSpan.FromSeconds(2), Environment.GetEnvironmentVariable);
 
     [Fact(DisplayName = "Dada uma aposta com alvo 1,50x numa rodada com crash 5,00x e o líder interrompido em 1,2x (outra instância assume), quando a rodada termina, então a aposta é retirada em 1,50x exatos com CashedOut auto e um único crédito")]
     [Trait("Spec", "SPEC-0023:IT-08")]
@@ -147,8 +153,8 @@ public sealed class CashOutResilienceTests(BettingContainers containers)
                 TimeSpan.FromSeconds(30),
                 () => $"Betting processes RoundCrashed of {flight.RoundId}");
             Assert.True(
-                DateTimeOffset.UtcNow - crashed.ReceivedAt <= TimeSpan.FromSeconds(2),
-                $"RoundCrashed was processed by Betting {(DateTimeOffset.UtcNow - crashed.ReceivedAt).TotalSeconds:0.0} s after the crash (budget 2 s; waited {crashSeen.TotalSeconds:0.0} s).");
+                DateTimeOffset.UtcNow - crashed.ReceivedAt <= CrashProcessingBudget.Budget,
+                $"RoundCrashed was processed by Betting {(DateTimeOffset.UtcNow - crashed.ReceivedAt).TotalSeconds:0.0} s after the crash (budget {CrashProcessingBudget.Budget.TotalSeconds:0.0} s from {CrashProcessingBudget.Source}; waited {crashSeen.TotalSeconds:0.0} s).");
 
             var next = await rounds.Recorder.WaitForAsync("RoundBetting", e => e.RoundId != flight.RoundId && e.ReceivedAt > crashed.ReceivedAt, RoundTimeout);
             var activated = await late.WaitForActivationAsync(queued, TimeSpan.FromSeconds(30));

@@ -4,13 +4,13 @@ title: "Carteira seamless: adaptador HTTP da carteira do operador"
 tier: full
 type: feature
 user_facing: false
-status: approved
+status: in-progress
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0021, SPEC-0024]
 consumes_contract: [SPEC-0021@4]
 contract_version: 1
-touches: ["src/backend/Modules/Wallet/**", "tests/backend/Modules/Wallet.Tests/**", "src/backend/Modules/Operators/Operators.Contracts/**"]
+touches: [src/backend/Modules/Wallet/**, tests/backend/Modules/Wallet.Tests/**, src/backend/Modules/Operators/Operators.Contracts/**, src/backend/Host/Internal/Generated/**, src/backend/Host/Program.cs]
 adrs: [ADR-0002, ADR-0007, ADR-0009, ADR-0014, ADR-0018, ADR-0027]
 external: []
 size: M
@@ -89,12 +89,21 @@ Operador: walletMode demo|seamless (padrão demo)
 | Reinício | processo reinicia com crédito pendente | reenviado e confirmado | IT-04 |
 | Assinatura | qualquer chamada | HMAC válido pelo contrato público | CT-01 |
 | Desempenho | operador a 100 ms | débito p99 ≤ 300 ms | IT-05 |
+| Pendência sem configuração | configuração some ou modo vira demo com crédito pendente | pendência mantida (log Error) e entregue uma vez quando volta | IT-06 |
+| Operador lento | um operador sempre estoura o prazo | créditos dos outros operadores confirmados sem esperar | IT-07 |
+| Respostas e destinos inseguros | 3xx, moeda/transactionId divergentes, http fora do loopback | incerto, incerto, recusado sem chamada | UT-02 |
+| Sem serviço próprio de varredura | Wallet.Infrastructure | nenhum IHostedService (reenvio pelo Wolverine) | UT-03 |
+| Uma cadeia por transação | N créditos com o mesmo transactionId e operador fora | uma única cadeia de reenvio e chamadas limitadas | IT-08 |
+| Pendência agendada na 1ª tentativa | not_configured com crédito/estorno guardado | Unavailable(retryable) para o chamador | UT-04 |
 
 ## 7. Artefato B — Plano de Testes (TDD)
 ### 7.1 Testes de Caracterização
 - N/A — código novo; os módulos consultados já têm cobertura das próprias specs.
 
 ### 7.2 Testes Unitários
+- **UT-02** — Dado um operador que responde 307/308, uma resposta com `currency` ou `transactionId` divergentes e uma URL http fora do loopback, quando a carteira chama, então incerto, incerto e recusado sem chamada (Unavailable(false) e log Error); http em 127.0.0.1 é aceito.
+- **UT-03** — Dado o assembly Wallet.Infrastructure, quando inspecionado, então nenhum tipo concreto implementa `IHostedService` (reenvio só pelo Wolverine).
+- **UT-04** — Dado um crédito ou estorno cuja 1ª tentativa dá `not_configured` e cuja pendência foi agendada, quando a carteira responde ao chamador, então `Unavailable(retryable: true)` (o débito continua `retryable: false`).
 - **UT-01** — Dadas as respostas OK, INSUFFICIENT_FUNDS, DUPLICATE, PLAYER_NOT_FOUND, TRANSACTION_NOT_FOUND, timeout e 500, quando mapeadas, então viram os `WalletResult` do contrato.
 
 ### 7.3 Testes de Integração
@@ -102,6 +111,9 @@ Operador: walletMode demo|seamless (padrão demo)
 - **IT-02** — Dado o operador demorando 3 s, quando o débito é feito, então Unavailable e a aposta não é aceita (SPEC-0022).
 - **IT-03** — Dado o operador respondendo 500 por 1 min, quando um crédito é feito, então é reenviado com backoff até OK e aplicado uma única vez.
 - **IT-04** — Dado um crédito pendente e o processo reiniciado, quando a varredura roda, então o crédito é confirmado.
+- **IT-06** — Dado um crédito pendente cujo operador perde a configuração ou passa a demo, quando o tempo passa, então a pendência não é descartada (log Error) e, quando a configuração volta, o crédito é entregue uma única vez com o mesmo transactionId.
+- **IT-07** — Dados um operador que sempre estoura o prazo, outro cuja leitura de configuração lança e um saudável, quando há créditos pendentes nos três, então o do saudável é confirmado em até 12 s e o do que lançava é entregue quando a leitura volta.
+- **IT-08** — Dado o operador fora do ar, quando o mesmo crédito (mesmo transactionId) é pedido N vezes, então existe uma única cadeia de reenvio agendada e o número de chamadas ao operador fica limitado ao backoff de uma cadeia; ao voltar, é aplicado uma vez.
 - **IT-05** — Dado o operador respondendo em 100 ms, quando 300 débitos são medidos, então p99 ≤ 300 ms (`Category=Performance`).
 
 ### 7.4 Testes de Contrato
@@ -153,19 +165,20 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | Gate | Status | Evidência | Data |
 |---|---|---|---|
 | G0 Spec | PASS | validate: 0 erro(s) — 420d3b6 | 2026-10-10 |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
+| G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:02:23.01]     Dado o backend compilado, quando contracts:generate roda, entã) — 4dc45ab | 2026-10-13 |
+| G2 Green | PASS | build exit 0 (✓ built in 337ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 3a2d2e0 | 2026-10-13 |
+| G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.39s (tests 96%, import 2%, transform 2%)) — 3a2d2e0 | 2026-10-13 |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (3ª revisão, 9996d5b; minors: guarda sem expiração, logs Error repetidos com not_configured, chamada extra depois de liquidar). Depois da revisão só entrou o merge da SPEC-0052 (3a2d2e0), revisada no G4 dela. — 3a2d2e0 | 2026-10-13 |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #31 verde (run 38676137955, commit 32cbe33): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; backend verde na 3ª tentativa e e2e Firefox na 2ª, após falhas de tempo conhecidas sem relação com a onda (LateDebitReusedClientBetIdTests, E2E Firefox de aposta perdida/dupla, troca de rodada no teste do líder impedido, alerta de conciliação verificado sem espera em SettlementRaceTests; os dois últimos passam 3/3 localmente); local em 54f8b85: build 0 avisos, arquitetura 19/19 + front, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-15 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
 | G7 Pronto & Docs | PENDING | | |
 
 ## 13. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-13 | G2 | falha | 3 FAILs seguidos no G2. A 1ª falha foi do pnpm 12 da máquina, já corrigida. Na 2ª e na 3ª, só o CashOutLatencyTests falha (p99 ≤ 75 ms local). Isolado, dá p99 de 165–202 ms na branch da 0046 e de 145–154 ms na branch de integração sem a 0046. Ou seja, a máquina nova (4 núcleos) não alcança o limite local; não é regressão da 0046. | pnpm 10.23.0 fixado no corepack; G2 rodado com a máquina livre; SeamlessResendChainTests 3/3 isolado; latência medida 2x na 0046 e 2x na linha de base | thomas | SPEC-0052 — limite local da rajada por máquina (APOGEU_CASHOUT_P99_BUDGET_MS=400 nesta VM; CI 3 s inalterado); diagnóstico corrigido em 2026-10-14: a lentidão vinha de outros projetos rodando na mesma VM (com ela ociosa, p99 de 45,8 ms); não é regressão da 0046 (decisão do thomas, 2026-10-13); merge da 0052 na branch (3a2d2e0) | 2026-10-13 |
 
 ## 14. Relatório de Entrega
 <!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
@@ -208,3 +221,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0046`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 (inalterado) | 2026-10-13 | Plano de testes e Mapa com IT-06, IT-07, UT-02, UT-03 (correções do 1º G4) e IT-08, UT-04 (2º G4): uma única cadeia de reenvio por transactionId; pendência agendada responde `Unavailable(retryable: true)`; lock files dos projetos que referenciam a Wallet mudam junto; crédito e estorno exigem chamador com retry durável (todos os da Betting têm) | 2º review G4: sem deduplicação cada nova tentativa do chamador criava outra cadeia (amplificação de carga) e o `not_configured` deixava a Betting divergente | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
+| 1 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/Program.cs`: descoberta dos handlers da Wallet no Wolverine e fila local do reenvio com paralelismo explícito (só o Host configura o Wolverine, ADR-0028 / `MessagingOwnedByHost`); o host de teste da Wallet passa a manter o `HostedMessaging` do ServiceDefaults | Implementer: os handlers de reenvio não são descobertos sem o Host, e o filtro de hosted services do `WalletApiHost` desligava o Wolverine nos testes | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
+| 1 (inalterado) | 2026-10-13 | `touches` inclui `src/backend/Host/Internal/Generated/**` (codegen do Wolverine, ADR-0028); o reenvio durável de crédito e estorno usa mensagem agendada do Wolverine pelo outbox (ADR-0002/0018), como `CreditCashOut`/`RefundBet`, sem fila própria; pendência sem configuração ou com o modo trocado não é descartada; um operador lento não atrasa os demais | Review G4: a 1ª implementação criou uma fila própria (`wallet.pending_resends` + varredura), desvio do ADR-0002 sem ADR, e podia descartar prêmio pendente | Nenhuma | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |
+| 1 (inalterado) | 2026-10-13 | Origem provisória de `IOperatorWalletSettings`: implementação no Wallet.Infrastructure lida da configuração (`Wallet:Operators:{op}:Mode`, `WalletUrl`, `KeyId`, `Secret` por variável de ambiente/segredo), operador sem configuração = demo; a SPEC-0038 troca pela coluna `wallet_mode` do cadastro de operadores | Test-writer: o Host precisa de uma implementação e o cadastro do operador (SPEC-0038) ainda não existe nem está no `touches` | SPEC-0038, SPEC-0047 | thomas (pré-aprovação da jornada do jogador, 2026-10-13) |

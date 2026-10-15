@@ -15,6 +15,9 @@ public static class WalletLedgerTables
     /// <summary>Postings of the entries, at least two per entry.</summary>
     public const string Postings = "ledger_postings";
 
+    /// <summary>Guards of the resend chains of the seamless wallet (SPEC-0046), one per pending transaction.</summary>
+    public const string ResendChains = "resend_chains";
+
     /// <summary>Transaction id column, in both tables (the postings reference their entry by it).</summary>
     public const string TransactionIdColumn = "transaction_id";
 

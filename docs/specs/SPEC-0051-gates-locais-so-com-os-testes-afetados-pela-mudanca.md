@@ -4,7 +4,7 @@ title: Gates locais só com os testes afetados pela mudança
 tier: lite
 type: refactor
 user_facing: false
-status: in-progress
+status: implemented
 created: 2026-10-12
 parent: SPEC-0001
 depends_on: []
@@ -53,16 +53,16 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
 **Fase 1: Seleção por impacto**
-- [ ] Red: escrever UT-01 e IT-01 em `tests/ci/Ci.Tests` com a tag `SPEC-0051:<ID>` e confirmar que falham (script inexistente)
-- [ ] Green: `tools/ci/affected-tests` (Python stdlib) seguindo `tools/ci/check-licenses`; `test`/`coverage` do sdd-config chamam o script
-- [ ] Refactor mantendo tudo verde
-- [ ] Validar: build + testes afetados + arquitetura (G2/G3)
+- [x] Red: escrever UT-01 e IT-01 em `tests/ci/Ci.Tests` com a tag `SPEC-0051:<ID>` e confirmar que falham (script inexistente)
+- [x] Green: `tools/ci/affected-tests` (Python stdlib) seguindo `tools/ci/check-licenses`; `test`/`coverage` do sdd-config chamam o script
+- [x] Refactor mantendo tudo verde
+- [x] Validar: build + testes afetados + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy via pipeline (G6: N/A — ferramenta local)
-- [ ] Relatório de Entrega, CLAUDE.md e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy via pipeline (G6: N/A — ferramenta local)
+- [x] Relatório de Entrega, CLAUDE.md e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -73,10 +73,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 170ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 7c473cf | 2026-10-13 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  762ms (tests 97%, transform 2%, import 1%)) — 7c473cf | 2026-10-13 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED WITH MINORS (2ª revisão, 7c473cf; minors: G5 roda a suíte duas vezes, IT-02 não isola staged/não rastreado, aviso de cobertura e fallback origin/ sem teste, nome test_integration) — 7c473cf | 2026-10-13 |
-| G5 Integração & CI | PENDING | | |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #30 verde (run 38351277297, commit b3a04b0): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox; Firefox E2E-04 da SPEC-0026 instável no 1º attempt, verde no re-run), security e sdd; local em 85dd922: build, arquitetura e segurança PASS; testes do AppHost e E2E locais falham só por conflito de portas 5080/5173 com o AppHost do thomas aberto desde 2026-10-12 08:03 (não encerrado por ser sessão dele) | 2026-10-13 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-13 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #30, merge 4933105) | 2026-10-13 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — d0d2a11 (árvore suja) | 2026-10-13 |
 
 ## 9. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -88,30 +88,38 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
 
 ### O que foi entregue
+Os gates locais G1/G2 (`test` e `coverage` do sdd-config) rodam só os testes afetados pelos arquivos alterados desde a branch de integração; o G5 local (`test_integration`) e a CI do GitHub continuam rodando a suíte inteira. G2 de mudanças só de front, docs ou scripts de CI caiu de 15–25 min para ~1 min.
 
 ### Como foi feito
+Script `tools/ci/affected-tests` (Python stdlib, padrão de `tools/ci/check-licenses`): diff `base...HEAD` com `--no-renames` + não commitados e não rastreados; mapeamento seguro (Emenda v2): todo `src/backend/**`, `tests/**/Support/**`, TestKit, `tools/contracts/**`, props, lock files e arquivo não mapeado → solução inteira; front → `pnpm test`; config do front → front + Repository.Tests; projeto de teste → ele mesmo; `tools/ci|sdd`, `.github` → Ci.Tests; docs → nada. Modo coverage com aviso quando um projeto com coverlet não gera relatório. `test_integration` passou a ser a suíte completa, usada só pelo G5.
 
 ### Prova de Correção
 <!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+N/A
 
 ### Verificação
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| UT-01 | mapeamento de arquivos alterados para alvos (Emenda v2) | PASS | G2 do registro de gates; CI do PR #30 verde (run 38351277297, b3a04b0), merge 4933105 |
+| IT-01 | seleção via git com --dry-run, inclusive renomeação | PASS | G2 do registro de gates; CI do PR #30 verde (run 38351277297, b3a04b0), merge 4933105 |
+| IT-02 | execução com dotnet/pnpm falsos: não commitados, AFFECTED_BASE e código de saída | PASS | G2 do registro de gates; CI do PR #30 verde (run 38351277297, b3a04b0), merge 4933105 |
 
 ### Definição de Pronto
-- [ ] Teste de regressão falhou antes e passa depois da correção
-- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão existente mantido
-- [ ] Disponível no ambiente-alvo via pipeline (G6)
-- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
-- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
-- [ ] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
-- [ ] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
+- [x] Teste de regressão falhou antes e passa depois da correção
+- [x] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão existente mantido
+- [x] Disponível no ambiente-alvo via pipeline (G6) — N/A até a SPEC-0012; em main pelo PR #30
+- [x] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [x] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [x] Nenhum segredo, token ou semente não revelada em logs, traces ou no repositório (gitleaks e testes de mascaramento verdes)
+- [x] Sem avisos novos de build/lint e nenhuma supressão de regra sem motivo na própria linha
 
 ### Deploy
+Ferramenta local de desenvolvimento; disponível em main (merge 4933105).
 
 ### Pendências
+Minors do 2º review: o G5 roda a suíte duas vezes (o `test` cai em solução numa branch limpa); IT-02 não isola staged/não rastreado; aviso de cobertura e fallback `origin/` sem teste; a chave `test_integration` agora significa suíte completa (sem spec aberta).
 
 ## 11. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->

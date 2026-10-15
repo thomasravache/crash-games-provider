@@ -85,4 +85,7 @@ internal static partial class BettingLog
 
     [LoggerMessage(EventId = 2236, Level = LogLevel.Critical, Message = "Reconciliation: the cash-out of bet {BetId} was accepted by the leader but the bet is lost and its round's summary is closed ({Reason})")]
     public static partial void LateCashOutUnreconciled(ILogger logger, Guid betId, string reason);
+
+    [LoggerMessage(EventId = 2237, Level = LogLevel.Warning, Message = "A LiveBetsBatch of room {SalaId} could not be sent; the next one carries the totals")]
+    public static partial void LiveBatchNotSent(ILogger logger, string salaId, Exception exception);
 }

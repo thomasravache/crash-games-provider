@@ -4,7 +4,7 @@ title: Multiplicador da Pipa no topo da cena, sem cobrir a pipa
 tier: lite
 type: fix
 user_facing: true
-status: in-progress
+status: implemented
 created: 2026-10-12
 parent: SPEC-0019
 depends_on: []
@@ -52,15 +52,15 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 ## 7. Checklist de Implementação
 <!-- Preenchido na fase PLAN, após a aprovação. -->
 **Fase 1: Placar no topo**
-- [ ] Red: escrever E2E-01 com a tag `SPEC-0049:E2E-01` e confirmar que falha pelo motivo certo (placar no centro, com caixa opaca)
-- [ ] Green: mover e compactar o placar no HUD (`hud-base.css`, `hud.tsx`)
-- [ ] Validar: build + suíte completa + arquitetura (G2/G3)
+- [x] Red: escrever E2E-01 com a tag `SPEC-0049:E2E-01` e confirmar que falha pelo motivo certo (placar no centro, com caixa opaca)
+- [x] Green: mover e compactar o placar no HUD (`hud-base.css`, `hud.tsx`)
+- [x] Validar: build + suíte completa + arquitetura (G2/G3)
 
 **Fase final: Integração, entrega e documentação**
-- [ ] Review independente (G4)
-- [ ] Integração + CI verde (G5) e aprovação (H2)
-- [ ] Deploy via pipeline com smoke/E2E no ambiente (G6)
-- [ ] Relatório de Entrega, docs raiz e CHANGELOG (G7)
+- [x] Review independente (G4)
+- [x] Integração + CI verde (G5) e aprovação (H2)
+- [x] Deploy via pipeline com smoke/E2E no ambiente (G6) — N/A até a SPEC-0012; E2E com backend real na CI
+- [x] Relatório de Entrega, docs raiz e CHANGELOG (G7)
 
 ## 8. Registro de Gates
 <!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência. -->
@@ -71,10 +71,10 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G2 Green | PASS | build exit 0 (✓ built in 238ms); test exit 0 ($ dotnet test tests/ci/Ci.Tests/Ci.Tests.csproj --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:src/frontend/coverage/lcov.info" -targetdir:artifacts/c) — e379289 | 2026-10-13 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.24s (tests 97%, transform 2%, import 1%)) — e379289 | 2026-10-13 |
 | G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (minor: fonte mínima dos rótulos do placar em telas muito baixas) — e379289 | 2026-10-13 |
-| G5 Integração & CI | PENDING | | |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
+| G5 Integração & CI | PASS | MANUAL: CI do PR #30 verde (run 38351277297, commit b3a04b0): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox; Firefox E2E-04 da SPEC-0026 instável no 1º attempt, verde no re-run), security e sdd; local em 85dd922: build, arquitetura e segurança PASS; testes do AppHost e E2E locais falham só por conflito de portas 5080/5173 com o AppHost do thomas aberto desde 2026-10-12 08:03 (não encerrado por ser sessão dele) | 2026-10-13 |
+| H2 Integração aprovada | PASS | política auto-on-green (aprovada por thomas em 2026-10-08); G5 PASS | 2026-10-13 |
+| G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem); E2E com backend real na CI (PR #30, merge 4933105) | 2026-10-13 |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — d0d2a11 | 2026-10-13 |
 
 ## 9. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
@@ -85,28 +85,34 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Preenchido no CLOSE (G7). Para status implemented o validate exige tudo preenchido, todo teste do plano com PASS + evidência e a Definição de Pronto marcada. -->
 
 ### O que foi entregue
+O placar (multiplicador, fase e contagem) saiu do centro da cena e foi para o topo, compacto, sem fundo opaco e com sombra no texto para legibilidade, de modo que a pipa nunca fica coberta nas fases de apostas, voo e crash, no desktop e no celular.
 
 ### Como foi feito
+CSS do HUD (`hud-base.css`) e estrutura do placar em `hud.tsx`: posição no topo com tamanhos por `clamp()` em unidades do contêiner da cena, sem quebra de linha, fundo com alfa ≤ 0,3 e text-shadow; E2E de layout em `tests/e2e/pipa/layout/` mede a caixa do placar contra a cena.
 
 ### Prova de Correção
 <!-- type fix: teste de regressão falhou antes (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
+Red: E2E-01 falhou em d815910 (borda de baixo do placar a 59–60% da altura da cena, limite 35%; centro da cena sob o placar; fundo com alfa 0,85, limite 0,3). Green: 804a52b e e379289 (halo), E2E-01 PASS em Chromium, WebKit e Firefox na CI do PR #30.
 
 ### Verificação
 | Teste | Comportamento | Resultado | Evidência |
 |---|---|---|---|
+| E2E-01 | placar no topo, compacto, sem fundo opaco, sem cobrir a pipa | PASS | G2 do registro de gates; CI do PR #30 verde (run 38351277297, b3a04b0), merge 4933105 |
 
 ### Definição de Pronto
-- [ ] Teste de regressão falhou antes e passa depois da correção
-- [ ] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão existente mantido
-- [ ] Disponível no ambiente-alvo via pipeline (G6)
-- [ ] Documentação/CHANGELOG atualizados quando aplicável (G7)
-- [ ] Outras ocorrências registradas como novas specs (ou nenhuma)
+- [x] Teste de regressão falhou antes e passa depois da correção
+- [x] Suíte completa, arquitetura e CI verdes (G2, G3, G5)
+- [x] Review independente sem achados blocker/major (G4)
+- [x] Padrão existente mantido
+- [x] Disponível no ambiente-alvo via pipeline (G6) — N/A até a SPEC-0012; em main pelo PR #30
+- [x] Documentação/CHANGELOG atualizados quando aplicável (G7)
+- [x] Outras ocorrências registradas como novas specs (ou nenhuma)
 
 ### Deploy
+Sem ambiente de deploy até a SPEC-0012; disponível em main (merge 4933105) e no jogo local.
 
 ### Pendências
+Minor do review: fonte mínima dos rótulos do placar em telas muito baixas (ajuste visual futuro, sem spec aberta).
 
 ## 11. Emendas
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->

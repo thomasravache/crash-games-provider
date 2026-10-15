@@ -2,6 +2,7 @@
 #pragma warning disable
 using Apogeu.Betting.Features;
 using Apogeu.Betting.Features.Hubs;
+using Apogeu.Betting.Features.LiveBets;
 using Apogeu.Betting.Features.RoundEvents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -14,14 +15,16 @@ namespace Internal.Generated.WolverineHandlers
     {
         private readonly Apogeu.Betting.Features.BettingMetrics _bettingMetrics;
         private readonly Apogeu.Betting.Features.Hubs.BetsNotifier _betsNotifier;
+        private readonly Apogeu.Betting.Features.LiveBets.LiveBetsFeed _liveBetsFeed;
         private readonly Apogeu.Betting.Features.RoundEvents.IRoundFeed _roundFeed;
         private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _serviceScopeFactory;
         private readonly Microsoft.Extensions.Logging.ILogger<Apogeu.Rounds.Contracts.RoundBettingOpened> _loggerForMessage;
 
-        public RoundBettingOpenedHandler1207545563(Apogeu.Betting.Features.BettingMetrics bettingMetrics, Apogeu.Betting.Features.Hubs.BetsNotifier betsNotifier, Apogeu.Betting.Features.RoundEvents.IRoundFeed roundFeed, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, Microsoft.Extensions.Logging.ILogger<Apogeu.Rounds.Contracts.RoundBettingOpened> loggerForMessage)
+        public RoundBettingOpenedHandler1207545563(Apogeu.Betting.Features.BettingMetrics bettingMetrics, Apogeu.Betting.Features.Hubs.BetsNotifier betsNotifier, Apogeu.Betting.Features.LiveBets.LiveBetsFeed liveBetsFeed, Apogeu.Betting.Features.RoundEvents.IRoundFeed roundFeed, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory serviceScopeFactory, Microsoft.Extensions.Logging.ILogger<Apogeu.Rounds.Contracts.RoundBettingOpened> loggerForMessage)
         {
             _bettingMetrics = bettingMetrics;
             _betsNotifier = betsNotifier;
+            _liveBetsFeed = liveBetsFeed;
             _roundFeed = roundFeed;
             _serviceScopeFactory = serviceScopeFactory;
             _loggerForMessage = loggerForMessage;
@@ -40,7 +43,7 @@ namespace Internal.Generated.WolverineHandlers
             System.Diagnostics.Activity.Current?.SetTag("handler.type", "Apogeu.Betting.Features.RoundEvents.RoundEventsHandler");
             
             // The actual message execution
-            await Apogeu.Betting.Features.RoundEvents.RoundEventsHandler.HandleAsync(roundBettingOpened, _roundFeed, betStore, _betsNotifier, _bettingMetrics, _loggerForMessage, cancellation).ConfigureAwait(false);
+            await Apogeu.Betting.Features.RoundEvents.RoundEventsHandler.HandleAsync(roundBettingOpened, _roundFeed, betStore, _betsNotifier, _liveBetsFeed, _bettingMetrics, _loggerForMessage, cancellation).ConfigureAwait(false);
         }
     }
 

@@ -8,7 +8,7 @@ status: approved
 created: 2026-10-10
 parent: SPEC-0035
 depends_on: [SPEC-0043, SPEC-0020]
-consumes_contract: [SPEC-0020@2]
+consumes_contract: [SPEC-0020@3]
 contract_version: 1
 touches: ["src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/frontend/apps/demo-site/**", "tests/e2e/demo-site/**", "src/backend/Modules/Operators/Operators.Features/Catalog/**", "tests/backend/Modules/Operators.Tests/**", "src/frontend/apps/game-pipa/public/kit/**"]
 adrs: [ADR-0002, ADR-0003, ADR-0009, ADR-0025, ADR-0027]

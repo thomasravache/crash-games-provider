@@ -9,7 +9,8 @@ namespace Apogeu.Wallet.Tests.Support;
 /// <summary>
 /// The Wallet module as the application composes it (<see cref="WalletInfrastructure.AddWalletInfrastructure"/>) on a
 /// real PostgreSQL database of the test, with the migrations of the schema <c>wallet</c> applied and the limits of the
-/// demo operator from the SPEC-0020@1 double (<see cref="FixedOperatorLimits"/>).
+/// demo operator from the SPEC-0020@1 double (<see cref="FixedOperatorLimits"/>). Every operator is demo
+/// (<see cref="FixedOperatorWalletSettings"/>) unless the test configures the services otherwise (SPEC-0046).
 /// </summary>
 internal sealed class WalletServices : IAsyncDisposable
 {
@@ -25,20 +26,24 @@ internal sealed class WalletServices : IAsyncDisposable
     public string ConnectionString { get; }
 
     /// <summary>A new database in the container, migrated through the module's own entry point.</summary>
-    public static async Task<WalletServices> StartAsync(string serverConnectionString, CancellationToken cancellationToken)
+    public static async Task<WalletServices> StartAsync(
+        string serverConnectionString, CancellationToken cancellationToken, Action<IServiceCollection>? configure = null)
     {
         var database = await TestDatabase.CreateAsync(serverConnectionString, cancellationToken).ConfigureAwait(false);
-        return await OpenAsync(database, cancellationToken).ConfigureAwait(false);
+        return await OpenAsync(database, cancellationToken, configure).ConfigureAwait(false);
     }
 
     /// <summary>Another "process" of the module on an existing database (migrations are idempotent).</summary>
-    public static async Task<WalletServices> OpenAsync(string databaseConnectionString, CancellationToken cancellationToken)
+    public static async Task<WalletServices> OpenAsync(
+        string databaseConnectionString, CancellationToken cancellationToken, Action<IServiceCollection>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IOperatorLimits, FixedOperatorLimits>();
+        services.AddSingleton<IOperatorWalletSettings, FixedOperatorWalletSettings>();
         services.AddWalletInfrastructure(_ => databaseConnectionString);
+        configure?.Invoke(services);
         var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true });
         try
         {

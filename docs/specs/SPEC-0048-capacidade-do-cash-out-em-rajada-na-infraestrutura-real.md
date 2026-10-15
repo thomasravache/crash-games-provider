@@ -45,6 +45,7 @@ Medir onde o tempo vai (pool, transação, crédito em linha, relay) e reduzir: 
 ## 5. Questões em Aberto
 <!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento (seção Registro de Impedimentos). -->
 - [ ] O alvo de 50 ms deve valer no runner gratuito da CI ou só num ambiente de carga dedicado (SPEC-0012, custo)? (thomas)
+- [ ] O `CashOutLatencyTests` depende da ordem de execução do xUnit (ordem por hash do id do teste, que inclui o namespace): rodando antes do teste de automático de 30 s, sem aquecimento, mede p99 de 98–132 ms; depois dele, < 75 ms (evidência: cópia renomeada para outra organização, 2026-10-14). O teste deve aquecer o Host por conta própria antes de medir, para não depender da ordem? (Architect → thomas)
 
 ## 6. Aprovação (H1)
 Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado".

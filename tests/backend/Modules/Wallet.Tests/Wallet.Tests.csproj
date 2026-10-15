@@ -38,6 +38,9 @@
     <Compile Include="../../Security.Tests/Support/TestApiKey.cs" Link="Support/Shared/TestApiKey.cs" />
     <Compile Include="../../Security.Tests/Support/ErrorBodies.cs" Link="Support/Shared/ErrorBodies.cs" />
     <Compile Include="../../Security.Tests/Support/TestDatabase.cs" Link="Support/Shared/TestDatabase.cs" />
+    <!-- SPEC-0046: the signature formula of the public contract written in the tests, and polling on the real clock. -->
+    <Compile Include="../../Security.Tests/Support/ReferenceSignature.cs" Link="Support/Shared/ReferenceSignature.cs" />
+    <Compile Include="../Rounds.Tests/Support/Eventually.cs" Link="Support/Shared/Eventually.cs" />
   </ItemGroup>
 
 </Project>
