@@ -4,7 +4,7 @@ title: Abas de apostas da Pipa
 tier: lite
 type: feature
 user_facing: true
-status: approved
+status: in-progress
 created: 2026-10-09
 parent: SPEC-0019
 depends_on: [SPEC-0025, SPEC-0026]
