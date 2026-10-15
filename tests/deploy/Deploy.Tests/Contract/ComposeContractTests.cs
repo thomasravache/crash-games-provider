@@ -1,0 +1,193 @@
+using Apogeu.Deploy.Tests.Support;
+using Xunit;
+
+namespace Apogeu.Deploy.Tests.Contract;
+
+/// <summary>
+/// SPEC-0066 CT-01, consumer side of SPEC-0065@3: the compose of the contract (fixture with light images in the roles of
+/// api and demo-casino; services api, demo-casino, postgres, redis and the short-lived keys-init, volumes postgres-data and dataprotection-keys, a
+/// single network, api and demo-casino on 8080, the variables of the .env) is read by vps-deploy: the services, the
+/// network and the variables exist in the running project, and the proxy reaches api and demo-casino by name. A compose
+/// without a service of the contract is refused before anything goes up.
+/// </summary>
+public sealed class ComposeContractTests
+{
+    private static readonly string[] ContractServices = ["api", "demo-casino", "postgres", "redis"];
+
+    [Fact(DisplayName = "Dado o compose da SPEC-0065@3, quando o vps-deploy o lê, então serviços, rede e variáveis existem e o proxy alcança api e demo-casino pelo nome")]
+    [Trait("Category", "Contract")]
+    [Trait("Spec", "SPEC-0066:CT-01")]
+    public async Task GivenTheContractComposeWhenDeployedThenServicesNetworkAndVariablesExistAndTheProxyReachesThemByName()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var deployment = await TestDeployment.CreateAsync("ct01", [new Release("release-a", "A")], cancellationToken);
+
+        var deploy = await deployment.DeployAsync("release-a", cancellationToken);
+
+        Assert.True(deploy.Succeeded, "vps-deploy of the contract compose failed. " + deploy.Describe());
+        var containers = await DockerCli.ServiceContainersAsync(deployment.Project, cancellationToken);
+        foreach (var service in ContractServices.Append("proxy"))
+        {
+            Assert.True(containers.ContainsKey(service), $"service {service} not running in {deployment.Project}: {string.Join(", ", containers.Keys)}");
+        }
+
+        // The single network of the contract, shared by the proxy, the api and the demo-casino.
+        var networks = (await DockerCli.RunAsync(
+                ["network", "ls", "--filter", "label=com.docker.compose.project=" + deployment.Project, "--format", "{{.Name}}"],
+                cancellationToken)).StandardOutput
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        Assert.Contains($"{deployment.Project}_aspire", networks, StringComparer.Ordinal);
+        foreach (var service in new[] { "proxy", "api", "demo-casino", "postgres", "redis" })
+        {
+            var attached = await DockerCli.RunAsync(
+                ["inspect", "--format", "{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}", containers[service]],
+                cancellationToken);
+            Assert.Contains($"{deployment.Project}_aspire", attached.StandardOutput.Split(' ', StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
+        }
+
+        // Only the proxy publishes ports on the host (ADR-0029), and only the test ports.
+        foreach (var service in ContractServices)
+        {
+            var ports = await DockerCli.RunAsync(["port", containers[service]], cancellationToken);
+            Assert.True(string.IsNullOrWhiteSpace(ports.StandardOutput), $"{service} publishes ports on the host: {ports.StandardOutput}");
+        }
+
+        await AssertProxyPublishesOnlyOnTheBindAddressAsync(deployment, containers["proxy"], cancellationToken);
+        await AssertProxyLogsRotateAsync(containers["proxy"], cancellationToken);
+
+        // The proxy reaches api:8080 and demo-casino:8080 by name.
+        var api = await DockerCli.RunAsync(["exec", containers["proxy"], "wget", "-q", "-O", "-", "http://api:8080/version"], cancellationToken);
+        Assert.True(api.Succeeded && string.Equals(api.StandardOutput.Trim(), "A", StringComparison.Ordinal), "the proxy does not reach api:8080 by name. " + api.Describe());
+        var casino = await DockerCli.RunAsync(["exec", containers["proxy"], "wget", "-q", "-O", "-", "http://demo-casino:8080/casino/version"], cancellationToken);
+        Assert.True(casino.Succeeded && string.Equals(casino.StandardOutput.Trim(), "A", StringComparison.Ordinal), "the proxy does not reach demo-casino:8080 by name. " + casino.Describe());
+
+        await AssertKeysInitCompletedAsync(deployment, cancellationToken);
+        await AssertVariablesReachTheServicesAsync(deployment, containers, cancellationToken);
+        await AssertContractVolumesExistAsync(deployment, cancellationToken);
+    }
+
+    [Theory(DisplayName = "Dado um compose fora do contrato SPEC-0065@3 (serviço faltando, inclusive o keys-init, ou porta publicada fora do proxy), quando o vps-deploy o lê, então recusa antes de subir e aponta o serviço")]
+    [Trait("Category", "Contract")]
+    [Trait("Spec", "SPEC-0066:CT-01")]
+    [InlineData("demo-casino", null)]
+    [InlineData("keys-init", null)]
+    [InlineData(null, "api")]
+    [InlineData(null, "debug")]
+    public async Task GivenAComposeOutsideTheContractWhenDeployedThenItIsRefusedBeforeAnythingGoesUp(string? without, string? portsOn)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var service = without ?? portsOn!;
+        await using var deployment = await TestDeployment.CreateAsync(
+            "ct01b", [new Release("release-broken", "A", WithoutService: without, PortsOn: portsOn)], cancellationToken);
+
+        var deploy = await deployment.DeployAsync("release-broken", cancellationToken);
+
+        var problem = without is null ? $"{service} publishing ports on the host" : $"a compose without {service}";
+        Assert.False(deploy.Succeeded, $"vps-deploy accepted {problem}. " + deploy.Describe());
+        Assert.True(deploy.ExitCode > 0, "vps-deploy did not run. " + deploy.Describe());
+        Assert.Contains(service, deploy.Output, StringComparison.Ordinal);
+        var created = await DockerCli.RunAsync(
+            ["ps", "--all", "--quiet", "--filter", "label=com.docker.compose.project=" + deployment.Project],
+            cancellationToken);
+        Assert.True(string.IsNullOrWhiteSpace(created.StandardOutput), $"containers were created for {problem}: {created.StandardOutput}");
+    }
+
+    /// <summary>
+    /// Emenda v4: the proxy publishes the test ports only on APOGEU_BIND_ADDRESS (127.0.0.1 in the tests), never on every
+    /// address of the host (a port published by Docker goes around the UFW).
+    /// </summary>
+    private static async Task AssertProxyPublishesOnlyOnTheBindAddressAsync(
+        TestDeployment deployment, string proxy, CancellationToken cancellationToken)
+    {
+        var ports = await DockerCli.RunAsync(["port", proxy], cancellationToken).ConfigureAwait(false);
+        var bindings = ports.StandardOutput
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split(" -> ", 2)[^1])
+            .ToList();
+        string[] expected =
+        [
+            $"{TestDeployment.BindAddress}:{deployment.HttpPort}",
+            $"{TestDeployment.BindAddress}:{deployment.HttpsPort}",
+        ];
+        Assert.Equal(expected.Order(StringComparer.Ordinal), bindings.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>Emenda v4: the Docker logs of the proxy rotate (max-size and max-file), so they never fill the shared VPS.</summary>
+    private static async Task AssertProxyLogsRotateAsync(string proxy, CancellationToken cancellationToken)
+    {
+        var options = await DockerCli.RunAsync(
+            ["inspect", "--format", "{{range $key, $value := .HostConfig.LogConfig.Config}}{{$key}}={{$value}} {{end}}", proxy],
+            cancellationToken).ConfigureAwait(false);
+        Assert.Contains("max-size=", options.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("max-file=", options.StandardOutput, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// SPEC-0065@3: the short-lived keys-init ran to completion (exit 0) before the api, published no port and left the
+    /// dataprotection-keys volume to the api user (UID 1654).
+    /// </summary>
+    private static async Task AssertKeysInitCompletedAsync(TestDeployment deployment, CancellationToken cancellationToken)
+    {
+        var listed = await DockerCli.RunAsync(
+            [
+                "ps", "--all", "--quiet",
+                "--filter", "label=com.docker.compose.project=" + deployment.Project,
+                "--filter", "label=com.docker.compose.service=keys-init",
+            ],
+            cancellationToken).ConfigureAwait(false);
+        var id = listed.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault();
+        Assert.False(id is null, $"no keys-init container in {deployment.Project} (SPEC-0065@3)");
+        var state = await DockerCli.RunAsync(
+            ["inspect", "--format", "{{.State.Status}} {{.State.ExitCode}} {{len .HostConfig.PortBindings}}", id],
+            cancellationToken).ConfigureAwait(false);
+        Assert.Equal("exited 0 0", state.StandardOutput.Trim());
+        var owner = await DockerCli.RunAsync(
+            ["run", "--rm", "--volume", $"{deployment.Project}_dataprotection-keys:/keys:ro", "busybox:1.37.0", "stat", "-c", "%u:%g", "/keys"],
+            cancellationToken).ConfigureAwait(false);
+        Assert.Equal("1654:1654", owner.StandardOutput.Trim());
+    }
+
+    /// <summary>The variables of the .env reach the services as the compose of the contract maps them.</summary>
+    private static async Task AssertVariablesReachTheServicesAsync(
+        TestDeployment deployment, IReadOnlyDictionary<string, string> containers, CancellationToken cancellationToken)
+    {
+        var values = EnvFile.Read(deployment.EnvFilePath);
+        foreach (var variable in DeployScripts.Secrets.Concat(DeployScripts.Settings))
+        {
+            Assert.True(values.TryGetValue(variable, out var value) && value.Length > 0, $".env without a value for {variable}");
+        }
+
+        var apiEnvironment = await EnvironmentOfAsync(containers["api"], cancellationToken).ConfigureAwait(false);
+        Assert.Equal(values["OPERATORS_DEMO_KEY_ID"], apiEnvironment["Operators__Demo__KeyId"]);
+        Assert.Equal(values["OPERATORS_DEMO_KEY_SECRET"], apiEnvironment["Operators__Demo__KeySecret"]);
+        Assert.Equal(values["PLAYER_SESSION_SIGNING_KEY"], apiEnvironment["PlayerSession__SigningKey"]);
+        Assert.Equal(values["BACKOFFICE_AUTHORITY"], apiEnvironment["Security__Backoffice__Authority"]);
+        Assert.Equal(values["PUBLIC_API_URL"], apiEnvironment["PUBLIC_API_URL"]);
+        Assert.Equal(values["PUBLIC_GAME_URL"], apiEnvironment["PUBLIC_GAME_URL"]);
+        Assert.Contains("Password=" + values["POSTGRES_PASSWORD"] + ";", apiEnvironment["ConnectionStrings__apogeu"], StringComparison.Ordinal);
+        Assert.Contains("password=" + values["REDIS_PASSWORD"], apiEnvironment["ConnectionStrings__redis"], StringComparison.Ordinal);
+        var postgresEnvironment = await EnvironmentOfAsync(containers["postgres"], cancellationToken).ConfigureAwait(false);
+        Assert.Equal(values["POSTGRES_PASSWORD"], postgresEnvironment["POSTGRES_PASSWORD"]);
+    }
+
+    /// <summary>The volumes of the contract exist in the project.</summary>
+    private static async Task AssertContractVolumesExistAsync(TestDeployment deployment, CancellationToken cancellationToken)
+    {
+        var volumes = (await DockerCli.RunAsync(
+                ["volume", "ls", "--filter", "label=com.docker.compose.project=" + deployment.Project, "--format", "{{.Name}}"],
+                cancellationToken).ConfigureAwait(false)).StandardOutput;
+        Assert.Contains($"{deployment.Project}_postgres-data", volumes, StringComparison.Ordinal);
+        Assert.Contains($"{deployment.Project}_dataprotection-keys", volumes, StringComparison.Ordinal);
+    }
+
+    private static async Task<IReadOnlyDictionary<string, string>> EnvironmentOfAsync(string container, CancellationToken cancellationToken)
+    {
+        var result = await DockerCli.RunAsync(["inspect", "--format", "{{range .Config.Env}}{{println .}}{{end}}", container], cancellationToken).ConfigureAwait(false);
+        return result.StandardOutput
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Split('=', 2))
+            .Where(parts => parts.Length == 2)
+            .GroupBy(parts => parts[0], StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Last()[1], StringComparer.Ordinal);
+    }
+}

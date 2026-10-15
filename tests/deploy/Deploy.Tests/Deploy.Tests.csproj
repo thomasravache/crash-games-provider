@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- SPEC-0066: tests of the VPS deployment (ADR-0029): the Caddyfile under caddy validate, the .env of tools/deploy/vps-deploy,
+       deploy and rollback of a test compose project (contract SPEC-0065@2, light images), backup and restore of PostgreSQL.
+       Every test needs a Docker engine; none uses the ports 80/443 nor the AppHost ports (see tests/deploy/README.md). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../backend/TestKit/TestKit.csproj" />
+  </ItemGroup>
+
+  <!-- Process helpers shared with the repository tests (SPEC-0002), linked to keep one implementation. -->
+  <ItemGroup>
+    <Compile Include="../../backend/Repository.Tests/Support/ProcessRunner.cs" Link="Support/Shared/ProcessRunner.cs" />
+    <Compile Include="../../backend/Repository.Tests/Support/ProcessResult.cs" Link="Support/Shared/ProcessResult.cs" />
+    <Compile Include="../../backend/Repository.Tests/Support/RepositoryRoot.cs" Link="Support/Shared/RepositoryRoot.cs" />
+  </ItemGroup>
+
+  <!-- The fake release (compose of the contract, build hook, smoke) is copied into the fixture git repository by the tests. -->
+  <ItemGroup>
+    <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

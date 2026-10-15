@@ -1,0 +1,12 @@
+# Daily trigger of apogeu-backup.service (SPEC-0066): 06:15 UTC (03:15 in Brasília), when nobody plays the demo.
+# Persistent: a run missed while the VPS was off happens at the next boot.
+[Unit]
+Description=Apogeu: daily backup of the PostgreSQL (SPEC-0066)
+
+[Timer]
+OnCalendar=*-*-* 06:15:00 UTC
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

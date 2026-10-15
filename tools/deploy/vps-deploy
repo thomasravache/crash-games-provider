@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+# Deploy of a version on the VPS (SPEC-0066, ADR-0029, ADR-0013). Runbook: docs/runbooks/deploy-vps.md.
+#
+# Usage: tools/deploy/vps-deploy [ref]      ref = branch, tag or commit of APOGEU_DEPLOY_REPO (default: main)
+#        tools/deploy/vps-deploy --prepare  only creates the deployment directory and the .env, and stops
+#
+# 1. Creates the deployment directory and, the first time, the .env with random secrets (mode 600, never printed).
+# 2. Fetches the ref into $APOGEU_DEPLOY_DIR/src (outside the working repository) and checks out its commit.
+# 3. Runs the build hook there (APOGEU_DEPLOY_BUILD, default tools/deploy/build-release: `aspire publish` of the compose
+#    and the images), with the image names of the version: <prefix>-api, <prefix>-demo-casino, <prefix>-proxy, tagged
+#    with the commit.
+# 4. Checks the compose against the contract SPEC-0065@3 (services, volumes, single network, variables, no published
+#    port outside the proxy) and refuses it, naming the service, before any container is created.
+# 5. Brings the version up with the proxy (infra/caddy/compose.proxy.yaml), waits for the health and runs the smoke.
+#    Success: the previous version is kept for vps-rollback. Any failure: exit ≠ 0 and the previous version back on the
+#    air.
+# Other configuration (environment): APOGEU_DEPLOY_SMOKE, APOGEU_DEPLOY_HEALTH_TIMEOUT (see tools/deploy/lib.sh).
+set -euo pipefail
+
+script_name="vps-deploy"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/deploy/lib.sh
+source "$script_dir/lib.sh"
+
+checkout_dir="$APOGEU_DEPLOY_DIR/src"
+build_hook="${APOGEU_DEPLOY_BUILD:-tools/deploy/build-release}"
+
+usage() {
+  sed -n '3,5p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+  exit 2
+}
+
+# Fetches the ref and checks out its commit (detached); prints the full commit.
+checkout_ref() {
+  local ref="$1"
+  if [[ ! -d "$checkout_dir/.git" ]]; then
+    log "cloning $APOGEU_DEPLOY_REPO into $checkout_dir"
+    git init --quiet "$checkout_dir"
+    git -C "$checkout_dir" remote add origin "$APOGEU_DEPLOY_REPO"
+  else
+    git -C "$checkout_dir" remote set-url origin "$APOGEU_DEPLOY_REPO"
+  fi
+  log "fetching $ref"
+  git -C "$checkout_dir" fetch --quiet --force --no-tags origin "$ref" >&2
+  local commit
+  commit="$(git -C "$checkout_dir" rev-parse --verify 'FETCH_HEAD^{commit}')"
+  git -C "$checkout_dir" checkout --quiet --force --detach "$commit" >&2
+  git -C "$checkout_dir" clean --quiet -ffdx >&2
+  printf '%s' "$commit"
+}
+
+# Contract SPEC-0065@3 of the published compose: services, volumes, the single network and the variables it references,
+# all present in the .env of the host or the release.env of the version. Reads the configuration in memory only.
+check_contract() {
+  local release="$1" dir="$releases_dir/$1"
+  local unset_args=() name
+  for name in "${release_names[@]}" "${secret_names[@]}"; do
+    unset_args+=(-u "$name")
+  done
+  local missing
+  missing="$(
+    env "${unset_args[@]}" docker compose \
+      --project-name "$APOGEU_COMPOSE_PROJECT" --project-directory "$dir" \
+      --env-file "$env_file" --env-file "$dir/release.env" --file "$dir/docker-compose.yaml" \
+      config --format json --no-interpolate 2>/dev/null |
+      python3 -I "$script_dir/check-compose.py" \
+        --services "${contract_services[*]}" --volumes "${contract_volumes[*]}" \
+        --networked "${networked_services[*]}" \
+        --env-file "$env_file" --env-file "$dir/release.env"
+  )" || {
+    log "compose of version $release refused (contract SPEC-0065@3): ${missing:-unreadable docker-compose.yaml}"
+    return 1
+  }
+}
+
+deploy() {
+  local ref="$1"
+  take_lock
+  local commit tag release dir
+  commit="$(checkout_ref "$ref")"
+  tag="${commit:0:12}"
+  release="$tag"
+  dir="$releases_dir/$release"
+  log "version $release ($ref)"
+
+  # Images of the version, tagged with the commit; exported only to the build hook.
+  local api_image="$APOGEU_IMAGE_PREFIX-api:$tag"
+  local casino_image="$APOGEU_IMAGE_PREFIX-demo-casino:$tag"
+  local proxy_image="$APOGEU_IMAGE_PREFIX-proxy:$tag"
+  log "build: $build_hook"
+  rm -f "$checkout_dir/infra/compose/out/docker-compose.yaml"
+  if ! (
+    cd "$checkout_dir"
+    APOGEU_VERSION="$tag" API_IMAGE="$api_image" DEMO_CASINO_IMAGE="$casino_image" PROXY_IMAGE="$proxy_image" \
+      "./$build_hook"
+  ); then
+    die "build of version $release failed; nothing changed on the air"
+  fi
+
+  local compose="$checkout_dir/infra/compose/out/docker-compose.yaml"
+  local proxy_compose="$checkout_dir/infra/caddy/compose.proxy.yaml"
+  [[ -f "$compose" ]] || die "the build left no infra/compose/out/docker-compose.yaml; nothing changed on the air"
+  [[ -f "$proxy_compose" ]] || die "version $release has no infra/caddy/compose.proxy.yaml; nothing changed on the air"
+
+  # The files of the version, kept for vps-rollback (no rebuild).
+  rm -rf "$dir"
+  mkdir -p "$dir"
+  cp "$compose" "$dir/docker-compose.yaml"
+  cp "$proxy_compose" "$dir/compose.proxy.yaml"
+  {
+    printf 'APOGEU_VERSION=%s\n' "$tag"
+    printf 'API_IMAGE=%s\n' "$api_image"
+    printf 'DEMO_CASINO_IMAGE=%s\n' "$casino_image"
+    printf 'PROXY_IMAGE=%s\n' "$proxy_image"
+  } >"$dir/release.env"
+
+  check_contract "$release" || exit 3
+
+  local current
+  current="$(read_state current)"
+  if up_release "$release" && run_smoke; then
+    if [[ -n "$current" && "$current" != "$release" ]]; then
+      write_state previous "$current"
+    fi
+    write_state current "$release"
+    log "version $release on the air${current:+ (previous: $current)}"
+    report_memory
+    prune_releases
+    return 0
+  fi
+
+  log "version $release failed the health or the smoke"
+  if [[ -n "$current" && -d "$releases_dir/$current" ]]; then
+    log "going back to version $current"
+    if up_release "$current" && run_smoke; then
+      log "version $current back on the air"
+    else
+      log "version $current did not come back healthy: check 'docker compose -p $APOGEU_COMPOSE_PROJECT ps'"
+    fi
+  else
+    log "no previous version: stopping version $release (volumes kept)"
+    compose_release "$release" down --remove-orphans >&2 || true
+  fi
+  exit 1
+}
+
+# Keeps the files and images of the current, the previous and the three newest versions.
+prune_releases() {
+  local keep=() release
+  keep+=("$(read_state current)" "$(read_state previous)")
+  local newest=() path
+  for path in "$releases_dir"/*/; do
+    if [[ -d "$path" ]]; then newest+=("$(stat -c '%Y %n' "$path")"); fi
+  done
+  while IFS= read -r path; do
+    keep+=("$(basename "$path")")
+  done < <(printf '%s\n' "${newest[@]}" | sort -rn | head -n 3 | cut -d' ' -f2-)
+  for path in "$releases_dir"/*/; do
+    [[ -d "$path" ]] || continue
+    release="$(basename "$path")"
+    if [[ " ${keep[*]} " != *" $release "* ]]; then
+      log "removing old version $release"
+      docker image rm "$APOGEU_IMAGE_PREFIX-api:$release" "$APOGEU_IMAGE_PREFIX-demo-casino:$release" \
+        "$APOGEU_IMAGE_PREFIX-proxy:$release" >/dev/null 2>&1 || true
+      rm -rf "${releases_dir:?}/$release"
+    fi
+  done
+}
+
+case "${1:-main}" in
+  --prepare)
+    [[ $# -le 1 ]] || usage
+    prepare_deploy_dir
+    ;;
+  -h | --help) usage ;;
+  -*) usage ;;
+  *)
+    [[ $# -le 1 ]] || usage
+    prepare_deploy_dir
+    deploy "${1:-main}"
+    ;;
+esac

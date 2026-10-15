@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# SPEC-0066 test fixture: the build hook of tools/deploy/vps-deploy (APOGEU_DEPLOY_BUILD), run from the root of the
+# checkout of the release being deployed. It stands in for `aspire publish` and the real image builds: writes
+# infra/compose/out/docker-compose.yaml (contract SPEC-0065@2) and builds API_IMAGE, DEMO_CASINO_IMAGE and PROXY_IMAGE,
+# the image names the deploy chose for this version. deploy-fixture/version holds the version text the fake api and
+# demo-casino answer on /version and /casino/version; deploy-fixture/healthy is "no" for a release without /health.
+set -euo pipefail
+
+: "${API_IMAGE:?API_IMAGE not set by the deploy}"
+: "${DEMO_CASINO_IMAGE:?DEMO_CASINO_IMAGE not set by the deploy}"
+: "${PROXY_IMAGE:?PROXY_IMAGE not set by the deploy}"
+
+fixture="deploy-fixture"
+version="$(cat "$fixture/version")"
+healthy="$(cat "$fixture/healthy")"
+
+mkdir -p infra/compose/out
+cp "$fixture/docker-compose.yaml" infra/compose/out/docker-compose.yaml
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/www/casino"
+printf '%s' "$version" >"$work/www/version"
+printf '%s' "$version" >"$work/www/casino/version"
+printf 'ok' >"$work/www/index.html"
+if [[ "$healthy" == "yes" ]]; then
+  printf 'Healthy' >"$work/www/health"
+fi
+cp "$fixture/service.Dockerfile" "$work/Dockerfile"
+
+docker build --quiet --tag "$API_IMAGE" "$work" >/dev/null
+docker build --quiet --tag "$DEMO_CASINO_IMAGE" "$work" >/dev/null
+docker build --quiet --tag "$PROXY_IMAGE" --file "$fixture/proxy.Dockerfile" . >/dev/null

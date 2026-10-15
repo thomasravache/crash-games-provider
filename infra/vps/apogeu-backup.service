@@ -1,0 +1,17 @@
+# Daily backup of the database of the VPS deployment (SPEC-0066, ADR-0018/ADR-0029), started by apogeu-backup.timer.
+# A systemd *user* unit of the account that runs the deployment (member of the docker group); installation in
+# docs/runbooks/deploy-vps.md (~/.config/systemd/user/, loginctl enable-linger). Dumps go to
+# ~/apogeu-deploy/backups (7 days kept); the output (last line: the path of the dump) goes to the journal:
+#   journalctl --user -u apogeu-backup.service
+[Unit]
+Description=Apogeu: backup of the PostgreSQL of the deployment (SPEC-0066)
+
+[Service]
+Type=oneshot
+Environment=APOGEU_DEPLOY_DIR=%h/apogeu-deploy
+Environment=APOGEU_COMPOSE_PROJECT=apogeu
+# The scripts of the checkout of the deployment (the version last deployed).
+ExecStart=%h/apogeu-deploy/src/tools/deploy/backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Smoke of the published platform (SPEC-0066 §7.6), run by vps-deploy and vps-rollback after the health wait, or by hand.
+#
+# Usage: tools/deploy/smoke
+#
+# Against the proxy on this host (names resolved to 127.0.0.1, certificates verified against the public names):
+#   - HTTPS of cassino., jogo. and api.<domain> with HSTS, X-Content-Type-Options and Referrer-Policy;
+#   - HTTP of the three redirected to HTTPS;
+#   - GET api /health → 200;
+#   - the casino launch: a demo player enters the casino (POST /casino/session) and launches the Pipa (POST
+#     /casino/play/pipa), which answers a launch URL on jogo.<domain>.
+# The api migrates on its first start, so each check is retried until APOGEU_SMOKE_TIMEOUT (seconds, default 180).
+# Environment: APOGEU_DOMAIN, APOGEU_HTTP_PORT, APOGEU_HTTPS_PORT (defaults of the VPS), APOGEU_SMOKE_RESOLVE (address
+# the names resolve to; empty = public DNS), APOGEU_SMOKE_INSECURE=1 (accept a test CA, e.g. *.localhost).
+set -euo pipefail
+
+domain="${APOGEU_DOMAIN:-143-95-218-240.sslip.io}"
+http_port="${APOGEU_HTTP_PORT:-80}"
+https_port="${APOGEU_HTTPS_PORT:-443}"
+resolve_to="${APOGEU_SMOKE_RESOLVE-127.0.0.1}"
+timeout="${APOGEU_SMOKE_TIMEOUT:-180}"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+log() { printf '[smoke] %s\n' "$*" >&2; }
+
+# curl of a site of the platform: url and resolution of its host to this machine.
+site_curl() {
+  local scheme="$1" site="$2" path="$3" port
+  shift 3
+  port="$([[ "$scheme" == https ]] && echo "$https_port" || echo "$http_port")"
+  local host="$site.$domain" options=(--silent --show-error --max-time 10)
+  [[ -n "$resolve_to" ]] && options+=(--resolve "$host:$port:$resolve_to")
+  [[ "${APOGEU_SMOKE_INSECURE:-0}" == 1 ]] && options+=(--insecure)
+  curl "${options[@]}" "$@" "$scheme://$host:$port$path"
+}
+
+# Retries a check function until it passes or the time runs out.
+retry() {
+  local description="$1" deadline=$((SECONDS + timeout))
+  shift
+  until "$@" 2>"$work/last-error"; do
+    if ((SECONDS >= deadline)); then
+      log "FAIL: $description"
+      sed 's/^/  /' "$work/last-error" >&2
+      return 1
+    fi
+    sleep 3
+  done
+  log "ok: $description"
+}
+
+https_with_headers() {
+  local site="$1" path="$2" status
+  status="$(site_curl https "$site" "$path" --output /dev/null --dump-header "$work/$site.headers" --write-out '%{http_code}')"
+  [[ "$status" == 200 ]] || { echo "https://$site.$domain$path answered $status" >&2; return 1; }
+  local header
+  for header in strict-transport-security x-content-type-options referrer-policy; do
+    grep -qi "^$header:" "$work/$site.headers" || { echo "$site: no $header header" >&2; return 1; }
+  done
+}
+
+http_redirects() {
+  local site="$1" answer
+  answer="$(site_curl http "$site" / --output /dev/null --write-out '%{http_code} %{redirect_url}')"
+  [[ "$answer" =~ ^30[1278]\ https://$site\. ]] || { echo "http://$site.$domain answered '$answer'" >&2; return 1; }
+}
+
+casino_launch() {
+  local status jar="$work/cookies"
+  rm -f "$jar"
+  status="$(site_curl https cassino /casino/session --cookie-jar "$jar" --output /dev/null --write-out '%{http_code}' \
+    --header 'Content-Type: application/json' --data '{"nickname":"smoke_test","currency":"BRL"}')"
+  [[ "$status" == 200 ]] || { echo "POST /casino/session answered $status" >&2; return 1; }
+  status="$(site_curl https cassino /casino/play/pipa --cookie "$jar" --output "$work/launch.json" --write-out '%{http_code}' \
+    --request POST)"
+  [[ "$status" == 200 ]] || { echo "POST /casino/play/pipa answered $status" >&2; return 1; }
+  grep -qF "\"https://jogo.$domain" "$work/launch.json" || { echo "the launch URL is not on jogo.$domain" >&2; return 1; }
+}
+
+retry "api /health" https_with_headers api /health
+retry "cassino over HTTPS" https_with_headers cassino /
+retry "jogo over HTTPS" https_with_headers jogo /
+for site in cassino jogo api; do
+  retry "http://$site redirects to HTTPS" http_redirects "$site"
+done
+retry "casino launch of the Pipa" casino_launch
+log "smoke passed for $domain"

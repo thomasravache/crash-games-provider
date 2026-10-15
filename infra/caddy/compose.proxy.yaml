@@ -1,0 +1,45 @@
+# The proxy service of the deployment (SPEC-0066, ADR-0029), merged by tools/deploy/vps-deploy with the compose that
+# `aspire publish` writes (contract SPEC-0065@3): the only service publishing ports on the host, on the single network
+# of that compose, reaching api:8080 and demo-casino:8080 by name. Its certificates live in the volume caddy-data.
+# Every value comes from the environment of the deployment (release.env of the version and the .env of the host).
+services:
+  proxy:
+    image: "${PROXY_IMAGE:?PROXY_IMAGE of the version}"
+    restart: unless-stopped
+    environment:
+      APOGEU_DOMAIN: "${APOGEU_DOMAIN:?APOGEU_DOMAIN}"
+      APOGEU_CADDY_ACME: "${APOGEU_ACME_EMAIL:+email ${APOGEU_ACME_EMAIL}}"
+    # Only on APOGEU_BIND_ADDRESS (default every address of the host; the tests use 127.0.0.1). A port published by
+    # Docker goes around the UFW: the only ports the host exposes are these two of the proxy.
+    ports:
+      - "${APOGEU_BIND_ADDRESS:-0.0.0.0}:${APOGEU_HTTP_PORT:-80}:80"
+      - "${APOGEU_BIND_ADDRESS:-0.0.0.0}:${APOGEU_HTTPS_PORT:-443}:443"
+    # The access log goes to the Docker log of the container: rotated, so it never fills the shared VPS.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - type: volume
+        source: caddy-data
+        target: /data
+      - type: volume
+        source: caddy-config
+        target: /config
+    depends_on:
+      api:
+        condition: service_started
+      demo-casino:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - aspire
+volumes:
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local
