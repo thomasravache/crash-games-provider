@@ -33,7 +33,8 @@ internal static partial class CasinoSessionEndpoints
 
         var player = new CasinoPlayer(SessionEntry.NewPlayerId(), request.Nickname!, SessionEntry.SupportedCurrency);
         cookie.Write(context, player);
-        LogSessionCreated(loggers.CreateLogger(LogCategory), player.PlayerId);
+        var logger = loggers.CreateLogger(LogCategory);
+        LogSessionCreated(logger, player.PlayerId);
         return Results.Json(new SessionResponse(player.PlayerId, player.Nickname));
     }
 
