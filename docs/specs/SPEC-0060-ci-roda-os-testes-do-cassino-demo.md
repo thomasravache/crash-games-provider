@@ -75,7 +75,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G1 Red | PASS | verify G1: PASS; `python3 tools/ci/affected-tests` exit 1 (red: [xUnit.net 00:00:00.56]     Dado o build de produção do demo-site, quando os arquivos são ) — 364cbd2 | 2026-10-15 |
 | G2 Green | PASS | build exit 0 (✓ built in 279ms); test exit 0 ($ dotnet test Apogeu.slnx --filter Category=Performance -m:1); lint exit 0 (All matched files use Prettier code style!); coverage exit 0 ($ dotnet reportgenerator "-reports:artifacts/coverage/raw/**/coverage.cobertura.xml" -targ) — 8768804 | 2026-10-15 |
 | G3 Arquitetura | PASS | arch_test exit 0 (Duration  1.04s (tests 96%, transform 2%, import 1%)) — 8768804 | 2026-10-15 |
-| G4 Review | PENDING | | |
+| G4 Review | PASS | verify G1+G4: PASS; revisão: Reviewer independente: APPROVED (sem bloqueantes). Minors: alias de âncora inexistente vira glob literal sem erro (PathsFilter.cs:113-120); matcher não trata {a,b}, [...] nem ! (documentar o subconjunto); ExplicitCapture inócuo; Theory só com casos positivos (o Fact de sanidade cobre negativos); contracts acionado por src/demo é um pouco amplo, como decidido na spec — 8768804 | 2026-10-15 |
 | G5 Integração & CI | PENDING | | |
 | H2 Integração aprovada | PENDING | | |
 | G6 Deploy | PENDING | | |
