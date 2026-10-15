@@ -86,7 +86,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 | G5 Integração & CI | PASS | MANUAL: CI do PR #34 verde (run 38717248741, commit 197fa3e): backend (suíte .NET completa + Performance), frontend, contracts, e2e (Chromium, WebKit e Firefox), security e sdd; e2e verde na 2ª tentativa após 2 falhas de tempo no webkit-mobile em testes da SPEC-0026 (E2E-02 aposta perdida, E2E-04 aposta dupla: a aposta volta a APOSTAR antes de virar RETIRAR), o mesmo padrão intermitente já visto no Firefox na onda 1; local em 197fa3e: build 0 avisos/0 erros, contracts:check sem diferença, gitleaks sem vazamentos, NuGet/pnpm sem vulnerabilidades | 2026-10-15 |
 | H2 Integração aprovada | PASS | aprovado por thomas — H2 auto-on-green (CI verde do PR #34, run 38717248741); decisão recomendada em piloto automático (autorizada por thomas, 2026-10-15) | 2026-10-15 |
 | G6 Deploy | N/A | sem ambiente de deploy até a SPEC-0012 (hospedagem e deploy) | 2026-10-15 |
-| G7 Pronto & Docs | PENDING | | |
+| G7 Pronto & Docs | PASS | Relatório de Entrega e Definição de Pronto: ok — c2ea517 | 2026-10-15 |
 
 ## 9. Registro de Impedimentos
 <!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
