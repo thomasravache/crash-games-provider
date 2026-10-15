@@ -34,6 +34,9 @@
     <Project Path="src/backend/Modules/Operators/Operators.Infrastructure/Operators.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Operators/Operators.Features/Operators.Features.csproj" />
   </Folder>
+  <Folder Name="/src/demo/">
+    <Project Path="src/demo/DemoCasino/DemoCasino.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Backoffice/">
     <Project Path="src/backend/Modules/Backoffice/Backoffice.Contracts/Backoffice.Contracts.csproj" />
@@ -61,5 +64,6 @@
     <Project Path="tests/backend/TestKit/TestKit.csproj" />
     <Project Path="tests/backend/TestKit/Tests/TestKit.Tests.csproj" />
     <Project Path="tests/ci/Ci.Tests/Ci.Tests.csproj" />
+    <Project Path="tests/demo/DemoCasino.Tests/DemoCasino.Tests.csproj" />
   </Folder>
 </Solution>

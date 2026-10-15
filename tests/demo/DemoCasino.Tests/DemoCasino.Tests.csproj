@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of the demo casino BFF (SPEC-0043, ADR-0027, ADR-0009): the entry endpoints (/casino/session, /casino/me,
+    /casino/logout) on the real DemoCasino in memory (WebApplicationFactory), the HMAC client against the reference
+    signature of SPEC-0009@1, and the production build of the demo-site (no operator secret in the bundle).
+    The DemoCasino has no database or cache (session in a signed cookie), so no container is needed.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../src/demo/DemoCasino/DemoCasino.csproj" />
+  </ItemGroup>
+
+  <!-- The independent HMAC reference of SPEC-0009 and the process/repository helpers of Repository.Tests, compiled in
+       rather than duplicated. -->
+  <ItemGroup>
+    <Compile Include="../../backend/Security.Tests/Support/ReferenceSignature.cs" Link="Support/Shared/ReferenceSignature.cs" />
+    <Compile Include="../../backend/Repository.Tests/Support/ProcessRunner.cs" Link="Support/Shared/ProcessRunner.cs" />
+    <Compile Include="../../backend/Repository.Tests/Support/ProcessResult.cs" Link="Support/Shared/ProcessResult.cs" />
+    <Compile Include="../../backend/Repository.Tests/Support/RepositoryRoot.cs" Link="Support/Shared/RepositoryRoot.cs" />
+  </ItemGroup>
+
+</Project>

@@ -110,9 +110,30 @@ builder.AddViteApp("backoffice", $"{FrontendApps}/backoffice")
     .WithPnpm(install: false)
     .WaitForCompletion(builder.CreateResourceBuilder(frontendInstall));
 
-builder.AddViteApp("demo-site", $"{FrontendApps}/demo-site")
+// Demo casino (SPEC-0043, ADR-0027): an external operator of the Apogeu. The DemoCasino BFF signs its calls with the demo
+// operator key of SPEC-0009 (the same parameters the api seeds), and only it receives them; the demo-site gets just the
+// DemoCasino address, read by its Vite server (no VITE_ prefix, so never in the bundle) to forward /casino there.
+// Referenced by path (the DemoCasino is not a project of the Apogeu): Aspire runs it with --no-build, so it is built by
+// `dotnet build Apogeu.slnx` (or tools/ci/run-e2e.sh). Nothing waits for it: the Vite server only forwards /casino.
+var demoCasino = builder.AddProject("demo-casino", "../../demo/DemoCasino/DemoCasino.csproj")
+    .WithHttpEndpoint()
+    .WithHttpHealthCheck("/health")
+    .WithEnvironment("Apogeu__BaseUrl", api.GetEndpoint("http"))
+    .WithEnvironment("Apogeu__OperatorKeyId", demoKeyId)
+    .WithEnvironment("Apogeu__OperatorSecret", demoKeySecret);
+
+// SPEC-0043 (tools/ci/run-e2e.sh): the E2E runner fixes the demo-site port through AppHost__DemoSiteHttpPort, as for the
+// API; unset, the port stays dynamic.
+var demoSiteHttpPort = builder.Configuration.GetValue<int?>("AppHost:DemoSiteHttpPort");
+
+var demoSite = builder.AddViteApp("demo-site", $"{FrontendApps}/demo-site")
     .WithPnpm(install: false)
-    .WaitForCompletion(builder.CreateResourceBuilder(frontendInstall));
+    .WaitForCompletion(builder.CreateResourceBuilder(frontendInstall))
+    .WithEnvironment("DEMO_CASINO_URL", demoCasino.GetEndpoint("http"));
+if (demoSiteHttpPort is { } demoSitePort)
+{
+    demoSite.WithEndpoint("http", endpoint => endpoint.Port = demoSitePort);
+}
 
 await builder.Build().RunAsync().ConfigureAwait(false);
 
