@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Backup of the database of the VPS deployment (SPEC-0066, ADR-0018/ADR-0029): run daily by the systemd timer of
-# infra/vps (apogeu-backup.timer) or by hand. Runbook: docs/runbooks/deploy-vps.md.
+# Backup of the database and of the Data Protection keys of the VPS deployment (SPEC-0066, ADR-0018/ADR-0029): run
+# daily by the systemd timer of infra/vps (apogeu-backup.timer) or by hand. Runbook: docs/runbooks/deploy-vps.md.
 #
 # Usage: tools/deploy/backup
 #
-# pg_dump (custom format) of the database apogeu, taken inside the PostgreSQL container, into
-# $APOGEU_BACKUP_DIR/apogeu-<UTC timestamp>.dump (mode 600); the path of the file is the last line of the output. Then
-# removes the apogeu-* files of that directory older than 7 days (other files stay).
-# Environment: APOGEU_POSTGRES_CONTAINER (default: the postgres service of the compose project), APOGEU_BACKUP_DIR
-# (default $APOGEU_DEPLOY_DIR/backups), APOGEU_POSTGRES_USER (default postgres), APOGEU_BACKUP_RETENTION_DAYS (7).
+# Two files with the same UTC stamp in $APOGEU_BACKUP_DIR, mode 600 (Emenda v3):
+#   apogeu-<stamp>.dump         pg_dump (custom format) of the database apogeu, taken inside the PostgreSQL container;
+#   apogeu-keys-<stamp>.tar.gz  the files of the Data Protection keys volume (owners and modes kept): without them the
+#                               unrevealed seeds of the dump are unreadable.
+# The path of the dump is the last line of the output. Then removes the apogeu-* files (dumps and keys archives) of that
+# directory older than 7 days (other files stay).
+# Environment: APOGEU_POSTGRES_CONTAINER (default: the postgres service of the compose project), APOGEU_KEYS_VOLUME
+# (default <project>_dataprotection-keys), APOGEU_BACKUP_DIR (default $APOGEU_DEPLOY_DIR/backups), APOGEU_POSTGRES_USER
+# (default postgres), APOGEU_BACKUP_RETENTION_DAYS (7).
 set -euo pipefail
 
 script_name="backup"
@@ -25,19 +29,30 @@ umask 077
 mkdir -p "$backup_dir"
 
 container="$(postgres_container)"
-file="$backup_dir/apogeu-$(date -u +%Y%m%dT%H%M%SZ).dump"
+require_keys_volume
+stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+file="$backup_dir/apogeu-$stamp.dump"
+keys_file="$(keys_archive_of "$file")"
 partial="$file.partial"
-trap 'rm -f "$partial"' EXIT
+keys_partial="$keys_file.partial"
+trap 'rm -f "$partial" "$keys_partial"' EXIT
 
 log "dumping the database $database"
 pg_exec "$container" pg_dump --username "$postgres_user" --dbname "$database" --format custom --compress 6 >"$partial"
 [[ -s "$partial" ]] || die "empty dump"
-mv "$partial" "$file"
-chmod 600 "$file"
-log "dump of $(du -h "$file" | cut -f1)"
 
-# Retention: only the dumps (apogeu-*) older than the retention, in this directory only.
+log "archiving the keys of the volume $keys_volume"
+keys_export >"$keys_partial"
+[[ -s "$keys_partial" ]] || die "empty keys archive"
+
+# The keys first: a dump is only ever visible together with its keys archive.
+mv "$keys_partial" "$keys_file"
+mv "$partial" "$file"
+chmod 600 "$file" "$keys_file"
+log "dump of $(du -h "$file" | cut -f1), keys archive of $(du -h "$keys_file" | cut -f1)"
+
+# Retention: only the dumps and keys archives (apogeu-*) older than the retention, in this directory only.
 find "$backup_dir" -maxdepth 1 -type f -name 'apogeu-*' -mmin "+$((retention_days * 24 * 60))" -print -delete |
-  sed 's/^/[backup] removed old dump /' >&2
+  sed 's/^/[backup] removed old backup file /' >&2
 
 printf '%s\n' "$file"
