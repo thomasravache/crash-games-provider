@@ -28,6 +28,9 @@ internal sealed class ApogeuApiHost : IAsyncDisposable
 
     private const string GamesPath = "/api/v1/games";
 
+    /// <summary>The exchange of a launch token for a player session (SPEC-0009@1 §6), public: what the game does on load.</summary>
+    private const string SessionsPath = "/api/v1/sessions";
+
     private readonly WebApplicationFactory<HostProgram> _factory;
 
     private ApogeuApiHost(WebApplicationFactory<HostProgram> factory, TestApiKey key)
@@ -103,6 +106,21 @@ internal sealed class ApogeuApiHost : IAsyncDisposable
         Assert.True(response.IsSuccessStatusCode, $"The Apogeu catalog answered {(int)response.StatusCode}: {text}");
         using var json = JsonDocument.Parse(text);
         return json.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// Opens a launch URL as the game does (SPEC-0045 IT-01, IT-02): <c>POST /api/v1/sessions { launchToken }</c> with the
+    /// <c>lt</c> of <paramref name="launchUrl"/> (SPEC-0009@1: <c>launchUrl = {gameBaseUrl}/?lt={launchToken}</c>).
+    /// </summary>
+    public async Task<HttpResponseMessage> OpenLaunchAsync(Uri launchUrl, CancellationToken cancellationToken)
+    {
+        var body = JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["launchToken"] = LaunchUrls.TokenOf(launchUrl),
+        });
+        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = DemoCasinoHost.ApogeuBaseUrl });
+        using var content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+        return await client.PostAsync(new Uri(SessionsPath, UriKind.Relative), content, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Runs <paramref name="action"/> with the Apogeu's <see cref="ICatalogStore"/> (the admin side of the catalog).</summary>

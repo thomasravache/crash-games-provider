@@ -1,4 +1,4 @@
-// Shared steps of the demo casino E2E tests (SPEC-0043, SPEC-0035).
+// Shared steps of the demo casino E2E tests (SPEC-0043, SPEC-0044, SPEC-0045, SPEC-0035).
 //
 // Environment: the Aspire AppHost running (demo-site and DemoCasino among its resources), with
 // APOGEU_DEMO_SITE_URL=<base URL of the demo-site resource>. The screens are found by roles and accessible names
@@ -19,6 +19,22 @@ export const lobby = {
   all: /^todos$/iu,
   crash: /^crash$/iu,
   news: /^novidades$/iu,
+} as const;
+
+/** Accessible names of the game page (pt-BR, Stitch "Cassino Demo — Pipa (Refinado)", SPEC-0045 §6). */
+export const gamePage = {
+  back: /voltar ao lobby/iu,
+  fullscreen: /tela cheia/iu,
+  about: /sobre o jogo/iu,
+} as const;
+
+/** The iframe sandbox of the contract (SPEC-0045 §6): the minimum the game needs. */
+export const gameSandbox = "allow-scripts allow-same-origin allow-popups";
+
+/** Texts of the Pipa HUD inside the iframe (SPEC-0010 §6): the DEMO badge and the round phases. */
+export const pipaHud = {
+  demoBadge: "DEMO",
+  phase: /PREPARE SUA PIPA|EM VOO|PIPA CORTADA!/u,
 } as const;
 
 /** Kit art of the Pipa, served by the game front (SPEC-0044 §6 Emenda v1: {GameBaseUrl}/kit/{code}/…). */
@@ -62,13 +78,18 @@ export async function enterCasino(page: Page): Promise<string> {
   return nickname;
 }
 
-/** WCAG 2.2 AA (§5): no axe violation on the current screen. */
+/**
+ * WCAG 2.2 AA (§5): no axe violation on the current screen. With `frames: false` the content of iframes is not scanned
+ * (SPEC-0045: the casino frame is checked, the game inside it has its own tests); the iframe element itself still is.
+ */
 export async function expectNoAxeViolations(
   page: Page,
   screen: string,
+  options: { readonly frames?: boolean } = {},
 ): Promise<void> {
   const accessibility = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .options({ iframes: options.frames ?? true })
     .analyze();
   expect(
     accessibility.violations,
