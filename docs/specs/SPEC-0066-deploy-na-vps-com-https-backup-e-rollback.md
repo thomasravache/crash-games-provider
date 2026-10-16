@@ -11,7 +11,7 @@ depends_on: [SPEC-0047]
 consumes_contract: [SPEC-0065@3]
 contract_version: 6
 # breaking: "o que quebra para consumidores e como migrar"   # só se houver quebra; vai para o PR e pede `!` no título
-touches: ["infra/caddy/**", "infra/vps/**", "tools/deploy/**", "docs/runbooks/**", "tests/deploy/**"]
+touches: ["infra/caddy/**", "infra/vps/**", "tools/deploy/**", "docs/runbooks/**", "tests/deploy/**", ".gitleaksignore"]
 adrs: [ADR-0029, ADR-0013, ADR-0014, ADR-0018]
 external: []
 size: M
@@ -233,6 +233,7 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0066`. -->
 | Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 6.1 (inalterado) | 2026-10-15 | `.gitleaksignore` no `touches`, com as impressões digitais exatas dos tokens falsos dos testes que ficaram no histórico antes da marca `gitleaks:allow` | job `security` do PR #40 (varredura dos commits) | Nenhuma | decisão recomendada; thomas autorizou o deploy (2026-10-15) |
 | 6 | 2026-10-15 | Filtro do `Location` também no log padrão (308 de host desconhecido); `restore` valida o dump antes de trocar as chaves | Review G4 3ª rodada da SPEC-0066 (APPROVED com N1 e N2; ADR-0014 exige nenhum token em log, sem exceção) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 5 | 2026-10-15 | Nenhuma saída do proxy com tokens: filtro também no log padrão/de erros (URI e `Referer`) e no `Location` do 308; UT-01 com backend fora do ar (502) e com `http://` com `?lt=` (308); restore recusa arquivo de chaves sem chaves e importa as chaves antes do banco; runbook só com `tmux`; fixture do `keys-init` igual ao real (`network_mode: none`, `chown` sem `-R`) | Review G4 2ª rodada da SPEC-0066 (B1 ainda aberto; N1, N3, N4, N5) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
 | 4 | 2026-10-15 | Log de acesso do Caddy sem tokens (`lt`, `access_token`); deploy recusa serviço fora do `proxy` com portas publicadas; `restore` valida o arquivo de chaves antes de apagar as atuais; `APOGEU_BIND_ADDRESS` (testes em `127.0.0.1`); rotação dos logs do Docker; runbook com `tmux`/`systemd-run` e clone por https | Review G4 da SPEC-0066 (B1 e não-bloqueantes 1, 2, 3, 4, 6, 7) | Nenhuma | decisão recomendada em piloto automático; thomas autorizou implementar (2026-10-15) |
