@@ -7,9 +7,9 @@ user_facing: false
 status: approved
 created: 2026-10-09
 parent:
-depends_on: []
+depends_on: [SPEC-0047]
 consumes_contract: []
-touches: ["src/backend/Modules/Operators/**", "src/backend/BuildingBlocks/Security/**", "src/backend/Host/Security/**", "tests/backend/Security.Tests/**", "tests/backend/Modules/Operators.Tests/**"]
+touches: ["src/backend/Modules/Operators/**", "src/backend/BuildingBlocks/Security/**", "src/backend/Host/Security/**", "tests/backend/Security.Tests/**", "tests/backend/Modules/Operators.Tests/**", "src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/backend/Modules/Wallet/Wallet.Infrastructure/Seamless/**", "tests/backend/Modules/Wallet.Tests/**", "docs/integration/**"]
 adrs: [ADR-0015, ADR-0014, ADR-0019]
 external: []
 size: S
@@ -40,6 +40,7 @@ Canonicaliza caminho + query na assinatura (contrato documentado); ForwardedHead
 <!-- Mínimo: um teste de regressão que reproduz o problema e FALHA antes da correção, no nível em que o defeito aparece (IT para fronteiras de I/O, E2E para jornadas de usuário). Código sem cobertura: primeiro CH-xx fixando o comportamento atual. Tag no código: `SPEC-0028:<ID>`. Categoria sem teste: "N/A — motivo" SEM ID. -->
 - Caracterização: N/A — coberto pelos testes da SPEC-0009
 - **UT-01** — Dados caminhos com caracteres codificados e query, quando a assinatura canônica é calculada no cliente e no servidor, então coincidem; mudar a query invalida a assinatura.
+- **UT-02** — Dados caminhos com caracteres codificados (acento, espaço) e query, quando o cassino demo assina para a Apogeu e a Apogeu assina para a carteira do cassino (SPEC-0046/0047), então os dois verificadores aceitam a assinatura canônica e recusam a de outro caminho; o contrato público (`docs/integration/operator-wallet-api.md`) descreve a forma canônica (Emenda v1).
 - **IT-01** — Dado o Host real atrás de um proxy simulado, quando 61 lançamentos não autenticados chegam do mesmo IP real, então o 61º recebe 429; `launch_grants` expirados somem após a limpeza; todo endpoint declara política ou `AllowAnonymous`.
 - **IT-02** — Dado um segundo operador sem a Pipa e sem limites em BRL, quando ele chama `GET /api/v1/games` e lança a Pipa, então recebe `[]` e 400 GAME_NOT_AVAILABLE, sem ver nada do operador demo; a mesma assinatura repetida no `GET /api/v1/games` é recusada como reenvio; cada rejeição de lançamento incrementa `operators.launch_rejected{reason}` uma vez.
 
@@ -119,3 +120,4 @@ Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o hu
 <!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
 | Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|
+| 1 | 2026-10-15 | O caminho canônico também vale para o cassino demo (assinatura do `OperatorSigningHandler` e verificação do `ApogeuCallVerifier`) e para a assinatura das chamadas da Apogeu à carteira do operador (seamless); `touches` + DemoCasino, Wallet seamless e `docs/integration/**`; UT-02; depende da SPEC-0047 | Pendência da onda 1 (o DemoCasino assina o caminho codificado e o Host verifica o decodificado) e o review da SPEC-0047; a carteira e o cassino nasceram depois da spec | SPEC-0009, SPEC-0021, SPEC-0043, SPEC-0047 | thomas (2026-10-15: "aprovo os ajustes") |

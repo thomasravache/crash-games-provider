@@ -42,9 +42,13 @@ builder.Services.AddContractOpenApi();
 // Clock shared by every module (tests replace it); registered by the Host, not by a module.
 builder.Services.TryAddSingleton(TimeProvider.System);
 
+// ADR-0014, SPEC-0065: the Data Protection key ring (seeds of Fairness) in DataProtection:KeysPath when set (a volume in
+// production), so it survives restarts and redeploys.
+builder.Services.AddDataProtectionKeyRing();
+
 // ADR-0002/ADR-0028: Wolverine for the handlers and the transactional outbox between modules, its envelopes in the schema
-// `wolverine` of the same PostgreSQL — created at startup only in Development (local Aspire environment), like the modules'
-// migrations; elsewhere by the pipeline (SPEC-0012). Only the Host configures it; its lifecycle is the Host's too: it starts
+// `wolverine` of the same PostgreSQL — created at startup like the modules' migrations: with Database:MigrateOnStartup
+// (set by the published compose, SPEC-0065) or, when unset, in Development (local Aspire environment). Only the Host configures it; its lifecycle is the Host's too: it starts
 // once the database answers and the modules wait for IMessagingReadiness.
 builder.UseWolverine(options =>
 {
@@ -55,7 +59,10 @@ builder.UseWolverine(options =>
     }
 
     options.UseEntityFrameworkCoreTransactions();
-    options.AutoBuildMessageStorageOnStartup = builder.Environment.IsDevelopment() ? AutoCreate.CreateOrUpdate : AutoCreate.None;
+    var migrateOnStartup = bool.TryParse(builder.Configuration["Database:MigrateOnStartup"], out var migrate)
+        ? migrate
+        : builder.Environment.IsDevelopment();
+    options.AutoBuildMessageStorageOnStartup = migrateOnStartup && !BuildTimeDocument.IsGenerating ? AutoCreate.CreateOrUpdate : AutoCreate.None;
     options.Discovery.IncludeAssembly(typeof(BettingModule).Assembly);
     options.Discovery.IncludeAssembly(typeof(WalletModule).Assembly);
 
@@ -123,6 +130,9 @@ builder.Services.AddCors(options => options.AddPolicy(
     policy => policy.WithOrigins(gameOrigins).AllowAnyHeader().AllowAnyMethod()));
 
 var app = builder.Build();
+
+// SPEC-0065 (Emenda v3): a key directory that does not accept writes stops the startup here, naming it.
+DataProtectionKeyRing.EnsureKeysPathWritable(app.Configuration);
 
 // CORS before authentication/authorization: preflights and the hub negotiation get the CORS headers even when denied.
 app.UseCors(GameCorsPolicy);

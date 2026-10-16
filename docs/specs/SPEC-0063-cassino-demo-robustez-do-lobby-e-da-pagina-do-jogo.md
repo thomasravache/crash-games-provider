@@ -4,7 +4,7 @@ title: "Cassino demo: robustez do lobby e da página do jogo"
 tier: full
 type: fix
 user_facing: true
-status: proposed
+status: approved
 created: 2026-10-15
 parent: SPEC-0061
 depends_on: [SPEC-0045, SPEC-0047]
@@ -15,8 +15,8 @@ touches: ["src/demo/DemoCasino/**", "tests/demo/DemoCasino.Tests/**", "src/front
 adrs: [ADR-0009, ADR-0025, ADR-0027]
 external: []
 size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0063 — Cassino demo: robustez do lobby e da página do jogo

@@ -12,6 +12,8 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="Npgsql" />
+    <!-- SPEC-0065 IT-01: the real Host in memory. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,6 +26,7 @@
     <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Contracts/Fairness.Contracts.csproj" />
     <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Domain/Fairness.Domain.csproj" />
     <ProjectReference Include="../../../../src/backend/Modules/Fairness/Fairness.Infrastructure/Fairness.Infrastructure.csproj" />
+    <ProjectReference Include="../../../../src/backend/Host/Host.csproj" />
   </ItemGroup>
 
   <ItemGroup>

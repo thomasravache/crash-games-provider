@@ -1,180 +1,98 @@
 ---
 id: SPEC-0012
-title: "Hospedagem e deploy (staging e produção)"
-tier: full
+title: "Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io)"
+tier: epic
 type: foundation
-user_facing: false
-status: proposed
+status: in-progress
 created: 2026-10-07
-parent: 
-depends_on: [SPEC-0004, SPEC-0010]
-consumes_contract: []
-contract_version: 1
-touches: ["infra/**", ".github/workflows/deploy-*.yml", "docs/runbooks/**"]
-adrs: [ADR-0013, ADR-0017, ADR-0018]
+depends_on: [SPEC-0004, SPEC-0047]
+adrs: [ADR-0029, ADR-0013, ADR-0014, ADR-0017, ADR-0018]
 external: []
-size: M
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
-# SPEC-0012 — Hospedagem e deploy (staging e produção)
+# SPEC-0012 — Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io) (Épico)
 
-## 1. Visão Geral
-Leva a plataforma a ambientes reais: staging e produção como código, deploy pelo pipeline, banco gerenciado com backup, gerenciador de segredos, backend de observabilidade e smoke/E2E contra o ambiente. **Rascunho**: a nuvem e o orçamento ainda não foram decididos (ADR-0013); ao responder as questões abaixo a spec é completada e submetida ao H1.
+<!-- type: feature | migration | foundation (produto novo: ver references/greenfield.md). O épico não é executado: define visão, decisões, decomposição e entrega. Quem executa são as specs filhas (tier full ou lite, tamanho S/M, `parent: SPEC-0012`). A ordem de execução é calculada a partir do frontmatter das filhas (`spec_graph.py waves`). -->
 
-## 2. Motivação & Escopo
-**Motivação:** a fundação valida tudo localmente por decisão do usuário; este é o passo que fecha o G6 (deploy) de todas as specs e reativa as regras de staging/produção do ADR-0013.
+## 1. Visão
+A jornada do jogador acessível de qualquer lugar, celular inclusive, em endereços fixos com HTTPS e sem custo: `https://cassino.143-95-218-240.sslip.io` (cassino demo), `https://jogo.143-95-218-240.sslip.io` (Pipa) e `https://api.143-95-218-240.sslip.io` (API pública da Apogeu), publicada pelo Aspire na VPS própria (ADR-0029). O G6 deixa de ser N/A: cada versão tem deploy, smoke e rollback em um passo. Pedido de thomas em 2026-10-15 ("quero deployar com o aspire aqui na vps com um domínio gratuito"); escolhas dele: sslip.io, só a jornada exposta, deploy por script na VPS com a confirmação dele e, depois, deploy pelo GitHub Actions por SSH com aprovação.
 
+## 2. Escopo
 **Objetivos (dentro do escopo):**
-- Chaves do ASP.NET Data Protection (cifra da cadeia de sementes, SPEC-0007) persistidas e protegidas fora do banco (KMS/Key Vault da nuvem escolhida), `SetApplicationName` fixo no Host e teste de recuperação após reinício/redeploy (ADR-0014; review G4 da SPEC-0007).
-- Alinhar `Microsoft.EntityFrameworkCore.Relational` à versão do EF Core em `Directory.Packages.props` (nit do G4 da SPEC-0007).
-- Modo publish do AppHost (Aspire) funcionando com o ambiente de computação escolhido, substituindo a geração de imagens provisória do `images.yml` (emenda da SPEC-0004, 2026-10-08).
-- Escolha da nuvem com estimativa de custo (atual, 2x e 10x) e comparação com o orçamento.
-- Staging e produção como código (IaC), deploy automático em staging e com confirmação humana em produção.
-- Banco gerenciado com backup e recuperação testada; segredos no gerenciador da nuvem; backend OTLP e alertas por SLO.
+- SPEC-0065: o AppHost publica a plataforma como Docker Compose de produção (front-ends estáticos, ambiente `Production`, carteira seamless do cassino, chaves do Data Protection persistidas, segredos só como variáveis).
+- SPEC-0066: a VPS roda essa publicação atrás do Caddy com HTTPS, com deploy, rollback, backup e smoke por script.
+- SPEC-0067 (proposta, depois): deploy pelo GitHub Actions por SSH, com aprovação de thomas no Environment `production` e uma chave restrita ao comando de deploy.
 
 **Não-objetivos (fora do escopo):**
-- Conformidade para dinheiro real (spec própria, ADR-0020).
+- Backoffice, painel do Aspire e Keycloak acessíveis pela internet.
+- Staging separado (a VPS tem um ambiente só, de demonstração).
+- Dinheiro real e conformidade (ADR-0020).
+- Domínio próprio e alta disponibilidade.
 
-## 3. Dependências
-- **Implementações necessárias:** SPEC-0004 (pipeline) e SPEC-0010 (esqueleto andante para publicar).
-- **Contratos consumidos:** N/A
-- **Pré-requisitos externos:** conta de nuvem e orçamento definidos pelo usuário.
-
-## 4. Decisão Arquitetural
-**Contexto:** projeto novo; ADR-0013 (entrega), ADR-0017 (observabilidade), ADR-0018 (resiliência).
-
-**Decisão:** a definir após as questões em aberto (candidatas: Azure Container Apps, AWS São Paulo, Fly.io/Railway).
-
-**Justificativa:** a definir com a estimativa de custo.
-
-**Desvio do padrão existente:** Nenhum.
-
-**Alternativas descartadas:** a definir.
-
-**ADRs:** ADR-0013, ADR-0017, ADR-0018.
-
-## 5. Requisitos Não-Funcionais
-- **Desempenho e escala:** metas do ADR-0019 verificadas em staging com k6.
-- **Segurança:** segredos no gerenciador da nuvem; TLS; sem acesso público ao banco.
-- **Privacidade e dados pessoais:** residência dos dados a confirmar (ADR-0014).
-- **Disponibilidade e resiliência:** RPO ≤ 5 min e RTO ≤ 1 h (ADR-0018).
-- **Acessibilidade (UI):** N/A — sem interface nova.
-- **Custo:** estimativa obrigatória antes de escolher; alerta de gasto configurado.
-
-## 6. Artefato A — Contrato
-**Interface:** pipeline de deploy e URLs dos ambientes.
+## 3. Arquitetura Alvo
+**Contexto:** a plataforma roda hoje só pelo AppHost em modo de desenvolvimento (ADR-0003, ADR-0013). O ADR-0029 decide a hospedagem: publish do Aspire para Docker Compose, Caddy na frente e sslip.io.
 
 ```text
-A definir após as questões em aberto.
+internet ──443──► Caddy ─┬─ cassino.<host>  → demo-site (estático) e /casino/* → demo-casino
+                         ├─ jogo.<host>     → game-pipa (estático)
+                         └─ api.<host>      → api (REST + hubs SignalR)
+rede interna: api ↔ postgres, redis (Keycloak só quando o backoffice for publicado); demo-casino ↔ api (HMAC) e api → demo-casino (carteira seamless)
 ```
+A SPEC-0065 entrega o compose e as imagens (contrato com a 0066: serviços, variáveis esperadas no `.env` e volumes); a SPEC-0066 entrega o Caddy, os scripts e a operação.
 
-**Design:** N/A — sem interface.
+**Decisões (ADRs):** ADR-0029 — hospedagem na VPS com Aspire, Docker Compose, Caddy e sslip.io (supera a parte "hospedagem adiada" do ADR-0013); ADR-0014 (segredos fora do repositório; chaves do Data Protection protegidas).
 
-**Arquivos/módulos afetados:** ver `touches`.
+**Regras de arquitetura a garantir (G3):** só o Caddy publica portas; nenhum segredo literal no compose nem no repositório; produção sem rotas `/dev/*` — garantidas pelo UT-01 da SPEC-0065 e pelo smoke da SPEC-0066.
 
-### 6.1 Mapa de Comportamentos
-| Cenário | Condição / Entrada | Resultado esperado | Testes |
-|---|---|---|---|
-| Deploy em staging | merge na main | ambiente atualizado e smoke verde | IT-01 |
+## 4. Decomposição
+<!-- Uma linha por spec filha. As colunas de dependência são informativas: a fonte da verdade é o frontmatter de cada filha. -->
+| Spec | Título | Tier | Tipo | Tamanho | Depende de | Consome contrato de |
+|---|---|---|---|---|---|---|
+| SPEC-0065 | Publicação do AppHost para Docker Compose em produção | full | foundation | M | SPEC-0047 | — |
+| SPEC-0066 | Deploy na VPS com HTTPS, backup e rollback | full | foundation | M | SPEC-0065 | — |
+| SPEC-0067 | Deploy pelo GitHub Actions na VPS com aprovação e chave restrita | lite | foundation | S | SPEC-0066 | — |
 
-## 7. Artefato B — Plano de Testes (TDD)
-### 7.1 Testes de Caracterização
-- N/A — projeto novo.
+## 5. Estratégia de Entrega
+- **Ambientes:** um ambiente de demonstração na VPS (produção demo); cada deploy com a confirmação de thomas até a SPEC-0067.
+- **Entrega por onda:** onda 1: SPEC-0065; onda 2: SPEC-0066 com o primeiro deploy (G6); a SPEC-0067 depois, quando thomas aprovar.
+- **Feature flags:** N/A
+- **Rollback:** `tools/deploy/vps-rollback` volta à versão anterior em um passo; o código, por revert do merge.
+- **Métricas de sucesso pós-release:** smoke verde após cada deploy; memória da VPS abaixo de 85% na primeira semana; jornada jogada por thomas pelo celular.
 
-### 7.2 Testes Unitários
-- **UT-01** — Dado o módulo de infraestrutura, quando validado (`plan`/`validate` da ferramenta de IaC escolhida), então não há erros.
+## 6. Riscos & Mitigações
+- VPS compartilhada com desenvolvimento e outros projetos — limites de memória/CPU por container e o AppHost de desenvolvimento desligado quando a produção subir.
+- Backup na mesma máquina — retenção de 7 dias; destino externo numa spec futura.
+- Limite de certificados do Let's Encrypt no domínio sslip.io compartilhado — Caddy reaproveita os certificados no volume; se o limite bater, cair para o certificado ZeroSSL que o Caddy também usa.
+- Endereço expõe o IP da VPS — só 80/443 e SSH abertos; fail2ban já ativo.
 
-### 7.3 Testes de Integração
-- **IT-01** — Dado um merge na main, quando o pipeline de deploy roda, então staging é atualizado e o smoke test passa.
+## 7. Critérios de Aceite do Épico
+<!-- Verificáveis ponta a ponta. Cada critério cita o teste que o prova (`SPEC-NNNN:E2E-01`; IT para critérios que não são jornada). O épico só fecha com todos marcados e todas as filhas implemented/deprecated. -->
+- [ ] Jornada completa pelos endereços públicos com HTTPS: entrar, abrir a Pipa, apostar, retirar e ver o saldo do cassino — SPEC-0066:E2E-01
+- [ ] Deploy e rollback em um passo, e backup restaurável — SPEC-0066:IT-01, SPEC-0066:IT-02
+- [ ] Compose de produção sem segredos e só com o proxy exposto — SPEC-0065:UT-01
 
-### 7.4 Testes de Contrato
-- N/A — a definir.
+## 8. Questões em Aberto
+<!-- Dúvidas que impedem fechar a spec, respondidas ANTES do H1. Aberta: `- [ ] pergunta (quem responde)`. Respondida: `- [x] pergunta — resposta (quem, data)`. Com alguma aberta o G0 reprova. Sem dúvidas: escreva "Nenhuma". Dúvida que surge depois da aprovação vira impedimento. -->
+- [x] Qual domínio gratuito? — sslip.io (thomas, 2026-10-15)
+- [x] O que fica exposto? — só a jornada do jogador (thomas, 2026-10-15)
+- [x] Como fazer o deploy? — script na VPS com a confirmação de thomas; depois uma Action segura (thomas, 2026-10-15); abordagem da Action: deploy por SSH com aprovação no Environment e chave restrita, o padrão de mercado para VPS (thomas, 2026-10-15)
+- [x] Nuvem e orçamento (pergunta do rascunho anterior)? — VPS própria, custo zero (ADR-0029)
+- [x] Residência dos dados (pergunta do rascunho anterior)? — N/A enquanto for só demonstração, sem jogador real (ADR-0020)
 
-### 7.5 Testes E2E
-- N/A — rascunho; a spec final inclui E2E contra staging (user_facing: false).
+## 9. Aprovação (H1)
+Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com ele. Registrada no frontmatter (`approved_by`, `approved_at`) do épico e de cada filha.
 
-### 7.6 Outros
-- N/A
-
-**Dublês e dados de teste:** a definir.
-
-**Ambiente de execução:** staging.
-
-## 8. Plano de Rollout
-- **Estratégia:** a definir.
-- **Dados/schema:** a definir.
-- **Compatibilidade:** N/A
-- **Observabilidade:** ADR-0017.
-- **Rollback:** a definir.
-- **Etapas de migração/coexistência:** N/A
-
-## 9. Questões em Aberto
-- [ ] Qual nuvem e qual orçamento mensal para staging e produção? (thomas)
-- [ ] Os dados dos jogadores precisam ficar em território brasileiro? (thomas, com assessoria jurídica)
-
-## 10. Aprovação (H1)
-Registrada no frontmatter (`approved_by`, `approved_at`) somente depois que o humano responder "Aprovado". O arquiteto nunca aprova a própria spec.
-
-## 11. Checklist de Implementação
-<!-- Preenchido na fase PLAN, após a aprovação. Cada fase começa pelos testes. -->
-
-## 12. Registro de Gates
-<!-- Status: PENDING | PASS | FAIL | N/A. PASS e N/A exigem evidência (comando + resultado, SHA, execução de CI, veredito). -->
-| Gate | Status | Evidência | Data |
-|---|---|---|---|
-| G0 Spec | PENDING | | |
-| G1 Red | PENDING | | |
-| G2 Green | PENDING | | |
-| G3 Arquitetura | PENDING | | |
-| G4 Review | PENDING | | |
-| G5 Integração & CI | PENDING | | |
-| H2 Integração aprovada | PENDING | | |
-| G6 Deploy | PENDING | | |
-| G7 Pronto & Docs | PENDING | | |
-
-## 13. Registro de Impedimentos
-<!-- Toda parada é registrada pelo Architect com `spec_graph.py impede` e fechada com `resolve` — não edite à mão. Tipos: spec (spec errada/incompleta → resolve com Emenda) | decisão (só o humano decide → resposta ou ADR) | trabalho (falta algo que exige código → SPEC-NNNN nova) | externo (acesso, ambiente, terceiro → ação tomada) | falha (3 FAILs seguidos no mesmo gate → diagnóstico e decisão). Com impedimento aberto a spec aparece como parada no INDEX e não pode ser fechada. -->
+## 10. Registro de Impedimentos
+<!-- Problemas que envolvem várias filhas (conflito de integração da onda, CI quebrado, decisão transversal). Impedimento que trava uma filha específica vai na própria filha. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
 
-## 14. Relatório de Entrega
-<!-- Preenchido no CLOSE (G7). Diz o que foi feito, como, e prova que foi resolvido. Para status implemented o validate exige todas as subseções preenchidas, todo teste do plano com PASS + evidência e a Definição de Pronto toda marcada. -->
+## 11. Relatório de Entrega
+<!-- Preenchido ao fechar o épico: o que foi entregue, como (ondas e deploys com versão/data), resultado dos critérios de aceite com os testes que os provam, métricas pós-release, pendências como novas specs. `spec_graph.py report SPEC-0012` ajuda a montar. -->
 
-### O que foi entregue
-<!-- comportamento entregue do ponto de vista do usuário/sistema -->
-
-### Como foi feito
-<!-- decisões de implementação, módulos/arquivos principais, desvios e emendas (com versão), dívidas assumidas -->
-
-### Prova de Correção
-<!-- type fix: o teste de regressão falhou antes da correção (commit red + saída) e passa depois (commit green + execução). Outros tipos: "N/A". -->
-
-### Verificação
-<!-- Uma linha por teste do plano (todos os IDs da seção 7). Resultado: PASS. Evidência: execução de CI, commit ou relatório. -->
-| Teste | Comportamento | Resultado | Evidência |
-|---|---|---|---|
-
-### Definição de Pronto
-- [ ] Todos os testes do plano passando e listados na Verificação
-- [ ] Todo comportamento do Mapa de Comportamentos coberto e verificado
-- [ ] Suíte completa, arquitetura e CI verdes no resultado integrado (G5)
-- [ ] Review independente sem achados blocker/major (G4)
-- [ ] Padrão arquitetural existente mantido, ou desvio coberto por ADR aprovado
-- [ ] Requisitos não-funcionais medidos com evidência (ou N/A justificado)
-- [ ] Disponível no ambiente-alvo via pipeline, com smoke/E2E passando no ambiente (G6)
-- [ ] Observabilidade e rollback prontos conforme o Plano de Rollout
-- [ ] Documentação raiz e CHANGELOG atualizados (G7)
-- [ ] Pendências registradas como novas specs (ou nenhuma)
-
-### Deploy
-<!-- ambiente(s), versão/tag, data, estratégia, estado da feature flag, execução do pipeline -->
-
-### Pendências
-<!-- specs criadas para o que ficou de fora, ou "Nenhuma" -->
-
-## 15. Emendas
-<!-- Mudança em spec aprovada: uma linha por emenda. Mudou o contrato? Incremente `contract_version` e rode `spec_graph.py impacted SPEC-0012`. -->
-| Versão do contrato | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
+## 12. Emendas
+<!-- Mudança em spec aprovada: uma linha por emenda, aprovada pelo humano. -->
+| Versão | Data | Mudança | Motivo | Specs impactadas | Aprovado por |
 |---|---|---|---|---|---|

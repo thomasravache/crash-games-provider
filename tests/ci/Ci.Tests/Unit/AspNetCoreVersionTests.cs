@@ -38,6 +38,7 @@ public sealed class AspNetCoreVersionTests
         "Microsoft.Extensions.ApiDescription.Server",
         "Microsoft.EntityFrameworkCore",
         "Microsoft.EntityFrameworkCore.Design",
+        "Microsoft.EntityFrameworkCore.Relational",
     ];
 
     /// <summary>Prefixes that put a package in <see cref="Family"/> automatically, so a new member cannot be forgotten.</summary>

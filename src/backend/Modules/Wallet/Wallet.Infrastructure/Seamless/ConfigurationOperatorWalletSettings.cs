@@ -9,14 +9,26 @@ namespace Apogeu.Wallet.Infrastructure.Seamless;
 /// the configuration <c>Wallet:Operators:{op}:Mode</c> (<c>Demo</c>|<c>Seamless</c>), <c>WalletUrl</c>, <c>KeyId</c> and
 /// <c>Secret</c> (environment variable or secret store, never the repository, ADR-0014). An operator without configuration
 /// is demo; a seamless one without URL or key stays seamless and its calls are refused (never silently demo).
+/// <c>AllowHttpHosts</c> lists the hosts its wallet may be called on over plain http besides the loopback (SPEC-0065).
 /// </summary>
-internal sealed class ConfigurationOperatorWalletSettings(IConfiguration? configuration) : IOperatorWalletSettings
+internal sealed class ConfigurationOperatorWalletSettings(IConfiguration? configuration) : IOperatorWalletSettings, IOperatorWalletHttpHosts
 {
     public const string SectionName = "Wallet:Operators";
 
     private static readonly OperatorWalletSettings Demo = new(WalletMode.Demo, WalletUrl: null, Key: null);
 
     public Task<OperatorWalletSettings> GetAsync(OperatorId op, CancellationToken ct) => Task.FromResult(Read(op));
+
+    public bool AllowsHttp(OperatorId op, string host)
+    {
+        if (configuration is null || string.IsNullOrEmpty(op.Value) || string.IsNullOrEmpty(host))
+        {
+            return false;
+        }
+
+        return configuration.GetSection(SectionName).GetSection(op.Value).GetSection("AllowHttpHosts").GetChildren()
+            .Any(entry => string.Equals(entry.Value?.Trim(), host, StringComparison.OrdinalIgnoreCase));
+    }
 
     private OperatorWalletSettings Read(OperatorId op)
     {

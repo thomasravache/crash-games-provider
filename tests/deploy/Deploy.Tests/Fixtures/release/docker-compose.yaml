@@ -1,0 +1,85 @@
+# SPEC-0066 test fixture: the compose of the contract SPEC-0065@3 (what `aspire publish` writes to
+# infra/compose/out/docker-compose.yaml), with light images in the roles of api and demo-casino (busybox httpd on 8080)
+# and the real postgres and redis. Services, volumes, the single network and the variables are the ones of the contract;
+# no service publishes ports on the host. Every value comes from the .env of the deployment or from the environment.
+services:
+  api:
+    image: "${API_IMAGE}"
+    environment:
+      ConnectionStrings__apogeu: "Host=postgres;Port=5432;Username=postgres;Password=${POSTGRES_PASSWORD};Database=apogeu"
+      ConnectionStrings__redis: "redis:6379,password=${REDIS_PASSWORD}"
+      Operators__Demo__KeyId: "${OPERATORS_DEMO_KEY_ID}"
+      Operators__Demo__KeySecret: "${OPERATORS_DEMO_KEY_SECRET}"
+      PlayerSession__SigningKey: "${PLAYER_SESSION_SIGNING_KEY}"
+      Security__Backoffice__Authority: "${BACKOFFICE_AUTHORITY}"
+      PUBLIC_API_URL: "${PUBLIC_API_URL}"
+      PUBLIC_GAME_URL: "${PUBLIC_GAME_URL}"
+      DataProtection__KeysPath: "/keys"
+    expose:
+      - "8080"
+    volumes:
+      - type: volume
+        source: dataprotection-keys
+        target: /keys
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health"]
+      interval: 2s
+      timeout: 2s
+      retries: 3
+      start_period: 2s
+    depends_on:
+      keys-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - aspire
+  keys-init:
+    # SPEC-0065@3 (Emenda v3): short-lived, no ports; hands the dataprotection-keys volume to the api user (UID 1654).
+    image: "busybox:1.37.0"
+    command: ["chown", "1654:1654", "/keys"]
+    network_mode: none
+    volumes:
+      - type: volume
+        source: dataprotection-keys
+        target: /keys
+  demo-casino:
+    image: "${DEMO_CASINO_IMAGE}"
+    environment:
+      Casino__ApiBaseUrl: "http://api:8080"
+      Casino__OperatorKeyId: "${OPERATORS_DEMO_KEY_ID}"
+      Casino__OperatorKeySecret: "${OPERATORS_DEMO_KEY_SECRET}"
+    expose:
+      - "8080"
+    networks:
+      - aspire
+  postgres:
+    image: "postgres:18.3"
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    expose:
+      - "5432"
+    volumes:
+      - type: volume
+        source: postgres-data
+        target: /var/lib/postgresql
+    networks:
+      - aspire
+  redis:
+    image: "redis:8.6"
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    expose:
+      - "6379"
+    networks:
+      - aspire
+networks:
+  aspire:
+    driver: bridge
+volumes:
+  postgres-data:
+    driver: local
+  dataprotection-keys:
+    driver: local

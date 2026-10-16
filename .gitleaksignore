@@ -1,0 +1,11 @@
+# Falsos positivos do gitleaks no histórico (SPEC-0066): tokens e nomes de volume falsos dos testes de deploy,
+# commitados antes da marca gitleaks:allow (1fd4f2d). Só impressões digitais exatas; nenhum caminho liberado.
+017dbca9c39c85908f8ed2687c580808ddc92fc4:tests/deploy/Deploy.Tests/Unit/CaddyfileTests.cs:generic-api-key:120
+017dbca9c39c85908f8ed2687c580808ddc92fc4:tests/deploy/Deploy.Tests/Unit/CaddyfileTests.cs:generic-api-key:121
+3ec2483cf68fa031916b8abf64b9b49b1ddbb07a:tests/deploy/Deploy.Tests/Integration/BackupRestoreTests.cs:generic-api-key:32
+3ec2483cf68fa031916b8abf64b9b49b1ddbb07a:tests/deploy/Deploy.Tests/Integration/BackupRestoreTests.cs:generic-api-key:33
+4151a9650c23c5ae6111ddf40b52d93a59cbacd1:tests/deploy/Deploy.Tests/Unit/CaddyfileTests.cs:generic-api-key:194
+4151a9650c23c5ae6111ddf40b52d93a59cbacd1:tests/deploy/Deploy.Tests/Unit/CaddyfileTests.cs:generic-api-key:195
+ae6ed4f90ce0d39631dd39923bbd73840ccf5f43:tests/deploy/Deploy.Tests/Unit/CaddyfileTests.cs:generic-api-key:158
+ae6ed4f90ce0d39631dd39923bbd73840ccf5f43:tests/deploy/Deploy.Tests/Unit/CaddyfileTests.cs:generic-api-key:159
+ae6ed4f90ce0d39631dd39923bbd73840ccf5f43:tests/deploy/Deploy.Tests/Unit/CaddyfileTests.cs:generic-api-key:177

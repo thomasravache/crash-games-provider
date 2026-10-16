@@ -3,13 +3,13 @@ id: SPEC-0061
 title: Melhorias pós-jornada do jogador
 tier: epic
 type: feature
-status: proposed
+status: in-progress
 created: 2026-10-15
 depends_on: [SPEC-0047]
 adrs: [ADR-0009, ADR-0025, ADR-0027]
 external: []
-approved_by:
-approved_at:
+approved_by: thomas
+approved_at: 2026-10-15
 ---
 
 # SPEC-0061 — Melhorias pós-jornada do jogador (Épico)
@@ -23,10 +23,10 @@ Fechar os pontos não-bloqueantes apontados nas revisões (G4) das ondas da jorn
 **Objetivos (dentro do escopo):**
 - SPEC-0062: robustez e testes das abas de apostas da Pipa.
 - SPEC-0063: robustez do lobby e da página do jogo do cassino demo (timeout, origem da `launchUrl`, navegação, foco, artes, observabilidade).
+- SPEC-0064: robustez dos testes intermitentes (backend e E2E).
 
 **Não-objetivos (fora do escopo):**
 - Canonicalização do caminho na assinatura HMAC (spec `fix` própria, se thomas aprovar).
-- Robustez dos testes intermitentes do backend (spec própria).
 - Mudanças de visual (o implementado foi aprovado por thomas em 2026-10-15).
 
 ## 3. Arquitetura Alvo
@@ -44,6 +44,7 @@ As filhas não têm contrato entre si e não se tocam: a SPEC-0062 fica no `game
 |---|---|---|---|---|---|---|
 | SPEC-0062 | Abas de apostas: robustez e testes | lite | fix | S | SPEC-0031 | — |
 | SPEC-0063 | Cassino demo: robustez do lobby e da página do jogo | full | fix | M | SPEC-0045, SPEC-0047 | — |
+| SPEC-0064 | Robustez dos testes intermitentes | lite | fix | S | SPEC-0047 | — |
 
 ## 5. Estratégia de Entrega
 - **Ambientes:** local até a SPEC-0012 (hospedagem).
@@ -71,6 +72,7 @@ Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com e
 <!-- Problemas que envolvem várias filhas (conflito de integração da onda, CI quebrado, decisão transversal). Impedimento que trava uma filha específica vai na própria filha. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G1 | decisão | Pausado por thomas em 2026-10-15 para focar no deploy na VPS (SPEC-0012); retomar quando ele pedir | Onda A em andamento: SPEC-0064 com CH-01 e prova commitados (31c6034); SPEC-0062 com testes em progresso não commitados no worktree | thomas |  |  |
 
 ## 11. Relatório de Entrega
 <!-- Preenchido ao fechar o épico: o que foi entregue, como (ondas e deploys com versão/data), resultado dos critérios de aceite com os testes que os provam, métricas pós-release, pendências como novas specs. `spec_graph.py report SPEC-0061` ajuda a montar. -->

@@ -4,15 +4,15 @@
 
 ## Saúde
 
-- Validação (G0): **2 erro(s), 35 aviso(s)** — rode `spec_graph.py validate`
-- Specs: proposed 4, approved 22, in-progress 1, implemented 31
-- Impedimentos: **1 aberto(s)**, 27 resolvido(s)
+- Validação (G0): **2 erro(s), 36 aviso(s)** — rode `spec_graph.py validate`
+- Specs: proposed 1, approved 24, in-progress 4, implemented 31, deprecated 1
+- Impedimentos: **1 aberto(s)**, 32 resolvido(s)
 
 ## Impedimentos Abertos
 
 | Spec | ID | Tipo | Fase/Gate | Responsável | Aberto em | Idade | Descrição |
 |---|---|---|---|---|---|---|---|
-| SPEC-0015 | IMP-01 | externo | G1 | thomas: GitHub Pro ou repositório público | 2026-10-09 | 6d | Branch protection e rulesets indisponíveis no GitHub Free para repositório privado (API 403) |
+| SPEC-0061 | IMP-01 | decisão | G1 | thomas | 2026-10-15 | 0d | Pausado por thomas em 2026-10-15 para focar no deploy na VPS (SPEC-0012); retomar quando ele pedir |
 
 ## Cobertura de Pilares
 
@@ -23,7 +23,7 @@ Perfil: **rigoroso**
 | Arquitetura e fronteiras | coberto | ADR-0001, ADR-0004 |
 | Estratégia de testes | coberto | ADR-0009 |
 | Qualidade de código | coberto | ADR-0012 |
-| Entrega contínua e ambientes | coberto | ADR-0013 |
+| Entrega contínua e ambientes | coberto | ADR-0013, ADR-0029 |
 | Fluxo de mudança | coberto | ADR-0011 |
 | Segredos e dados sensíveis | coberto | ADR-0014 |
 | Identidade e acesso | coberto | ADR-0015 |
@@ -45,49 +45,52 @@ Perfil: **rigoroso**
 
 ## Plano de Execução
 
-**Em andamento:** SPEC-0059  
+**Em andamento:** SPEC-0062, SPEC-0064, SPEC-0065, SPEC-0066  
 **Paradas por impedimento:** —  
-**Próximo lote:** SPEC-0013, SPEC-0014
+**Próximo lote:** —
 
 | Onda | Spec | Título | Tier/Tam. | Status | Prontidão | Observação |
 |---|---|---|---|---|---|---|
-| 1 | SPEC-0059 | CI em runner configurável (self-hosted na VM) | lite/S | in-progress | 🔄 em andamento |  |
-| 1 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | approved | ✅ pronta |  |
-| 1 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | approved | ✅ pronta |  |
-| 2 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ⛔ impedimento IMP-01 (externo → thomas: GitHub Pro ou repositório público, 6d) | saiu da onda 1: arquivos em comum com SPEC-0059 |
+| 1 | SPEC-0062 | Abas de apostas: robustez e testes | lite/S | in-progress | 🔄 em andamento |  |
+| 1 | SPEC-0064 | Robustez dos testes intermitentes | lite/S | in-progress | 🔄 em andamento |  |
+| 1 | SPEC-0066 | Deploy na VPS com HTTPS, backup e rollback | full/M | in-progress | 🔄 em andamento |  |
+| 2 | SPEC-0065 | Publicação do AppHost para Docker Compose em produção | full/M | in-progress | 🔄 em andamento | saiu da onda 1: arquivos em comum com SPEC-0064 |
+| 2 | SPEC-0013 | Robustez do hook format-staged e override de peer do jsx-a11y | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
 | 2 | SPEC-0027 | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
-| 2 | SPEC-0028 | Endurecimento da API de operadores | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3 |
-| 3 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0059; saiu da onda 2: arquivos em comum com SPEC-0015 |
-| 3 | SPEC-0029 | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3 |
-| 3 | SPEC-0032 | Pool de conexões limitado no Fairness e no Operators | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0028 |
-| 4 | SPEC-0030 | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0059; saiu da onda 2: arquivos em comum com SPEC-0015; saiu da onda 3: arquivos em comum com SPEC-0017, SPEC-0029 |
-| 4 | SPEC-0033 | Acabamento técnico da cena da Pipa | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0059; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0029 |
-| 4 | SPEC-0036 | Backoffice: shell, login, papéis e trilha de auditoria | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0029 |
-| 5 | SPEC-0037 | Backoffice: painel de desempenho | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec |  |
-| 5 | SPEC-0053 | Teto de ganho por rodada nos limites do operador | full/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0028; saiu da onda 3: arquivos em comum com SPEC-0032; saiu da onda 4: max_parallel=3 |
-| 5 | SPEC-0057 | G2 roda os testes afetados uma vez só | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0059; saiu da onda 2: arquivos em comum com SPEC-0015; saiu da onda 3: arquivos em comum com SPEC-0017; saiu da onda 4: max_parallel=3 |
-| 6 | SPEC-0038 | Backoffice: operadores, chaves e comissão | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 5: arquivos em comum com SPEC-0037 |
-| 6 | SPEC-0054 | Corte de exposição por rodada com retirada automática | full/M | approved | ⛔ aguarda implementação de SPEC-0053 |  |
-| 6 | SPEC-0012 | Hospedagem e deploy (staging e produção) | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0059; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3 |
-| 7 | SPEC-0039 | Backoffice: catálogo e limites por operador | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 5: arquivos em comum com SPEC-0037; saiu da onda 6: arquivos em comum com SPEC-0038 |
-| 7 | SPEC-0055 | Aviso de limite da rodada e regras na Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0054 |  |
-| 7 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 6: arquivos em comum com SPEC-0054 |
-| 8 | SPEC-0040 | Backoffice: rodadas e auditoria provably fair | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 5: arquivos em comum com SPEC-0037; saiu da onda 6: arquivos em comum com SPEC-0038; saiu da onda 7: arquivos em comum com SPEC-0039 |
-| 8 | SPEC-0062 | Abas de apostas: robustez e testes | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0029; saiu da onda 4: arquivos em comum com SPEC-0036; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: arquivos em comum com SPEC-0055 |
-| 8 | SPEC-0063 | Cassino demo: robustez do lobby e da página do jogo | full/M | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3; saiu da onda 7: max_parallel=3 |
-| 9 | SPEC-0041 | Backoffice: busca de apostas | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 5: arquivos em comum com SPEC-0037; saiu da onda 6: arquivos em comum com SPEC-0038; saiu da onda 7: arquivos em comum com SPEC-0039; saiu da onda 8: arquivos em comum com SPEC-0040 |
-| 10 | SPEC-0042 | Backoffice: relatórios e fechamento mensal | full/M | approved | ⛔ aguarda implementação de SPEC-0036; aguarda implementação de SPEC-0038; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 7: arquivos em comum com SPEC-0039; saiu da onda 8: arquivos em comum com SPEC-0040; saiu da onda 9: arquivos em comum com SPEC-0041 |
-| 11 | SPEC-0048 | Capacidade do cash-out em rajada na infraestrutura real | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 6: arquivos em comum com SPEC-0054; saiu da onda 7: arquivos em comum com SPEC-0056; saiu da onda 8: arquivos em comum com SPEC-0040; saiu da onda 9: arquivos em comum com SPEC-0041; saiu da onda 10: arquivos em comum com SPEC-0042 |
+| 3 | SPEC-0014 | Endurecimento do mascaramento de logs e health checks | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0065 |
+| 3 | SPEC-0015 | Proteção da branch main no GitHub | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: arquivos em comum com SPEC-0065 |
+| 3 | SPEC-0028 | Endurecimento da API de operadores | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: arquivos em comum com SPEC-0065 |
+| 4 | SPEC-0017 | Endurecimento dos testes e da CI da onda 3 | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: arquivos em comum com SPEC-0015 |
+| 4 | SPEC-0029 | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0062, SPEC-0064; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3 |
+| 4 | SPEC-0032 | Pool de conexões limitado no Fairness e no Operators | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: arquivos em comum com SPEC-0028 |
+| 5 | SPEC-0030 | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017, SPEC-0029 |
+| 5 | SPEC-0033 | Acabamento técnico da cena da Pipa | lite/S | approved | ✅ pronta | saiu da onda 1: max_parallel=3; saiu da onda 2: max_parallel=3; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029 |
+| 5 | SPEC-0036 | Backoffice: shell, login, papéis e trilha de auditoria | full/M | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0062; saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: max_parallel=3; saiu da onda 4: arquivos em comum com SPEC-0029 |
+| 6 | SPEC-0037 | Backoffice: painel de desempenho | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec |  |
+| 6 | SPEC-0053 | Teto de ganho por rodada nos limites do operador | full/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: arquivos em comum com SPEC-0028; saiu da onda 4: arquivos em comum com SPEC-0032; saiu da onda 5: max_parallel=3 |
+| 6 | SPEC-0057 | G2 roda os testes afetados uma vez só | lite/S | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: arquivos em comum com SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017; saiu da onda 5: max_parallel=3 |
+| 7 | SPEC-0038 | Backoffice: operadores, chaves e comissão | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 6: arquivos em comum com SPEC-0037 |
+| 7 | SPEC-0054 | Corte de exposição por rodada com retirada automática | full/M | approved | ⛔ aguarda implementação de SPEC-0053 |  |
+| 7 | SPEC-0063 | Cassino demo: robustez do lobby e da página do jogo | full/M | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: max_parallel=3; saiu da onda 3: arquivos em comum com SPEC-0028; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: max_parallel=3 |
+| 8 | SPEC-0039 | Backoffice: catálogo e limites por operador | full/M | approved | ⛔ aguarda implementação de SPEC-0036 | saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0038 |
+| 8 | SPEC-0055 | Aviso de limite da rodada e regras na Pipa | lite/S | approved | ⛔ aguarda implementação de SPEC-0054 |  |
+| 8 | SPEC-0056 | Apostas ao vivo com várias instâncias | full/M | approved | ✅ pronta | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 7: arquivos em comum com SPEC-0054 |
+| 9 | SPEC-0040 | Backoffice: rodadas e auditoria provably fair | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0038; saiu da onda 8: arquivos em comum com SPEC-0039 |
+| 9 | SPEC-0067 | Deploy pelo GitHub Actions na VPS com aprovação e chave restrita | lite/S | approved | ⛔ aguarda implementação de SPEC-0066 | saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: arquivos em comum com SPEC-0015; saiu da onda 4: arquivos em comum com SPEC-0017; saiu da onda 5: max_parallel=3; saiu da onda 6: arquivos em comum com SPEC-0057; saiu da onda 7: max_parallel=3; saiu da onda 8: max_parallel=3 |
+| 10 | SPEC-0041 | Backoffice: busca de apostas | full/M | approved | ⛔ aguarda implementação de SPEC-0036; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 6: arquivos em comum com SPEC-0037; saiu da onda 7: arquivos em comum com SPEC-0038; saiu da onda 8: arquivos em comum com SPEC-0039; saiu da onda 9: arquivos em comum com SPEC-0040 |
+| 11 | SPEC-0042 | Backoffice: relatórios e fechamento mensal | full/M | approved | ⛔ aguarda implementação de SPEC-0036; aguarda implementação de SPEC-0038; contrato de SPEC-0024 mudou (v1 → v2): revisar spec | saiu da onda 8: arquivos em comum com SPEC-0039; saiu da onda 9: arquivos em comum com SPEC-0040; saiu da onda 10: arquivos em comum com SPEC-0041 |
+| 12 | SPEC-0048 | Capacidade do cash-out em rajada na infraestrutura real | lite/S | proposed | ⏳ aguardando aprovação (H1) | saiu da onda 1: arquivos em comum com SPEC-0064; saiu da onda 2: arquivos em comum com SPEC-0065; saiu da onda 3: max_parallel=3; saiu da onda 4: max_parallel=3; saiu da onda 5: max_parallel=3; saiu da onda 6: arquivos em comum com SPEC-0037, SPEC-0053; saiu da onda 7: arquivos em comum com SPEC-0054; saiu da onda 8: arquivos em comum com SPEC-0056; saiu da onda 9: arquivos em comum com SPEC-0040; saiu da onda 10: arquivos em comum com SPEC-0041; saiu da onda 11: arquivos em comum com SPEC-0042 |
 
 ## Épicos
 
 | Épico | Título | Status | Progresso |
 |---|---|---|---|
-| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 15/19 implementadas |
+| SPEC-0001 | Fundação da plataforma Apogeu Games | approved | 15/18 implementadas |
+| SPEC-0012 | Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io) | in-progress | 0/3 implementadas |
 | SPEC-0019 | Apostas e cash-out em demo | approved | 10/15 implementadas |
 | SPEC-0034 | Backoffice B2B da Apogeu | approved | 0/7 implementadas |
 | SPEC-0035 | Site demo de cassino | approved | 6/6 implementadas |
-| SPEC-0061 | Melhorias pós-jornada do jogador | proposed | 0/2 implementadas |
+| SPEC-0061 | Melhorias pós-jornada do jogador | in-progress | 0/3 implementadas |
 
 ## Grafo de Dependências
 
@@ -95,7 +98,6 @@ Seta contínua: depende da implementação. Seta tracejada: consome contrato.
 
 ```mermaid
 flowchart LR
-  S0012["SPEC-0012<br/>Hospedagem e deploy (staging e produção)"]:::proposed
   S0013["SPEC-0013<br/>Robustez do hook format-staged e overri…"]:::approved
   S0014["SPEC-0014<br/>Endurecimento do mascaramento de logs e…"]:::approved
   S0027["SPEC-0027<br/>Regras de arquitetura robustas a tipos …"]:::approved
@@ -107,13 +109,16 @@ flowchart LR
   subgraph E0001["SPEC-0001 · Fundação da plataforma Apogeu Games"]
     S0004["SPEC-0004<br/>Pipeline de CI no GitHub Actions"]:::implemented
     S0009["SPEC-0009<br/>Segurança base: lançamento demo, sessão…"]:::implemented
-    S0010["SPEC-0010<br/>Pipa demo: esqueleto andante do cliente"]:::implemented
     S0011["SPEC-0011<br/>Animação da cena da Pipa"]:::implemented
     S0015["SPEC-0015<br/>Proteção da branch main no GitHub"]:::approved
     S0017["SPEC-0017<br/>Endurecimento dos testes e da CI da ond…"]:::approved
     S0051["SPEC-0051<br/>Gates locais só com os testes afetados …"]:::implemented
     S0057["SPEC-0057<br/>G2 roda os testes afetados uma vez só"]:::approved
-    S0059["SPEC-0059<br/>CI em runner configurável (self-hosted …"]:::inprogress
+  end
+  subgraph E0012["SPEC-0012 · Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io)"]
+    S0065["SPEC-0065<br/>Publicação do AppHost para Docker Compo…"]:::inprogress
+    S0066["SPEC-0066<br/>Deploy na VPS com HTTPS, backup e rollb…"]:::inprogress
+    S0067["SPEC-0067<br/>Deploy pelo GitHub Actions na VPS com a…"]:::approved
   end
   subgraph E0019["SPEC-0019 · Apostas e cash-out em demo"]
     S0020["SPEC-0020<br/>Catálogo de jogos e limites por operado…"]:::implemented
@@ -142,14 +147,10 @@ flowchart LR
     S0047["SPEC-0047<br/>Cassino demo: carteira própria (seamles…"]:::implemented
   end
   subgraph E0061["SPEC-0061 · Melhorias pós-jornada do jogador"]
-    S0062["SPEC-0062<br/>Abas de apostas: robustez e testes"]:::proposed
-    S0063["SPEC-0063<br/>Cassino demo: robustez do lobby e da pá…"]:::proposed
+    S0062["SPEC-0062<br/>Abas de apostas: robustez e testes"]:::inprogress
+    S0063["SPEC-0063<br/>Cassino demo: robustez do lobby e da pá…"]:::approved
+    S0064["SPEC-0064<br/>Robustez dos testes intermitentes"]:::inprogress
   end
-  S0009 -. contrato v1 .-> S0010
-  S0010 --> S0011
-  S0010 -. contrato v1 .-> S0011
-  S0004 --> S0012
-  S0010 --> S0012
   S0004 --> S0015
   S0009 --> S0020
   S0009 --> S0021
@@ -161,6 +162,7 @@ flowchart LR
   S0021 -. contrato v4 .-> S0024
   S0024 --> S0025
   S0021 -. contrato v4 .-> S0025
+  S0047 --> S0028
   S0025 --> S0031
   S0025 -. contrato v4 .-> S0031
   S0011 --> S0033
@@ -203,6 +205,11 @@ flowchart LR
   S0047 --> S0063
   S0009 -. contrato v1 .-> S0063
   S0020 -. contrato v3 .-> S0063
+  S0047 --> S0064
+  S0047 --> S0065
+  S0047 --> S0066
+  S0065 -. contrato v3 .-> S0066
+  S0066 --> S0067
   classDef proposed fill:#fef3c7,stroke:#d97706,color:#111
   classDef approved fill:#dbeafe,stroke:#2563eb,color:#111
   classDef inprogress fill:#ede9fe,stroke:#7c3aed,color:#111
@@ -225,7 +232,7 @@ flowchart LR
 | [SPEC-0009](SPEC-0009-seguranca-base.md) | Segurança base: lançamento demo, sessão do jogador e acesso | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0003, SPEC-0005 | — |
 | [SPEC-0010](SPEC-0010-pipa-esqueleto.md) | Pipa demo: esqueleto andante do cliente | full | foundation | implemented | 2026-10-07 | SPEC-0001 | SPEC-0005, SPEC-0006 | SPEC-0007@2, SPEC-0008@3, SPEC-0009@1 |
 | [SPEC-0011](SPEC-0011-animacao-pipa.md) | Animação da cena da Pipa | full | feature | implemented | 2026-10-07 | SPEC-0001 | SPEC-0010 | SPEC-0010@1 |
-| [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem e deploy (staging e produção) | full | foundation | proposed | 2026-10-07 | — | SPEC-0004, SPEC-0010 | — |
+| [SPEC-0012](SPEC-0012-hospedagem-deploy.md) | Hospedagem na VPS (Aspire, Docker Compose, Caddy e sslip.io) | epic | foundation | in-progress | 2026-10-07 | — | SPEC-0004, SPEC-0047 | — |
 | [SPEC-0013](SPEC-0013-debitos-ferramentas-locais.md) | Robustez do hook format-staged e override de peer do jsx-a11y | lite | fix | approved | 2026-10-08 | — | — | — |
 | [SPEC-0014](SPEC-0014-endurecimento-observabilidade.md) | Endurecimento do mascaramento de logs e health checks | lite | fix | approved | 2026-10-08 | — | — | — |
 | [SPEC-0015](SPEC-0015-protecao-da-branch-main-no-github.md) | Proteção da branch main no GitHub | lite | feature | approved | 2026-10-08 | SPEC-0001 | SPEC-0004 | — |
@@ -241,7 +248,7 @@ flowchart LR
 | [SPEC-0025](SPEC-0025-apostas-ao-vivo.md) | Apostas ao vivo e histórico pessoal | full | feature | implemented | 2026-10-07 | SPEC-0019 | SPEC-0024 | SPEC-0021@4 |
 | [SPEC-0026](SPEC-0026-painel-aposta-pipa.md) | Painel de aposta da Pipa | full | feature | implemented | 2026-10-07 | SPEC-0019 | SPEC-0010, SPEC-0024 | SPEC-0020@3, SPEC-0021@4, SPEC-0022@3, SPEC-0023@3, SPEC-0024@2, SPEC-0025@4 |
 | [SPEC-0027](SPEC-0027-regras-arquitetura-onda4.md) | Regras de arquitetura robustas a tipos gerados e regra do hub sem regra de negócio | lite | fix | approved | 2026-10-09 | — | — | — |
-| [SPEC-0028](SPEC-0028-endurecimento-api-operadores.md) | Endurecimento da API de operadores | lite | fix | approved | 2026-10-09 | — | — | — |
+| [SPEC-0028](SPEC-0028-endurecimento-api-operadores.md) | Endurecimento da API de operadores | lite | fix | approved | 2026-10-09 | — | SPEC-0047 | — |
 | [SPEC-0029](SPEC-0029-verificador-ligado-compromisso.md) | Verificador da Pipa ligado ao compromisso exibido ao vivo | lite | fix | approved | 2026-10-09 | — | — | — |
 | [SPEC-0030](SPEC-0030-medicao-desempenho-pipa.md) | Medição de desempenho do cliente Pipa (Lighthouse mobile e 60 fps) | lite | fix | approved | 2026-10-09 | — | — | — |
 | [SPEC-0031](SPEC-0031-abas-apostas-pipa.md) | Abas de apostas da Pipa | lite | feature | implemented | 2026-10-09 | SPEC-0019 | SPEC-0025, SPEC-0026 | SPEC-0025@4 |
@@ -272,11 +279,15 @@ flowchart LR
 | [SPEC-0056](SPEC-0056-apostas-ao-vivo-com-varias-instancias.md) | Apostas ao vivo com várias instâncias | full | feature | approved | 2026-10-13 | SPEC-0019 | SPEC-0025 | SPEC-0025@4, SPEC-0023@3 |
 | [SPEC-0057](SPEC-0057-g2-roda-os-testes-afetados-uma-vez-so.md) | G2 roda os testes afetados uma vez só | lite | refactor | approved | 2026-10-14 | SPEC-0001 | SPEC-0051 | — |
 | [SPEC-0058](SPEC-0058-atualizar-asp-net-core-para-10-0-13-cve-2026-70159.md) | Atualizar ASP.NET Core para 10.0.13 (CVE-2026-70159) | lite | fix | implemented | 2026-10-14 | SPEC-0001 | — | — |
-| [SPEC-0059](SPEC-0059-ci-em-runner-configuravel-self-hosted-na-vm.md) | CI em runner configurável (self-hosted na VM) | lite | fix | in-progress | 2026-10-15 | SPEC-0001 | — | — |
+| [SPEC-0059](SPEC-0059-ci-em-runner-configuravel-self-hosted-na-vm.md) | CI em runner configurável (self-hosted na VM) | lite | fix | deprecated | 2026-10-15 | SPEC-0001 | — | — |
 | [SPEC-0060](SPEC-0060-ci-roda-os-testes-do-cassino-demo.md) | CI roda os testes do cassino demo | lite | fix | implemented | 2026-10-15 | SPEC-0035 | SPEC-0004, SPEC-0043 | — |
-| [SPEC-0061](SPEC-0061-melhorias-pos-jornada-do-jogador.md) | Melhorias pós-jornada do jogador | epic | feature | proposed | 2026-10-15 | — | SPEC-0047 | — |
-| [SPEC-0062](SPEC-0062-abas-de-apostas-robustez-e-testes.md) | Abas de apostas: robustez e testes | lite | fix | proposed | 2026-10-15 | SPEC-0061 | SPEC-0031 | — |
-| [SPEC-0063](SPEC-0063-cassino-demo-robustez-do-lobby-e-da-pagina-do-jogo.md) | Cassino demo: robustez do lobby e da página do jogo | full | fix | proposed | 2026-10-15 | SPEC-0061 | SPEC-0045, SPEC-0047 | SPEC-0009@1, SPEC-0020@3 |
+| [SPEC-0061](SPEC-0061-melhorias-pos-jornada-do-jogador.md) | Melhorias pós-jornada do jogador | epic | feature | in-progress | 2026-10-15 | — | SPEC-0047 | — |
+| [SPEC-0062](SPEC-0062-abas-de-apostas-robustez-e-testes.md) | Abas de apostas: robustez e testes | lite | fix | in-progress | 2026-10-15 | SPEC-0061 | SPEC-0031 | — |
+| [SPEC-0063](SPEC-0063-cassino-demo-robustez-do-lobby-e-da-pagina-do-jogo.md) | Cassino demo: robustez do lobby e da página do jogo | full | fix | approved | 2026-10-15 | SPEC-0061 | SPEC-0045, SPEC-0047 | SPEC-0009@1, SPEC-0020@3 |
+| [SPEC-0064](SPEC-0064-robustez-dos-testes-intermitentes.md) | Robustez dos testes intermitentes | lite | fix | in-progress | 2026-10-15 | SPEC-0061 | SPEC-0047 | — |
+| [SPEC-0065](SPEC-0065-publicacao-do-apphost-para-docker-compose-em-producao.md) | Publicação do AppHost para Docker Compose em produção | full | foundation | in-progress | 2026-10-15 | SPEC-0012 | SPEC-0047 | — |
+| [SPEC-0066](SPEC-0066-deploy-na-vps-com-https-backup-e-rollback.md) | Deploy na VPS com HTTPS, backup e rollback | full | foundation | in-progress | 2026-10-15 | SPEC-0012 | SPEC-0047 | SPEC-0065@3 |
+| [SPEC-0067](SPEC-0067-deploy-pelo-github-actions-na-vps.md) | Deploy pelo GitHub Actions na VPS com aprovação e chave restrita | lite | feature | approved | 2026-10-15 | SPEC-0012 | SPEC-0066 | — |
 
 ## ADRs
 
@@ -310,3 +321,4 @@ flowchart LR
 | [ADR-0026](../adr/ADR-0026-papeis-escopo-de-dados-e-trilha-de-auditoria-do-backoffice.md) | Papéis, escopo de dados e trilha de auditoria do backoffice | accepted | Teste de arquitetura: todo endpoint /api/backoffice/* declara política de papel; IT por tela provando que usuário de operador só vê o próprio operador; trigger que recusa UPDATE/DELETE na trilha de auditoria |
 | [ADR-0027](../adr/ADR-0027-cassino-demo-como-operador-externo.md) | Cassino demo como operador externo | accepted | Teste de arquitetura: o projeto do cassino demo não referencia nenhum projeto da Apogeu (só HTTP); teste de build: nenhum segredo HMAC no bundle do navegador |
 | [ADR-0028](../adr/ADR-0028-operacao-do-wolverine-geracao-de-codigo-ciclo-de-vida-e-arma.md) | Operação do Wolverine: geração de código, ciclo de vida e armazenamento | accepted | CI roda `codegen write` e falha se `git diff --exit-code` em Host/Internal/Generated acusar diferença (código gerado atualizado); teste de arquitetura: só o Host configura o Wolverine e nenhum módulo para/inicia seus hosted services; IT de arranque com banco indisponível |
+| [ADR-0029](../adr/ADR-0029-hospedagem-na-vps-com-aspire-docker-compose-caddy-e-sslip-io.md) | Hospedagem na VPS com Aspire, Docker Compose, Caddy e sslip.io | accepted | `tools/deploy/` (deploy e rollback na VPS), teste do compose publicado (SPEC-0065) e smoke do deploy (SPEC-0066); revisão no G4 |

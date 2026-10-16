@@ -4,7 +4,7 @@ title: CI em runner configurável (self-hosted na VM)
 tier: lite
 type: fix
 user_facing: "false"
-status: in-progress
+status: deprecated
 created: 2026-10-15
 parent: SPEC-0001
 depends_on: []
@@ -18,6 +18,8 @@ approved_at: 2026-10-15
 ---
 
 # SPEC-0059 — CI em runner configurável (self-hosted na VM)
+
+> Deprecated: arquivada por thomas em 2026-10-15 ("pode arquivar"). Com o repositório público a CI roda nos runners do GitHub de graça; um runner self-hosted na VM só volta a fazer sentido se o repositório ficar privado de novo. O trabalho parado está no branch `sdd/SPEC-0059-runner-configuravel` (red d1de362), para retomar se for preciso.
 
 <!-- Tier lite: bug fix ou mudança pequena, um módulo, sem mudança de contrato público, tamanho S. type: fix | feature | refactor. user_facing: true se o defeito aparece numa jornada do usuário (o teste de regressão deveria ser E2E). Se qualquer condição falhar, use o tier full. Substitua todos os marcadores com chaves duplas. -->
 

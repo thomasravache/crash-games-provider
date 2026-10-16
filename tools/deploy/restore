@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Restore of a backup of tools/deploy/backup (SPEC-0066, ADR-0018). Runbook: docs/runbooks/deploy-vps.md.
+#
+# Usage: tools/deploy/restore <dump>
+#
+# Loads the keys archive beside the dump (apogeu-keys-<stamp>.tar.gz of tools/deploy/backup) into the Data Protection
+# keys volume, replacing its files with the owners (1654, the api user) and modes of the archive, and then, only if
+# that worked (Emenda v5), the dump into the database apogeu of the PostgreSQL container (created when it does not
+# exist), replacing the objects of the dump (pg_restore --clean --if-exists) in one transaction.
+# Refused before anything changes (without the keys the unrevealed seeds are unreadable): a dump without its keys
+# archive (Emenda v3), a keys archive that is corrupted, truncated or holds no key file (Emendas v4 and v5), and a dump
+# that does not read through to its end (Emenda v6). Order: check the keys archive and the dump, import the keys, load
+# the database.
+# In production: take a backup first (tools/deploy/backup) and stop the api (docker compose -p apogeu stop api
+# demo-casino) so nothing writes during the restore; see the runbook.
+# Environment: APOGEU_POSTGRES_CONTAINER (default: the postgres service of the compose project), APOGEU_KEYS_VOLUME
+# (default <project>_dataprotection-keys), APOGEU_POSTGRES_USER.
+set -euo pipefail
+
+script_name="restore"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/deploy/lib.sh
+source "$script_dir/lib.sh"
+# shellcheck source=tools/deploy/postgres.sh
+source "$script_dir/postgres.sh"
+
+[[ $# -eq 1 ]] || { sed -n '4p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+dump="$1"
+[[ -s "$dump" ]] || die "$dump is not a dump file"
+keys_file="$(keys_archive_of "$dump")"
+[[ -s "$keys_file" ]] || die "no keys archive $(basename "$keys_file") beside the dump: refusing to restore the database without its Data Protection keys"
+keys_archive_valid "$keys_file" ||
+  die "the keys archive $(basename "$keys_file") is corrupted, truncated or holds no key: nothing was restored"
+require_keys_volume
+container="$(postgres_container)"
+dump_valid "$container" "$dump" ||
+  die "the dump $(basename "$dump") is corrupted or truncated: nothing was restored"
+
+# The keys first (Emenda v5): if they cannot be written, the database is left as it is.
+log "restoring the keys $(basename "$keys_file") into the volume $keys_volume"
+keys_import <"$keys_file" || die "the keys could not be written to the volume $keys_volume: the database was not touched"
+
+exists="$(pg_exec "$container" psql --username "$postgres_user" --dbname postgres --tuples-only --no-align \
+  --command "SELECT 1 FROM pg_database WHERE datname = '$database'")"
+if [[ "$exists" != 1 ]]; then
+  log "creating the database $database"
+  pg_exec "$container" createdb --username "$postgres_user" "$database"
+fi
+
+log "restoring $(basename "$dump") into $database"
+pg_exec "$container" pg_restore --username "$postgres_user" --dbname "$database" \
+  --clean --if-exists --no-owner --no-privileges --single-transaction --exit-on-error <"$dump"
+log "restore finished"

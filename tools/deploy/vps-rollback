@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Rollback of the VPS deployment in one step (SPEC-0066, ADR-0013). Runbook: docs/runbooks/deploy-vps.md.
+#
+# Usage: tools/deploy/vps-rollback
+#
+# Brings the previous version back on the air with its own images and compose (kept by vps-deploy under
+# $APOGEU_DEPLOY_DIR/releases; no rebuild), waits for the health and runs the smoke. The version it leaves becomes the
+# previous one, so a second rollback goes forward again. Database migrations are not undone: they are compatible with
+# the previous version (ADR-0013); a restore of a backup is a separate decision (tools/deploy/restore).
+# Configuration: the same environment as vps-deploy (tools/deploy/lib.sh).
+set -euo pipefail
+
+script_name="vps-rollback"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=tools/deploy/lib.sh
+source "$script_dir/lib.sh"
+
+[[ $# -eq 0 ]] || { sed -n '3,5p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+[[ -f "$env_file" ]] || die "no deployment in $APOGEU_DEPLOY_DIR (no .env)"
+take_lock
+
+current="$(read_state current)"
+previous="$(read_state previous)"
+[[ -n "$previous" ]] || die "no previous version to go back to"
+[[ -f "$releases_dir/$previous/release.env" ]] || die "the files of version $previous are gone from $releases_dir"
+
+log "rolling back from ${current:-nothing} to $previous"
+if up_release "$previous" && run_smoke; then
+  write_state current "$previous"
+  if [[ -n "$current" ]]; then
+    write_state previous "$current"
+  fi
+  log "version $previous on the air"
+  report_memory
+  exit 0
+fi
+
+log "version $previous failed the health or the smoke"
+if [[ -n "$current" && -d "$releases_dir/$current" ]]; then
+  log "going back to version $current"
+  if up_release "$current" && run_smoke; then
+    log "version $current back on the air"
+  else
+    log "version $current did not come back healthy: check 'docker compose -p $APOGEU_COMPOSE_PROJECT ps'"
+  fi
+fi
+exit 1
