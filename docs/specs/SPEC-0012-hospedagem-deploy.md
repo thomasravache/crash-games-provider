@@ -88,6 +88,7 @@ Uma aprovação humana cobre o épico e as specs filhas apresentadas junto com e
 <!-- Problemas que envolvem várias filhas (conflito de integração da onda, CI quebrado, decisão transversal). Impedimento que trava uma filha específica vai na própria filha. -->
 | ID | Aberto em | Fase/Gate | Tipo | Descrição | Tentativas | Responsável | Resolução | Fechado em |
 |---|---|---|---|---|---|---|---|---|
+| IMP-01 | 2026-10-15 | G5 | falha | CI do PR #40 (run 38828060281) com o job backend vermelho em 3 tentativas seguidas, cada vez por testes de tempo já conhecidos e sem relação com o deploy: LateDebitReusedClientBetIdTests; SeamlessCreditRetryTests (2x); MultiInstanceCashOutTests (líder impedido). Todo o resto verde: Deploy.Tests 22/22, e2e, security, sdd, contracts | 3 reruns do job backend; SeamlessCreditRetryTests passa 2/2 isolado no código integrado com a VM livre (22:00); os mesmos testes já falharam na main e em branches sem as mudanças da onda (SPEC-0064 os lista) | thomas |  |  |
 
 ## 11. Relatório de Entrega
 <!-- Preenchido ao fechar o épico: o que foi entregue, como (ondas e deploys com versão/data), resultado dos critérios de aceite com os testes que os provam, métricas pós-release, pendências como novas specs. `spec_graph.py report SPEC-0012` ajuda a montar. -->
