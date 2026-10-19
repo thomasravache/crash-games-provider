@@ -4,13 +4,13 @@ packages:
 
 # Versions shared by more than one workspace project (ADR-0004, ADR-0016). Verified on the npm registry on 2026-10-08.
 catalog:
-  react: 19.3.0
-  react-dom: 19.3.0
+  react: 19.3.1
+  react-dom: 19.3.1
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   "@vitejs/plugin-react": 6.1.2
   typescript: 6.0.3
-  vite: 8.3.3
+  vite: 8.3.4
 
 # eslint-plugin-jsx-a11y 6.10.2 (latest) declares eslint <= 9 but works with ESLint 10 (checked by the lint test, IT-04).
 peerDependencyRules:
