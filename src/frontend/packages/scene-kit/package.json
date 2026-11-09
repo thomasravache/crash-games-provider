@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@apogeu/game-sdk": "workspace:*",
-    "gsap": "3.15.0",
+    "gsap": "3.15.1",
     "pixi-filters": "6.1.5",
-    "pixi.js": "8.21.0"
+    "pixi.js": "8.22.0"
   },
   "devDependencies": {
     "typescript": "catalog:"
