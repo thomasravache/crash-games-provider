@@ -45,7 +45,7 @@
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.48.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <!-- Build-time OpenAPI document (ADR-0008, SPEC-0006): companion of Microsoft.AspNetCore.OpenApi, MIT; verified on nuget.org on 2026-10-08. -->
-    <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="11.0.0" />
   </ItemGroup>
 
   <!-- Data: PostgreSQL and Redis (ADR-0010, ADR-0005) -->
